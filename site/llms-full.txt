@@ -1,0 +1,476 @@
+# eCards
+
+> eCards sells digital gift cards (Netflix, PlayStation, Xbox, Steam, Apple, Google Play, Spotify, PUBG Mobile, Razer Gold, Call of Duty) to customers in Ethiopia. Prices are in Birr with 15% VAT included, payment is by M-Pesa, and codes are delivered by SMS or email.
+
+Each gift card page lists every card value with its price in Birr, the VAT amount and whether it is in stock. Markdown versions of the pages are linked below; the catalog JSON has the same data in one file.
+
+## Key facts
+
+- Prices are in Ethiopian Birr (ETB) and include 15% VAT. 1 US dollar of card value = Br 265.
+- Payment: M-Pesa only. The customer approves the payment on their phone with their PIN.
+- Delivery: the code shows on screen and in My orders, and is sent by SMS or email, usually within seconds. Out-of-stock cards can be pre-ordered.
+- All sales are final: gift card codes can’t be refunded once delivered.
+- The store is available in English, Amharic, Afaan Oromo, Somali and Tigrinya, and inside the M-Pesa app.
+
+# Netflix gift card
+
+> Buy a Netflix gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/netflix-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## Netflix gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/netflix-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | In stock |
+| [$100](https://ecards.example.com/netflix-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | Pre-order (Expected by 2026-10-20) |
+| [$150](https://ecards.example.com/netflix-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | In stock |
+| [$200](https://ecards.example.com/netflix-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | In stock |
+
+## How to use your Netflix code
+
+1. Open Netflix on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## Netflix gift card questions
+
+### How much is a Netflix gift card in Ethiopia?
+
+A Netflix gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my Netflix code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a Netflix gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a Netflix code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# Steam gift card
+
+> Buy a Steam gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/steam-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## Steam gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/steam-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | In stock |
+| [$100](https://ecards.example.com/steam-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | Pre-order (Expected by 2026-10-20) |
+| [$150](https://ecards.example.com/steam-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | In stock |
+| [$200](https://ecards.example.com/steam-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | In stock |
+
+## How to use your Steam code
+
+1. Open Steam on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## Steam gift card questions
+
+### How much is a Steam gift card in Ethiopia?
+
+A Steam gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my Steam code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a Steam gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a Steam code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# XBOX gift card
+
+> Buy a XBOX gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/xbox-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## XBOX gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/xbox-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | In stock |
+| [$100](https://ecards.example.com/xbox-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | In stock |
+| [$150](https://ecards.example.com/xbox-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | In stock |
+| [$200](https://ecards.example.com/xbox-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | In stock |
+
+## How to use your XBOX code
+
+1. Open XBOX on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## XBOX gift card questions
+
+### How much is a XBOX gift card in Ethiopia?
+
+A XBOX gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my XBOX code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a XBOX gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a XBOX code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# PlayStation gift card
+
+> Buy a PlayStation gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/playstation-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## PlayStation gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/playstation-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | Pre-order (Expected by 2026-10-19) |
+| [$100](https://ecards.example.com/playstation-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | In stock |
+| [$150](https://ecards.example.com/playstation-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | In stock |
+| [$200](https://ecards.example.com/playstation-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | In stock |
+
+## How to use your PlayStation code
+
+1. Open PlayStation on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## PlayStation gift card questions
+
+### How much is a PlayStation gift card in Ethiopia?
+
+A PlayStation gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my PlayStation code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a PlayStation gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a PlayStation code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# Apple & iTunes gift card
+
+> Buy a Apple & iTunes gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/apple-itunes-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## Apple & iTunes gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/apple-itunes-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | In stock |
+| [$100](https://ecards.example.com/apple-itunes-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | In stock |
+| [$150](https://ecards.example.com/apple-itunes-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | In stock |
+| [$200](https://ecards.example.com/apple-itunes-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | Pre-order (Expected by 2026-10-22) |
+
+## How to use your Apple code
+
+1. Open Apple on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## Apple & iTunes gift card questions
+
+### How much is a Apple & iTunes gift card in Ethiopia?
+
+A Apple & iTunes gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my Apple & iTunes code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a Apple & iTunes gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a Apple & iTunes code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# Spotify gift card
+
+> Buy a Spotify gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/spotify-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## Spotify gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/spotify-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | In stock |
+| [$100](https://ecards.example.com/spotify-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | In stock |
+| [$150](https://ecards.example.com/spotify-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | Pre-order (Expected by 2026-10-21) |
+| [$200](https://ecards.example.com/spotify-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | In stock |
+
+## How to use your Spotify code
+
+1. Open Spotify on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## Spotify gift card questions
+
+### How much is a Spotify gift card in Ethiopia?
+
+A Spotify gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my Spotify code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a Spotify gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a Spotify code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# Google Play gift card
+
+> Buy a Google Play gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/google-play-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## Google Play gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/google-play-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | In stock |
+| [$100](https://ecards.example.com/google-play-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | In stock |
+| [$150](https://ecards.example.com/google-play-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | Pre-order (Expected by 2026-10-23) |
+| [$200](https://ecards.example.com/google-play-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | In stock |
+
+## How to use your Google Play code
+
+1. Open Google Play on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## Google Play gift card questions
+
+### How much is a Google Play gift card in Ethiopia?
+
+A Google Play gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my Google Play code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a Google Play gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a Google Play code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# PUBG Mobile gift card
+
+> Buy a PUBG Mobile gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/pubg-mobile-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## PUBG Mobile gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/pubg-mobile-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | Pre-order (Expected by 2026-10-20) |
+| [$100](https://ecards.example.com/pubg-mobile-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | Pre-order (Expected by 2026-10-20) |
+| [$150](https://ecards.example.com/pubg-mobile-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | Pre-order (Expected by 2026-10-20) |
+| [$200](https://ecards.example.com/pubg-mobile-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | Pre-order (Expected by 2026-10-20) |
+
+## How to use your PUBG code
+
+1. Open PUBG on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## PUBG Mobile gift card questions
+
+### How much is a PUBG Mobile gift card in Ethiopia?
+
+A PUBG Mobile gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my PUBG Mobile code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a PUBG Mobile gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a PUBG Mobile code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# Razer Gold gift card
+
+> Buy a Razer Gold gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/razer-gold-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## Razer Gold gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/razer-gold-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | In stock |
+| [$100](https://ecards.example.com/razer-gold-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | In stock |
+| [$150](https://ecards.example.com/razer-gold-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | In stock |
+| [$200](https://ecards.example.com/razer-gold-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | In stock |
+
+## How to use your Razer Gold code
+
+1. Open Razer Gold on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## Razer Gold gift card questions
+
+### How much is a Razer Gold gift card in Ethiopia?
+
+A Razer Gold gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my Razer Gold code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a Razer Gold gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a Razer Gold code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# Call of Duty gift card
+
+> Buy a Call of Duty gift card in Ethiopia from Br 13,250.00 ($50–$200). Pay with M-Pesa, VAT included, code delivered by SMS or email in seconds.
+
+URL: https://ecards.example.com/call-of-duty-gift-card/
+Prices updated 2026-10-19. 1 US dollar = Br 265.
+
+## Call of Duty gift card prices in Birr
+
+| Card value | Price (Birr) | VAT included | Availability |
+|---|---|---|---|
+| [$50](https://ecards.example.com/call-of-duty-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | In stock |
+| [$100](https://ecards.example.com/call-of-duty-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | In stock |
+| [$150](https://ecards.example.com/call-of-duty-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | In stock |
+| [$200](https://ecards.example.com/call-of-duty-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | In stock |
+
+## How to use your Call of Duty code
+
+1. Open Call of Duty on your phone, console or computer and sign in to your account.
+2. Go to the place for gift cards or codes (often called Redeem, Add funds or Gift card).
+3. Type in the code exactly as shown. The value is added to your balance straight away.
+
+## Call of Duty gift card questions
+
+### How much is a Call of Duty gift card in Ethiopia?
+
+A Call of Duty gift card costs $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00, including 15% VAT.
+
+### How do I get my Call of Duty code?
+
+Pay with M-Pesa and the code appears on screen and in My orders straight away. We also send it by SMS or email. Cards that are out of stock are sent as soon as they arrive.
+
+### Can I send a Call of Duty gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund on a Call of Duty code?
+
+No. Digital codes can’t be returned or refunded once delivered. If a code doesn’t work, contact eCards support and we will help.
+
+
+# Help
+
+URL: https://ecards.example.com/help/
+
+## Questions and answers
+
+### How fast do I get my code?
+
+Cards in stock are delivered seconds after you approve the M-Pesa payment. The code shows on screen, in My orders, and by SMS or email.
+
+### How do I pay?
+
+With M-Pesa. Enter your M-Pesa number at checkout and approve the payment prompt on your phone with your PIN. We never ask for your PIN on this website.
+
+### What is a pre-order?
+
+When a card is out of stock you can still buy it. You pay now and we send the code automatically when the card arrives. The expected date is shown before you pay.
+
+### Can I send a gift card to someone else?
+
+Yes. At checkout choose SMS or email and enter their phone number or email address. They receive the code directly.
+
+### Can I get a refund?
+
+No. Gift card codes are digital and can’t be returned or refunded once delivered. If a code doesn’t work, contact us and we will help.
+
+### Do I need an account?
+
+You sign in with your phone number and a one-time SMS code. That keeps your orders and codes in one place.
+
+## Terms of service
+
+eCards sells digital gift card codes for use with the brands shown. Prices are in Ethiopian Birr and include 15% VAT. An order is confirmed when M-Pesa confirms your payment.
+
+Codes are for personal use and may not be resold. Each brand’s own terms apply when you redeem a code.
+
+## No-refund policy
+
+All sales are final. Gift card codes can’t be returned, exchanged or refunded once delivered, because a delivered code can be used straight away.
+
+If a code doesn’t work, or a pre-order is late, contact us with your order number and we will make it right.
+
+## Privacy policy
+
+We keep your name, phone number, the email or number you send codes to, and your orders. We use them to deliver your codes and help you. We don’t sell your data.
+
+Payments are handled by M-Pesa; we never see or store your M-Pesa PIN.
+
+## Contact us
+
+- Email: support@example.com
+- Every day, 08:00–22:00

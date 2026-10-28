@@ -1,0 +1,716 @@
+{
+  "name": "eCards",
+  "url": "https://ecards.example.com/",
+  "updated": "2026-10-19T05:48:12.434Z",
+  "currency": "ETB",
+  "vatRate": 0.15,
+  "vatIncluded": true,
+  "birrPerUSD": 265,
+  "payment": [
+    "M-Pesa"
+  ],
+  "delivery": [
+    "SMS",
+    "email"
+  ],
+  "refunds": false,
+  "languages": [
+    "en",
+    "am",
+    "om",
+    "so",
+    "ti"
+  ],
+  "items": [
+    {
+      "id": "netflix-50",
+      "brand": "Netflix",
+      "category": "Streaming",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/netflix-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/netflix-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/netflix-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/netflix-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/netflix-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/netflix-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "netflix-100",
+      "brand": "Netflix",
+      "category": "Streaming",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "preorder",
+      "expected": "2026-10-20",
+      "url": "https://ecards.example.com/netflix-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/netflix-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/netflix-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/netflix-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/netflix-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/netflix-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "netflix-150",
+      "brand": "Netflix",
+      "category": "Streaming",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/netflix-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/netflix-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/netflix-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/netflix-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/netflix-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/netflix-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "netflix-200",
+      "brand": "Netflix",
+      "category": "Streaming",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/netflix-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/netflix-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/netflix-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/netflix-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/netflix-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/netflix-gift-card/200-usd/"
+      }
+    },
+    {
+      "id": "steam-50",
+      "brand": "Steam",
+      "category": "Gaming",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/steam-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/steam-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/steam-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/steam-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/steam-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/steam-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "steam-100",
+      "brand": "Steam",
+      "category": "Gaming",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "preorder",
+      "expected": "2026-10-20",
+      "url": "https://ecards.example.com/steam-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/steam-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/steam-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/steam-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/steam-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/steam-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "steam-150",
+      "brand": "Steam",
+      "category": "Gaming",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/steam-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/steam-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/steam-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/steam-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/steam-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/steam-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "steam-200",
+      "brand": "Steam",
+      "category": "Gaming",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/steam-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/steam-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/steam-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/steam-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/steam-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/steam-gift-card/200-usd/"
+      }
+    },
+    {
+      "id": "xbox-50",
+      "brand": "XBOX",
+      "category": "Gaming",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/xbox-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/xbox-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/xbox-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/xbox-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/xbox-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/xbox-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "xbox-100",
+      "brand": "XBOX",
+      "category": "Gaming",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/xbox-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/xbox-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/xbox-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/xbox-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/xbox-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/xbox-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "xbox-150",
+      "brand": "XBOX",
+      "category": "Gaming",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/xbox-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/xbox-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/xbox-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/xbox-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/xbox-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/xbox-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "xbox-200",
+      "brand": "XBOX",
+      "category": "Gaming",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/xbox-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/xbox-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/xbox-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/xbox-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/xbox-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/xbox-gift-card/200-usd/"
+      }
+    },
+    {
+      "id": "playstation-50",
+      "brand": "PlayStation",
+      "category": "Gaming",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "preorder",
+      "expected": "2026-10-19",
+      "url": "https://ecards.example.com/playstation-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/playstation-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/playstation-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/playstation-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/playstation-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/playstation-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "playstation-100",
+      "brand": "PlayStation",
+      "category": "Gaming",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/playstation-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/playstation-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/playstation-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/playstation-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/playstation-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/playstation-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "playstation-150",
+      "brand": "PlayStation",
+      "category": "Gaming",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/playstation-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/playstation-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/playstation-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/playstation-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/playstation-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/playstation-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "playstation-200",
+      "brand": "PlayStation",
+      "category": "Gaming",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/playstation-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/playstation-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/playstation-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/playstation-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/playstation-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/playstation-gift-card/200-usd/"
+      }
+    },
+    {
+      "id": "apple-50",
+      "brand": "Apple & iTunes",
+      "category": "Apps",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/apple-itunes-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/apple-itunes-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/apple-itunes-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/apple-itunes-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/apple-itunes-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/apple-itunes-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "apple-100",
+      "brand": "Apple & iTunes",
+      "category": "Apps",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/apple-itunes-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/apple-itunes-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/apple-itunes-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/apple-itunes-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/apple-itunes-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/apple-itunes-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "apple-150",
+      "brand": "Apple & iTunes",
+      "category": "Apps",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/apple-itunes-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/apple-itunes-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/apple-itunes-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/apple-itunes-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/apple-itunes-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/apple-itunes-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "apple-200",
+      "brand": "Apple & iTunes",
+      "category": "Apps",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "preorder",
+      "expected": "2026-10-22",
+      "url": "https://ecards.example.com/apple-itunes-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/apple-itunes-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/apple-itunes-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/apple-itunes-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/apple-itunes-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/apple-itunes-gift-card/200-usd/"
+      }
+    },
+    {
+      "id": "spotify-50",
+      "brand": "Spotify",
+      "category": "Music",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/spotify-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/spotify-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/spotify-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/spotify-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/spotify-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/spotify-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "spotify-100",
+      "brand": "Spotify",
+      "category": "Music",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/spotify-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/spotify-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/spotify-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/spotify-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/spotify-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/spotify-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "spotify-150",
+      "brand": "Spotify",
+      "category": "Music",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "preorder",
+      "expected": "2026-10-21",
+      "url": "https://ecards.example.com/spotify-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/spotify-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/spotify-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/spotify-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/spotify-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/spotify-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "spotify-200",
+      "brand": "Spotify",
+      "category": "Music",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/spotify-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/spotify-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/spotify-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/spotify-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/spotify-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/spotify-gift-card/200-usd/"
+      }
+    },
+    {
+      "id": "googleplay-50",
+      "brand": "Google Play",
+      "category": "Apps",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/google-play-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/google-play-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/google-play-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/google-play-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/google-play-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/google-play-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "googleplay-100",
+      "brand": "Google Play",
+      "category": "Apps",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/google-play-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/google-play-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/google-play-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/google-play-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/google-play-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/google-play-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "googleplay-150",
+      "brand": "Google Play",
+      "category": "Apps",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "preorder",
+      "expected": "2026-10-23",
+      "url": "https://ecards.example.com/google-play-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/google-play-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/google-play-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/google-play-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/google-play-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/google-play-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "googleplay-200",
+      "brand": "Google Play",
+      "category": "Apps",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/google-play-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/google-play-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/google-play-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/google-play-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/google-play-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/google-play-gift-card/200-usd/"
+      }
+    },
+    {
+      "id": "pubg-50",
+      "brand": "PUBG Mobile",
+      "category": "Gaming",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "preorder",
+      "expected": "2026-10-20",
+      "url": "https://ecards.example.com/pubg-mobile-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/pubg-mobile-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/pubg-mobile-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/pubg-mobile-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/pubg-mobile-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/pubg-mobile-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "pubg-100",
+      "brand": "PUBG Mobile",
+      "category": "Gaming",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "preorder",
+      "expected": "2026-10-20",
+      "url": "https://ecards.example.com/pubg-mobile-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/pubg-mobile-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/pubg-mobile-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/pubg-mobile-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/pubg-mobile-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/pubg-mobile-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "pubg-150",
+      "brand": "PUBG Mobile",
+      "category": "Gaming",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "preorder",
+      "expected": "2026-10-20",
+      "url": "https://ecards.example.com/pubg-mobile-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/pubg-mobile-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/pubg-mobile-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/pubg-mobile-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/pubg-mobile-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/pubg-mobile-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "pubg-200",
+      "brand": "PUBG Mobile",
+      "category": "Gaming",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "preorder",
+      "expected": "2026-10-20",
+      "url": "https://ecards.example.com/pubg-mobile-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/pubg-mobile-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/pubg-mobile-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/pubg-mobile-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/pubg-mobile-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/pubg-mobile-gift-card/200-usd/"
+      }
+    },
+    {
+      "id": "razer-50",
+      "brand": "Razer Gold",
+      "category": "Gaming",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/razer-gold-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/razer-gold-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/razer-gold-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/razer-gold-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/razer-gold-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/razer-gold-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "razer-100",
+      "brand": "Razer Gold",
+      "category": "Gaming",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/razer-gold-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/razer-gold-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/razer-gold-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/razer-gold-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/razer-gold-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/razer-gold-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "razer-150",
+      "brand": "Razer Gold",
+      "category": "Gaming",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/razer-gold-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/razer-gold-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/razer-gold-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/razer-gold-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/razer-gold-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/razer-gold-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "razer-200",
+      "brand": "Razer Gold",
+      "category": "Gaming",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/razer-gold-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/razer-gold-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/razer-gold-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/razer-gold-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/razer-gold-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/razer-gold-gift-card/200-usd/"
+      }
+    },
+    {
+      "id": "cod-50",
+      "brand": "Call of Duty",
+      "category": "Gaming",
+      "valueUSD": 50,
+      "priceETB": 13250,
+      "vatETB": 1728.26,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/call-of-duty-gift-card/50-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/call-of-duty-gift-card/50-usd/",
+        "am": "https://ecards.example.com/am/call-of-duty-gift-card/50-usd/",
+        "om": "https://ecards.example.com/om/call-of-duty-gift-card/50-usd/",
+        "so": "https://ecards.example.com/so/call-of-duty-gift-card/50-usd/",
+        "ti": "https://ecards.example.com/ti/call-of-duty-gift-card/50-usd/"
+      }
+    },
+    {
+      "id": "cod-100",
+      "brand": "Call of Duty",
+      "category": "Gaming",
+      "valueUSD": 100,
+      "priceETB": 26500,
+      "vatETB": 3456.52,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/call-of-duty-gift-card/100-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/call-of-duty-gift-card/100-usd/",
+        "am": "https://ecards.example.com/am/call-of-duty-gift-card/100-usd/",
+        "om": "https://ecards.example.com/om/call-of-duty-gift-card/100-usd/",
+        "so": "https://ecards.example.com/so/call-of-duty-gift-card/100-usd/",
+        "ti": "https://ecards.example.com/ti/call-of-duty-gift-card/100-usd/"
+      }
+    },
+    {
+      "id": "cod-150",
+      "brand": "Call of Duty",
+      "category": "Gaming",
+      "valueUSD": 150,
+      "priceETB": 39750,
+      "vatETB": 5184.78,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/call-of-duty-gift-card/150-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/call-of-duty-gift-card/150-usd/",
+        "am": "https://ecards.example.com/am/call-of-duty-gift-card/150-usd/",
+        "om": "https://ecards.example.com/om/call-of-duty-gift-card/150-usd/",
+        "so": "https://ecards.example.com/so/call-of-duty-gift-card/150-usd/",
+        "ti": "https://ecards.example.com/ti/call-of-duty-gift-card/150-usd/"
+      }
+    },
+    {
+      "id": "cod-200",
+      "brand": "Call of Duty",
+      "category": "Gaming",
+      "valueUSD": 200,
+      "priceETB": 53000,
+      "vatETB": 6913.04,
+      "availability": "in_stock",
+      "url": "https://ecards.example.com/call-of-duty-gift-card/200-usd/",
+      "urls": {
+        "en": "https://ecards.example.com/call-of-duty-gift-card/200-usd/",
+        "am": "https://ecards.example.com/am/call-of-duty-gift-card/200-usd/",
+        "om": "https://ecards.example.com/om/call-of-duty-gift-card/200-usd/",
+        "so": "https://ecards.example.com/so/call-of-duty-gift-card/200-usd/",
+        "ti": "https://ecards.example.com/ti/call-of-duty-gift-card/200-usd/"
+      }
+    }
+  ]
+}

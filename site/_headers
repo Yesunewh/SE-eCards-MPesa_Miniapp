@@ -1,0 +1,16 @@
+# Netlify / Cloudflare Pages: caching and content types. Other hosts: set the same headers in their config.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+/*.md
+  Content-Type: text/markdown; charset=utf-8
+  X-Robots-Tag: noindex
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+/llms-full.txt
+  Content-Type: text/plain; charset=utf-8
+/catalog.json
+  Cache-Control: public, max-age=900
+/*/cart/*
+  X-Robots-Tag: noindex
+/*/orders/*
+  X-Robots-Tag: noindex

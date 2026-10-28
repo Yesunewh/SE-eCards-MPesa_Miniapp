@@ -1,0 +1,48 @@
+# eCards
+
+> eCards sells digital gift cards (Netflix, PlayStation, Xbox, Steam, Apple, Google Play, Spotify, PUBG Mobile, Razer Gold, Call of Duty) to customers in Ethiopia. Prices are in Birr with 15% VAT included, payment is by M-Pesa, and codes are delivered by SMS or email.
+
+Each gift card page lists every card value with its price in Birr, the VAT amount and whether it is in stock. Markdown versions of the pages are linked below; the catalog JSON has the same data in one file.
+
+## Key facts
+
+- Prices are in Ethiopian Birr (ETB) and include 15% VAT. 1 US dollar of card value = Br 265.
+- Payment: M-Pesa only. The customer approves the payment on their phone with their PIN.
+- Delivery: the code shows on screen and in My orders, and is sent by SMS or email, usually within seconds. Out-of-stock cards can be pre-ordered.
+- All sales are final: gift card codes can’t be refunded once delivered.
+- The store is available in English, Amharic, Afaan Oromo, Somali and Tigrinya, and inside the M-Pesa app.
+
+## Gift cards
+
+- [Netflix gift card](https://ecards.example.com/netflix-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+- [Steam gift card](https://ecards.example.com/steam-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+- [XBOX gift card](https://ecards.example.com/xbox-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+- [PlayStation gift card](https://ecards.example.com/playstation-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+- [Apple & iTunes gift card](https://ecards.example.com/apple-itunes-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+- [Spotify gift card](https://ecards.example.com/spotify-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+- [Google Play gift card](https://ecards.example.com/google-play-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+- [PUBG Mobile gift card](https://ecards.example.com/pubg-mobile-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+- [Razer Gold gift card](https://ecards.example.com/razer-gold-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+- [Call of Duty gift card](https://ecards.example.com/call-of-duty-gift-card/index.md): $50, $100, $150, $200; from Br 13,250.00
+
+## Help and policies
+
+- [Help, FAQ, terms, refund and privacy policies](https://ecards.example.com/help/index.md)
+- [All gift cards](https://ecards.example.com/gift-cards/index.md)
+
+## Data
+
+- [Catalog with every card, price and availability (JSON)](https://ecards.example.com/catalog.json)
+- [Full content for AI assistants in one file](https://ecards.example.com/llms-full.txt)
+- [Sitemap](https://ecards.example.com/sitemap.xml)
+
+## Other languages
+
+- Amharic (አማርኛ): https://ecards.example.com/am/
+- Afaan Oromo (Afaan Oromoo): https://ecards.example.com/om/
+- Somali (Soomaali): https://ecards.example.com/so/
+- Tigrinya (ትግርኛ): https://ecards.example.com/ti/
+
+## Optional
+
+- [Home page](https://ecards.example.com/index.md)

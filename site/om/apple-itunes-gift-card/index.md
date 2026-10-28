@@ -1,0 +1,40 @@
+# Kaardii kennaa Apple & iTunes
+
+> Kaardii kennaa Apple & iTunes Itoophiyaa keessatti Br 13,250.00 irraa jalqabee bitadhu ($50–$200). M-Pesa’n kaffali, VAT dabalatee, koodiin sekondii keessatti SMS ykn imeeliidhaan ga’a.
+
+URL: https://ecards.example.com/om/apple-itunes-gift-card/
+Gatiin 2026-10-19 haaromfame. Doolaara Ameerikaa 1 = Birr 265.
+
+## Gatii kaardii kennaa Apple & iTunes Birriin
+
+| Gatii kaardii | Gatii (Birr) | VAT dabalame | Argamuu |
+|---|---|---|---|
+| [$50](https://ecards.example.com/om/apple-itunes-gift-card/50-usd/) | Br 13,250.00 | Br 1,728.26 | Ni jira |
+| [$100](https://ecards.example.com/om/apple-itunes-gift-card/100-usd/) | Br 26,500.00 | Br 3,456.52 | Ni jira |
+| [$150](https://ecards.example.com/om/apple-itunes-gift-card/150-usd/) | Br 39,750.00 | Br 5,184.78 | Ni jira |
+| [$200](https://ecards.example.com/om/apple-itunes-gift-card/200-usd/) | Br 53,000.00 | Br 6,913.04 | Dursa ajaja (2026-10-22 dura ni eegama) |
+
+## Koodii Apple kee akkamitti itti fayyadamta
+
+1. Apple bilbila, konsoolii ykn kompiitara kee irratti bani; herrega keetti seeni.
+2. Bakka kaardii kennaa ykn koodii galchuu barbaadi (yeroo baay’ee Redeem, Add funds ykn Gift card jedhama).
+3. Koodicha akkuma mul’atutti sirriitti barreessi. Gatiin isaa battaluma herrega keetti ida’ama.
+
+## Gaaffiiwwan kaardii kennaa Apple & iTunes
+
+### Kaardiin kennaa Apple & iTunes Itoophiyaa keessatti meeqa?
+
+Kaardiin kennaa Apple & iTunes gatiin isaa $50: Br 13,250.00, $100: Br 26,500.00, $150: Br 39,750.00, $200: Br 53,000.00 dha, VAT 15% dabalatee.
+
+### Koodii Apple & iTunes koo akkamittan argadha?
+
+M-Pesa’n kaffali; koodiin battaluma iskiriinii irratti fi “Ajajawwan koo” keessatti mul’ata. SMS ykn imeeliidhaanis siif ergina. Kaardiiwwan dhuman akkuma galaniin ergamu.
+
+### Kaardii kennaa Apple & iTunes nama biraatiif erguu nan danda’aa?
+
+Eeyyee. Yeroo kaffaltii SMS ykn imeelii filadhuutii lakkoofsa bilbilaa ykn imeelii isaanii galchi. Koodiin kallattiin isaan ga’a.
+
+### Koodii Apple & iTunes irratti maallaqni naa deebi’uu danda’aa?
+
+Lakki. Koodiiwwan dijitaalaa erga ga’anii booda hin deebi’an, maallaqnis hin deebi’u. Koodiin yoo hin hojjenne deeggarsa eCards quunnami; ni gargaarra.
+
