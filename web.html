@@ -587,16 +587,16 @@ const ET = ['ETH'];
 /* Each brand's tile and card share one tone, so a single logo file reads on both:
    white logo → netflix, xbox, playstation, spotify, pubg, razer, ecards · dark logo → apple, steam, cod · full colour → googleplay */
 const BRANDS = [
-  { id:'netflix', name:'Netflix', mark:'Netflix', cat:'video', c1:'#d6232d', c2:'#760a11', ink:'#fff', tile:'#e23440', tileInk:'#fff', regions:ET, amounts:CARD_VALUES },
+  { id:'netflix', name:'Netflix', mark:'Netflix', cat:'video', c1:'#e0151f', c2:'#760a11', ink:'#fff', tile:'#e23440', tileInk:'#fff', regions:ET, amounts:CARD_VALUES },
   { id:'steam', name:'Steam', mark:'STEAM', ls:'.08em', light:true, band:'rgba(40,46,60,.45)', cat:'gaming', c1:'#f8f9fb', c2:'#d6dae2', ink:'#14171f', tile:'#eff0f3', tileInk:'#14171f', regions:ET, amounts:CARD_VALUES },
   { id:'xbox', name:'XBOX', mark:'XBOX', ls:'.02em', cat:'gaming', c1:'#3a3a3d', c2:'#0f0f11', ink:'#63c62d', tile:'#1d1d20', tileInk:'#63c62d', regions:ET, amounts:CARD_VALUES },
-  { id:'playstation', name:'PlayStation', mark:'PlayStation', ms:.84, cat:'gaming', c1:'#2b56dc', c2:'#0a2276', ink:'#fff', tile:'#2149cf', tileInk:'#fff', regions:ET, amounts:CARD_VALUES },
-  { id:'apple', name:'Apple & iTunes', label:'Apple', mark:'Apple', fw:700, light:true, band:'rgba(66,68,78,.42)', cat:'apps', c1:'#fdfdfe', c2:'#e1e3e9', ink:'#111', tile:'#f3f4f6', tileInk:'#111', regions:ET, amounts:CARD_VALUES },
+  { id:'playstation', name:'PlayStation', mark:'PlayStation', ms:.84, cat:'gaming', c1:'#0070cc', c2:'#0a2276', ink:'#fff', tile:'#2149cf', tileInk:'#fff', regions:ET, amounts:CARD_VALUES },
+  { id:'apple', name:'Apple & iTunes', label:'Apple', mark:'Apple', fw:700, light:true, band:'rgba(66,68,78,.42)', cat:'apps', c1:'#000000', c2:'#000000', ink:'#fff', tile:'#f3f4f6', tileInk:'#111', regions:ET, amounts:CARD_VALUES },
   { id:'spotify', name:'Spotify', mark:'Spotify', cat:'music', c1:'#36c856', c2:'#0e7626', ink:'#fff', tile:'#1fb54c', tileInk:'#fff', regions:ET, amounts:CARD_VALUES },
-  { id:'googleplay', name:'Google Play', mark:'Google Play', ms:.82, fw:600, light:true, band:'rgba(66,68,78,.42)', cat:'apps', c1:'#fcfcfd', c2:'#e2e4ea', ink:'#5b6068', tile:'#f3f4f6', tileInk:'#4c5158', regions:ET, amounts:CARD_VALUES },
-  { id:'pubg', name:'PUBG Mobile', label:'PUBG', mark:'PUBG', ls:'.05em', cat:'gaming', c1:'#705a08', c2:'#2a2103', ink:'#f3bb1c', tile:'#3a2e05', tileInk:'#f3bb1c', regions:ET, amounts:CARD_VALUES },
+  { id:'googleplay', name:'Google Play', mark:'Google Play', ms:.82, fw:600, light:true, band:'rgba(66,68,78,.42)', cat:'apps', c1:'#fcfcfd', c2:'#ffffff', ink:'#5b6068', tile:'#f3f4f6', tileInk:'#4c5158', regions:ET, amounts:CARD_VALUES },
+  { id:'pubg', name:'PUBG Mobile', label:'PUBG', mark:'PUBG', ls:'.05em', cat:'gaming', c1:'#000000', c2:'#000000', ink:'#f3bb1c', tile:'#3a2e05', tileInk:'#f3bb1c', regions:ET, amounts:CARD_VALUES },
   { id:'razer', name:'Razer Gold', label:'Razer Gold', mark:'RAZER', ls:'.22em', ms:.8, fw:700, cat:'gaming', c1:'#2e2e31', c2:'#0e0e0f', ink:'#47d82f', tile:'#1b1b1e', tileInk:'#47d82f', regions:ET, amounts:CARD_VALUES },
-  { id:'cod', name:'Call of Duty', mark:'CALL OF DUTY', ms:.66, light:true, band:'rgba(40,36,24,.42)', cat:'gaming', c1:'#d3c8a8', c2:'#9a8c66', ink:'#151515', tile:'#d9d1bd', tileInk:'#1a1a1a', regions:ET, amounts:CARD_VALUES },
+  { id:'cod', name:'Call of Duty', mark:'CALL OF DUTY', ms:.66, light:true, band:'rgba(40,36,24,.42)', cat:'gaming', c1:'#000000', c2:'#000000', ink:'#151515', tile:'#d9d1bd', tileInk:'#1a1a1a', regions:ET, amounts:CARD_VALUES },
   { id:'ecards', name:'eCards', mark:'eCards', hidden:true, cat:'card', c1:'#da3431', c2:'#7a1013', ink:'#fff', tile:'#da3431', tileInk:'#fff', regions:ET, amounts:CARD_VALUES }
 ];
 const BR = Object.fromEntries(BRANDS.map(b => [b.id, b]));
@@ -791,7 +791,7 @@ function defaultConfig() {
     custom: [],
     support: { phone: '', email: 'support@example.com', telegram: '', whatsapp: '', from: '08:00', to: '22:00' },
     popular: POPULAR0.slice(),
-    banners: SLIDES0.map(x => ({ bid: x.bid, on: true }))
+    banners: [...SLIDES0.map(x => x.bid), 'steam', 'pubg', 'cod'].map(bid => ({ bid, on: true }))
   };
 }
 function loadConfig() {
