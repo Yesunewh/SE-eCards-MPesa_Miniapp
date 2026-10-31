@@ -221,6 +221,42 @@ by it**, because that is what prevents double purchases after a timeout. Then:
 Add an SMS gateway and/or SMTP adapter in `src/adapters/notify/`. SMS texts are English only for now; Amharic, Oromo, Somali and
 Tigrinya should be written by native speakers.
 
+### Deploying to the VPS (staging on port 10011)
+`deploy/install.sh` installs the API next to whatever already runs on the server, without touching it:
+its own user, its own Node.js in `/opt/ecards`, its own database inside the existing PostgreSQL (it refuses to reuse
+an existing role or database), and one systemd service capped at 512 MB RAM and half a CPU at low priority.
+It runs read-only checks first and stops if the port is taken or the machine is short on memory or disk.
+Updates keep the keys and data, and roll back automatically if the new version does not start. Needs a user with sudo.
+
+From your computer, in `server/`:
+
+```bash
+bash deploy/pack.sh
+```
+
+```bash
+scp release/ecards-server.tar.gz hmg@196.189.51.169:~
+```
+
+On the server:
+
+```bash
+tar -xzf ecards-server.tar.gz deploy/install.sh
+```
+
+```bash
+bash deploy/install.sh ecards-server.tar.gz --check
+```
+
+```bash
+bash deploy/install.sh ecards-server.tar.gz
+```
+
+Then open `http://196.189.51.169:10011/health`. It runs in staging mode: mock M-Pesa and mock provider, no real money,
+DEMO codes. `POST /v1/dev/mpesa/simulate` needs the `x-dev-key` header (`sudo grep DEV_SIMULATE_KEY /opt/ecards/.env`).
+**Do not upload real gift card codes while `PAYMENTS_ADAPTER=mock`.** To update, copy a new tarball and run the last command again.
+`deploy/uninstall.sh` removes everything (add `--drop-database` to delete only the database this install created).
+
 ### Hosting
 The current site host (cPanel, FTP deploy) serves static files only, so it can host the HTML apps but **not** this server.
 The server needs Node.js 20+ and PostgreSQL 14+: either cPanel's "Setup Node.js App" plus a PostgreSQL database if the host

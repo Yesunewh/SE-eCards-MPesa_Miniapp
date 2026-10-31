@@ -21,9 +21,14 @@ export async function webhookRoutes(app: FastifyInstance, ctx: Ctx) {
     return reply.status(200).send({ ResultCode: 0, ResultDesc: 'Accepted', ...(ctx.cfg.NODE_ENV !== 'production' ? { result: r } : {}) });
   });
 
-  /** Development only: approve or decline a mock M-Pesa payment, as if the customer entered their PIN. */
-  if (ctx.payments instanceof MockPayments && ctx.cfg.NODE_ENV !== 'production') {
+  /**
+   * Development / staging only: approve or decline a mock M-Pesa payment, as if the customer entered their PIN.
+   * Never registered with real M-Pesa. On a public staging server, set DEV_SIMULATE_KEY so only you can use it.
+   */
+  const devKey = ctx.cfg.DEV_SIMULATE_KEY;
+  if (ctx.payments instanceof MockPayments && (ctx.cfg.NODE_ENV !== 'production' || devKey)) {
     app.post('/dev/mpesa/simulate', async req => {
+      if (devKey && !safeEqual(String(req.headers['x-dev-key'] ?? ''), devKey)) throw notFound('not_found');
       const b = parse(z.object({ paymentId: z.string().uuid(), ok: z.boolean().default(true), amountMinor: z.number().int().optional() }), req.body);
       const p = await maybeOne(ctx.db, `SELECT checkout_request_id, amount_minor, msisdn FROM payments WHERE id = $1`, [b.paymentId]);
       if (!p?.checkout_request_id) throw new AppError(404, 'payment_not_found');

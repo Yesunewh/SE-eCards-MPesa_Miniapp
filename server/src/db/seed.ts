@@ -137,7 +137,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     await seed(db, { mockProvider });
     console.log('catalog and settings seeded' + (mockProvider ? ' (with mock provider)' : ''));
     if (process.argv.includes('--demo-stock')) {
-      if (cfg.NODE_ENV === 'production') throw new Error('--demo-stock is not allowed in production');
+      if (cfg.NODE_ENV === 'production' && !cfg.ALLOW_MOCK_ADAPTERS) throw new Error('--demo-stock is only allowed with ALLOW_MOCK_ADAPTERS=true');
       const n = await seedDemoStock(db, new CodeVault(cfg.CODE_ENCRYPTION_KEY, cfg.CODE_HMAC_KEY));
       console.log(`${n} demo codes added`);
     }

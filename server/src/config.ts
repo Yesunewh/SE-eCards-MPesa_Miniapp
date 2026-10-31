@@ -34,7 +34,12 @@ const schema = z.object({
   WUPEX_API_KEY: z.string().default(''),
   WUPEX_API_SECRET: z.string().default(''),
 
-  NOTIFY_ADAPTER: z.enum(['log']).default('log')
+  NOTIFY_ADAPTER: z.enum(['log']).default('log'),
+
+  // Staging only: run with NODE_ENV=production but mock M-Pesa / mock provider (no real money, DEMO codes).
+  ALLOW_MOCK_ADAPTERS: bool,
+  // When set, POST /v1/dev/mpesa/simulate works (mock payments only) but needs header x-dev-key with this value.
+  DEV_SIMULATE_KEY: z.string().default('')
 });
 
 export type Config = z.infer<typeof schema> & { runWorker: boolean; corsOrigins: string[] };
@@ -46,9 +51,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid configuration:\n${lines.join('\n')}`);
   }
   const c = parsed.data;
-  if (c.NODE_ENV === 'production') {
+  if (c.NODE_ENV === 'production' && !c.ALLOW_MOCK_ADAPTERS) {
     if (c.PAYMENTS_ADAPTER === 'mock') throw new Error('PAYMENTS_ADAPTER=mock is not allowed in production');
     if (c.GIFTCARD_ADAPTER === 'mock') throw new Error('GIFTCARD_ADAPTER=mock is not allowed in production');
+  }
+  if (c.NODE_ENV === 'production') {
     if (c.MPESA_CALLBACK_SECRET.length < 24) throw new Error('MPESA_CALLBACK_SECRET must be at least 24 characters in production');
   }
   return {
