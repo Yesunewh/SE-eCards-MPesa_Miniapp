@@ -39,3 +39,4 @@ jobs:
             .github/**
             site/**
             site-builder/**
+            server/**
