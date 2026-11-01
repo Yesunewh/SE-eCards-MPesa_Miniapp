@@ -16,7 +16,9 @@
     "seed": "tsx src/db/seed.ts",
     "admin:create": "tsx src/scripts/create-admin.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "provider:map": "node dist/scripts/provider-map.js",
+    "provider:map:dev": "tsx src/scripts/provider-map.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.1",

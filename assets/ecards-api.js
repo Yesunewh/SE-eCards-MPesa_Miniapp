@@ -78,7 +78,7 @@
   };
 
   /* ---------------------------------------------------------------- helpers */
-  const fmtPhone = m => { const d = String(m || '').replace(/\D/g, '').replace(/^251/, ''); return d.length === 9 ? `+251 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : String(m || ''); };
+  const fmtPhone = m => { if (!m) return ''; const d = String(m || '').replace(/\D/g, '').replace(/^251/, ''); return d.length === 9 ? `+251 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : String(m || ''); };
   const ms = v => v ? new Date(v).getTime() : null;
   const dayMs = d => d ? new Date(d + 'T12:00:00').getTime() : null;   // a date without time, safely inside that day
   A.fmtPhone = fmtPhone;
@@ -136,17 +136,74 @@
   };
   A.catalog = () => req('GET', '/v1/catalog', undefined, { noAuth: true });
 
+  /* ---------------------------------------------------------------- M-Pesa mini program bridge
+   * Inside M-Pesa this page runs in the eCards mini program's <web-view> (see miniprogram/). A web-view page
+   * cannot call my.getAuthCode / my.tradePay itself: it asks the mini program with my.postMessage and gets the
+   * answer back through my.onMessage. The bridge script comes from the container (https://appx/web-view.min.js).
+   */
+  const inContainer = /AlipayClient|MiniProgram|mPaaS|Nebula|AliApp|MPesa/i.test(navigator.userAgent || '');
+  let bridgeReady = null;
+  function loadBridge() {
+    if (bridgeReady) return bridgeReady;
+    bridgeReady = new Promise(res => {
+      if (window.my && typeof window.my.postMessage === 'function') return res(true);
+      if (!inContainer) return res(false);
+      const sc = document.createElement('script');
+      sc.src = 'https://appx/web-view.min.js';
+      const t = setTimeout(() => res(false), 4000);
+      sc.onload = () => { clearTimeout(t); res(!!(window.my && window.my.postMessage)); };
+      sc.onerror = () => { clearTimeout(t); res(false); };
+      document.head.appendChild(sc);
+    });
+    return bridgeReady;
+  }
+  const pending = new Map();
+  let msgSeq = 0;
+  function ask(type, payload, timeoutMs) {
+    return new Promise((res, rej) => {
+      const id = `m${Date.now()}-${++msgSeq}`;
+      const tm = setTimeout(() => { pending.delete(id); const e = new Error('no answer from M-Pesa'); e.code = 'payTimeout'; rej(e); }, timeoutMs || 120000);
+      pending.set(id, r => { clearTimeout(tm); res(r); });
+      if (!window.my.onMessage || !window.my.onMessage.__ecards) {
+        const prev = window.my.onMessage;
+        window.my.onMessage = function (e) {
+          const cb = e && pending.get(e.id);
+          if (cb) { pending.delete(e.id); cb(e); } else if (typeof prev === 'function') prev(e);
+        };
+        window.my.onMessage.__ecards = true;
+      }
+      window.my.postMessage(Object.assign({ id, type }, payload || {}));
+    });
+  }
+  const notInMpesa = () => { const e = new Error('Open eCards from the M-Pesa app to log in and pay.'); e.code = 'openInMpesa'; return e; };
+
   /* ---------------------------------------------------------------- customer session */
-  /** The M-Pesa mini app SDK gives an auth code; outside M-Pesa (staging) a mock code is used. */
-  A.authCode = function (demoPhone, demoName) {
-    const my = window.my || window.ma;
+  /** Login code from M-Pesa (mini program); outside M-Pesa a mock code, accepted only by the staging server. */
+  A.authCode = async function (demoPhone, demoName) {
+    const my = window.my;
     if (my && typeof my.getAuthCode === 'function') {
       return new Promise((res, rej) => my.getAuthCode({ scopes: ['auth_user'], success: r => res(r.authCode || r.code), fail: rej }));
     }
-    return Promise.resolve(`mock:${demoPhone}:${demoName}`);
+    if (await loadBridge()) {
+      const r = await ask('getAuthCode', { scopes: ['auth_user'] }, 60000);
+      if (!r.ok || !r.authCode) { const e = new Error('M-Pesa login was cancelled'); e.code = 'login_failed'; throw e; }
+      return r.authCode;
+    }
+    if (A.payments !== 'mock') throw notInMpesa();
+    return `mock:${demoPhone}:${demoName}`;
+  };
+
+  /** Opens the M-Pesa cashier. Resolves with the result code: 9000 paid, 8000/6004 processing, 6001 cancelled, 4000 failed. */
+  A.tradePay = async function (paymentUrl) {
+    const my = window.my;
+    if (my && typeof my.tradePay === 'function') {
+      return new Promise(res => my.tradePay({ paymentUrl, success: r => res(String(r.resultCode)), fail: r => res(String((r && r.resultCode) || '4000')) }));
+    }
+    if (await loadBridge()) return String((await ask('tradePay', { paymentUrl }, 15 * 60000)).resultCode || '4000');
+    throw notInMpesa();
   };
   A.login = async function (authCode) {
-    const r = await req('POST', '/v1/auth/mpesa', { authCode }, { noAuth: true });
+    const r = await req('POST', '/v1/auth/mpesa', { authCode }, { noAuth: true });   // server exchanges the code with M-Pesa
     A.token = r.token;
     return { token: r.token, customer: r.customer };
   };
@@ -157,10 +214,10 @@
   A.saveLang = code => req('PATCH', '/v1/me', { lang: code });
   /** server customer → the app's session object */
   A.toSession = (c, token, prev) => Object.assign({}, prev || {}, {
-    name: c.name, phone: fmtPhone(c.msisdn), at: Date.now(), token,
+    name: c.name || 'M-Pesa customer', phone: fmtPhone(c.msisdn), at: Date.now(), token,
     recvBy: c.delivery.by === 'sms' ? 'phone' : 'email',
     email: c.delivery.email || (prev && prev.email) || '',
-    recvPhone: fmtPhone(c.delivery.msisdn || c.msisdn)
+    recvPhone: fmtPhone(c.delivery.msisdn || c.msisdn || '')
   });
 
   /* ---------------------------------------------------------------- orders */
@@ -201,6 +258,12 @@
     }, { headers: { 'idempotency-key': key } });
     const pay = await req('POST', `/v1/orders/${order.id}/pay`);
     onStage && onStage('pin', order);
+    if (pay.clientAction && pay.clientAction.type === 'tradePay') {   // M-Pesa mini program: the cashier opens in the app
+      const code = await A.tradePay(pay.clientAction.paymentUrl);
+      if (code === '6001') { const e = new Error('payment cancelled'); e.code = 'payCancelled'; e.order = order; throw e; }
+      if (code === '4000') { const e = new Error('payment failed'); e.code = 'payFailed'; e.order = order; throw e; }
+      // 9000 paid, 8000/6004/6002 not sure yet: the server's answer below decides
+    }
     if (A.payments === 'mock' && A.devKey) {   // staging: approve as if the customer typed their PIN
       await sleep(900);
       await req('POST', '/v1/dev/mpesa/simulate', { paymentId: pay.id }, { headers: { 'x-dev-key': A.devKey }, noAuth: true }).catch(() => {});

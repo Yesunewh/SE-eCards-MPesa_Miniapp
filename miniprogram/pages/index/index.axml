@@ -1,0 +1,2 @@
+<!-- The eCards app (index.html) runs here. It asks this page to log in and to pay; see index.js. -->
+<web-view id="ecards" src="{{url}}" onMessage="onMessage" />

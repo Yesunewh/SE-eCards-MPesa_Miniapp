@@ -7,6 +7,7 @@ import { getSettings } from '../../services/catalog.js';
 import { paymentsNeedingReview } from '../../services/payments.js';
 import { setRestockEta, stockOverview, uploadCodes, voidCode } from '../../services/stock.js';
 import { listTicketsForStaff, staffReply } from '../../services/support.js';
+import { applyMappings, suggestMappings } from '../../services/providerMapping.js';
 
 const uuid = z.string().uuid();
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -122,6 +123,13 @@ export async function adminRoutes(app: FastifyInstance, ctx: Ctx) {
       const b = parse(z.object({ externalProductId: z.string().min(1).max(200), unitCostCents: z.number().int().min(0), priority: z.number().int().optional() }), req.body);
       await A.mapProductSource(ctx, req.admin!, id(req), String((req.params as any).providerId), b.externalProductId, b.unitCostCents, b.priority);
       return { ok: true };
+    });
+    a.post('/providers/:providerId/automap', async req => {
+      A.requireRole(req.admin!, 'admin');
+      const pid = String((req.params as any).providerId);
+      const b = parse(z.object({ apply: z.boolean().default(false) }), req.body ?? {});
+      const rows = await suggestMappings(ctx, pid);
+      return { suggestions: rows, saved: b.apply ? await applyMappings(ctx, req.admin!.id, pid, rows) : 0 };
     });
     a.get('/providers/log', async req => ({ calls: await A.providerLog(ctx, (req.query as any)?.provider) }));
 

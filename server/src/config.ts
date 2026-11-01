@@ -20,7 +20,21 @@ const schema = z.object({
   CODE_HMAC_KEY: key32,
   RUN_WORKER: bool,
 
-  PAYMENTS_ADAPTER: z.enum(['mock', 'safaricom']).default('mock'),
+  PAYMENTS_ADAPTER: z.enum(['mock', 'safaricom', 'miniapp']).default('mock'),
+
+  // M-Pesa mini program (my.getAuthCode / payments/pay / my.tradePay). Values come with mini program onboarding.
+  MINIAPP_GATEWAY_URL: z.string().default(''),
+  MINIAPP_API_PREFIX: z.string().default('/api'),
+  MINIAPP_CLIENT_ID: z.string().default(''),
+  MINIAPP_APP_ID: z.string().default(''),
+  MINIAPP_AUTH_CLIENT_ID: z.string().default(''),
+  MINIAPP_PRIVATE_KEY: z.string().default(''),          // our RSA private key: PEM, base64 of it, or a file path
+  MINIAPP_PLATFORM_PUBLIC_KEY: z.string().default(''),  // the wallet's public key: PEM, base64 of it, or a file path
+  MINIAPP_KEY_VERSION: z.string().default('1'),
+  MINIAPP_CURRENCY: z.string().length(3).default('ETB'),
+  MINIAPP_AMOUNT_UNIT: z.enum(['minor', 'major']).default('minor'),
+  MINIAPP_PRODUCT_CODE: z.string().default('CASHIER_PAYMENT'),
+  MINIAPP_USERINFO_PATH: z.string().default(''),
   MPESA_BASE_URL: z.string().default('https://apisandbox.safaricom.et'),
   MPESA_CONSUMER_KEY: z.string().default(''),
   MPESA_CONSUMER_SECRET: z.string().default(''),
@@ -32,7 +46,8 @@ const schema = z.object({
   GIFTCARD_ADAPTER: z.enum(['mock', 'wupex']).default('mock'),
   WUPEX_BASE_URL: z.string().default(''),
   WUPEX_API_KEY: z.string().default(''),
-  WUPEX_API_SECRET: z.string().default(''),
+  WUPEX_MERCHANT: z.string().default(''),          // merchant code sent with every order line
+  WUPEX_CURRENCY: z.string().length(3).default('USD'),   // currency of Wupex prices and balance (confirm with Wupex)
 
   NOTIFY_ADAPTER: z.enum(['log']).default('log'),
 
@@ -60,6 +75,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   if (c.NODE_ENV === 'production') {
     if (c.MPESA_CALLBACK_SECRET.length < 24) throw new Error('MPESA_CALLBACK_SECRET must be at least 24 characters in production');
+  }
+  if (c.PAYMENTS_ADAPTER === 'miniapp') {
+    for (const k of ['MINIAPP_GATEWAY_URL', 'MINIAPP_CLIENT_ID', 'MINIAPP_APP_ID', 'MINIAPP_AUTH_CLIENT_ID', 'MINIAPP_PRIVATE_KEY'] as const) {
+      if (!c[k]) throw new Error(`${k} is required when PAYMENTS_ADAPTER=miniapp`);
+    }
+    if (c.NODE_ENV === 'production' && !c.MINIAPP_PLATFORM_PUBLIC_KEY) throw new Error('MINIAPP_PLATFORM_PUBLIC_KEY is required in production (to check M-Pesa signatures)');
+  }
+  if (c.GIFTCARD_ADAPTER === 'wupex') {
+    for (const k of ['WUPEX_BASE_URL', 'WUPEX_API_KEY', 'WUPEX_MERCHANT'] as const) if (!c[k]) throw new Error(`${k} is required when GIFTCARD_ADAPTER=wupex`);
   }
   return {
     ...c,

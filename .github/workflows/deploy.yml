@@ -40,3 +40,4 @@ jobs:
             site/**
             site-builder/**
             server/**
+            miniprogram/**

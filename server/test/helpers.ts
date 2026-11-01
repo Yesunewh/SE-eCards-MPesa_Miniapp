@@ -3,6 +3,8 @@ import { createContext, type Ctx } from '../src/context.js';
 import { seed } from '../src/db/seed.js';
 import { MockPayments, mockCallback } from '../src/adapters/payments/mock.js';
 import { MockProvider } from '../src/adapters/giftcards/mock.js';
+import type { GiftCardProvider } from '../src/adapters/giftcards/types.js';
+import type { PaymentsAdapter } from '../src/adapters/payments/types.js';
 import { LogNotifier } from '../src/adapters/notify/index.js';
 import { drainJobs } from '../src/worker.js';
 import { loginWithMpesa, type Customer } from '../src/services/customers.js';
@@ -13,11 +15,11 @@ import { one } from '../src/db/pool.js';
 
 export interface TestCtx extends Ctx { payments: MockPayments; mock: MockProvider; notes: LogNotifier }
 
-export function makeCtx(): TestCtx {
+export function makeCtx(opts: { providers?: Record<string, GiftCardProvider>; payments?: PaymentsAdapter } = {}): TestCtx {
   const mock = new MockProvider();
   const notes = new LogNotifier(true);
-  const payments = new MockPayments();
-  const ctx = createContext(loadConfig(), { payments, notifier: notes, providers: { mock } }) as TestCtx;
+  const payments = opts.payments ?? new MockPayments();
+  const ctx = createContext(loadConfig(), { payments, notifier: notes, providers: { mock, ...(opts.providers ?? {}) } }) as TestCtx;
   ctx.mock = mock; ctx.notes = notes;
   return ctx;
 }
@@ -32,7 +34,7 @@ export async function reset(ctx: TestCtx, opts: { withProvider?: boolean } = {})
   await ctx.db.query(`TRUNCATE ${TABLES.join(', ')} RESTART IDENTITY CASCADE`);
   await seed(ctx.db, { mockProvider: !!opts.withProvider });
   ctx.mock.orders.clear(); ctx.mock.next = []; ctx.mock.calls = 0; ctx.mock.balanceCents = 1_000_000;
-  ctx.payments.initiated.clear(); ctx.payments.settled.clear(); ctx.payments.failNextInitiate = false;
+  if (ctx.payments instanceof MockPayments) { ctx.payments.initiated.clear(); ctx.payments.settled.clear(); ctx.payments.failNextInitiate = false; }
   ctx.notes.sent.length = 0;
 }
 
@@ -56,7 +58,7 @@ export async function addStock(ctx: Ctx, brand: string, usd: number, n: number, 
 /** Customer pays: M-Pesa request → approved (or declined) callback. */
 export async function payFor(ctx: TestCtx, customer: Customer, orderId: string, ok = true) {
   const p = await startPayment(ctx, customer.id, orderId);
-  const callback = mockCallback(p.checkoutRequestId!, { ok, amountMinor: p.amountMinor, msisdn: customer.msisdn });
+  const callback = mockCallback(p.checkoutRequestId!, { ok, amountMinor: p.amountMinor, msisdn: customer.msisdn ?? undefined });
   const result = await handleMpesaCallback(ctx, callback);
   return { payment: p, result, callback };
 }

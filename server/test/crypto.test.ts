@@ -64,7 +64,7 @@ describe('M-Pesa', () => {
 
   it('builds STK push requests in whole Birr with the Safaricom password', () => {
     const s = new SafaricomPayments({ baseUrl: 'x', consumerKey: 'k', consumerSecret: 's', shortcode: '1020', passkey: 'pk' });
-    const r = s.buildStkRequest({ amountMinor: 1_325_000, msisdn: '+251712345678', reference: 'EC12345678', description: 'eCards EC12345678', callbackUrl: 'https://x/cb' }, '20261031120000');
+    const r = s.buildStkRequest({ paymentId: 'p1', amountMinor: 1_325_000, msisdn: '+251712345678', reference: 'EC12345678', description: 'eCards EC12345678', callbackUrl: 'https://x/cb' }, '20261031120000');
     expect(r.Amount).toBe(13250);
     expect(r.PhoneNumber).toBe('251712345678');
     expect(Buffer.from(r.Password, 'base64').toString()).toBe('1020pk20261031120000');

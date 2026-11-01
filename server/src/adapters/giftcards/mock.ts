@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import type { GiftCardProvider, PlaceOrderInput, PlaceOrderResult, ProviderCatalogItem } from './types.js';
 import { ProviderUnknownError } from './types.js';
 
@@ -46,7 +46,7 @@ export class MockProvider implements GiftCardProvider {
 
     this.balanceCents -= cost;
     const done: PlaceOrderResult = {
-      status: 'succeeded', transactionId: String(randomInt(100000, 999999)), totalCostCents: cost,
+      status: 'succeeded', transactionId: 'MCK' + randomBytes(6).toString('hex'), totalCostCents: cost,
       cards: Array.from({ length: input.quantity }, () => ({ code: demoCode() }))
     };
     this.orders.set(input.customIdentifier, done);

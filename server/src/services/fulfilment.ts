@@ -83,34 +83,16 @@ async function buyFromProviders(ctx: Ctx, order: any, itemId: string): Promise<s
       await logCall(ctx, src.provider_id, { method: 'SKIP', path: '/orders', ok: false, ms: 0, ref: order.reference, note: `not enough balance for ${need} card(s)` });
       continue;
     }
-    const attempt = (await one(ctx.db, `SELECT count(*)::int AS n FROM provider_orders WHERE order_item_id = $1`, [itemId])).n + 1;
-    let po;
-    try {
-      po = await one(ctx.db, `
-        INSERT INTO provider_orders (order_item_id, provider_id, external_product_id, custom_identifier, quantity, unit_cost_cents, attempts)
-        VALUES ($1,$2,$3,$4,$5,$6,1) RETURNING *`,
-        [itemId, src.provider_id, src.external_product_id, `${order.reference}-${it.line_no}-${attempt}`, need, src.unit_cost_cents]);
-    } catch (e) {
-      if (isUniqueViolation(e)) return [];   // someone else is buying this line right now
-      throw e;
+    const outcome = await withProviderTurn(ctx, src.provider_id, !!adapter.serialize, () =>
+      purchase(ctx, adapter, order, it, src, itemId, need));
+    if (outcome === 'busy') {
+      // another purchase on this provider is running or unresolved: try this order again shortly
+      await enqueue(ctx.db, 'fulfil_order', { orderId: order.id }, { dedupeKey: `fulfil:${order.id}`, delaySecs: 20 });
+      return [];
     }
-    adapter.onCall = c => { void logCall(ctx, src.provider_id, c); };
-    let result: PlaceOrderResult;
-    try {
-      result = await adapter.placeOrder({
-        externalProductId: src.external_product_id, quantity: need,
-        unitFaceValueCents: it.face_value_cents, customIdentifier: po.custom_identifier
-      });
-    } catch (e) {
-      const unknown = e instanceof ProviderUnknownError;
-      await ctx.db.query(`UPDATE provider_orders SET status = $2, last_error = $3 WHERE id = $1`,
-        [po.id, unknown ? 'unknown' : 'failed', (e as Error).message.slice(0, 500)]);
-      if (unknown) {
-        await enqueue(ctx.db, 'reconcile_provider_order', { providerOrderId: po.id }, { delaySecs: 30, dedupeKey: `reconcile:${po.id}`, maxAttempts: 30 });
-        return [];   // do not try another provider: this one may have charged us
-      }
-      continue;
-    }
+    if (outcome.kind === 'stop') return [];
+    if (outcome.kind === 'next') continue;
+    const { po, result } = outcome;
     const ids = await applyProviderResult(ctx, po.id, result);
     if (result.status === 'processing') return ids;
     const fresh = await one(ctx.db, `SELECT quantity, delivered_quantity, status FROM order_items WHERE id = $1`, [itemId]);
@@ -118,6 +100,79 @@ async function buyFromProviders(ctx: Ctx, order: any, itemId: string): Promise<s
     if (ids.length) return ids;
   }
   return [];
+}
+
+type PurchaseOutcome = { kind: 'stop' } | { kind: 'next' } | { kind: 'done'; po: any; result: PlaceOrderResult };
+
+/**
+ * Serialized providers (Wupex) buy one order at a time, and never while an earlier purchase is unresolved:
+ * that is what makes a lost answer recoverable (see adapters/giftcards/wupex.ts). Others run freely.
+ */
+async function withProviderTurn<T>(ctx: Ctx, providerId: string, serialize: boolean, fn: () => Promise<T>): Promise<T | 'busy'> {
+  if (!serialize) return fn();
+  const key = `provider:${providerId}`;
+  const c = await ctx.db.connect();
+  try {
+    let got = false;
+    for (let i = 0; i < 60 && !got; i++) {
+      got = (await c.query('SELECT pg_try_advisory_lock(hashtext($1)) AS ok', [key])).rows[0].ok;
+      if (!got) await new Promise(r => setTimeout(r, 500));
+    }
+    if (!got) return 'busy';
+    try {
+      const open = await maybeOne(ctx.db, `SELECT id FROM provider_orders WHERE provider_id = $1 AND status IN ('pending','unknown') LIMIT 1`, [providerId]);
+      if (open) return 'busy';
+      return await fn();
+    } finally {
+      await c.query('SELECT pg_advisory_unlock(hashtext($1))', [key]).catch(() => {});
+    }
+  } finally {
+    c.release();
+  }
+}
+
+/** One purchase from one provider: record it, call it, and sort the answer. */
+async function purchase(ctx: Ctx, adapter: GiftCardProvider, order: any, it: any, src: any, itemId: string, need: number): Promise<PurchaseOutcome> {
+  const input = {
+    externalProductId: src.external_product_id, quantity: need, unitFaceValueCents: it.face_value_cents,
+    customIdentifier: ''   // set below, once the attempt number is known
+  };
+  adapter.onCall = c => { void logCall(ctx, src.provider_id, c); };
+  let prepared: Record<string, unknown> = {};
+  if (adapter.prepareOrder) {
+    try {
+      prepared = await adapter.prepareOrder(input);
+    } catch (e) {
+      await logCall(ctx, src.provider_id, { method: 'PREPARE', path: '/orders', ok: false, ms: 0, ref: order.reference, note: (e as Error).message });
+      return { kind: 'next' };   // nothing was bought
+    }
+  }
+  const attempt = (await one(ctx.db, `SELECT count(*)::int AS n FROM provider_orders WHERE order_item_id = $1`, [itemId])).n + 1;
+  input.customIdentifier = `${order.reference}-${it.line_no}-${attempt}`;
+  let po;
+  try {
+    po = await one(ctx.db, `
+      INSERT INTO provider_orders (order_item_id, provider_id, external_product_id, custom_identifier, quantity, unit_cost_cents, attempts, request_context)
+      VALUES ($1,$2,$3,$4,$5,$6,1,$7) RETURNING *`,
+      [itemId, src.provider_id, src.external_product_id, input.customIdentifier, need, src.unit_cost_cents, prepared]);
+  } catch (e) {
+    if (isUniqueViolation(e)) return { kind: 'stop' };   // someone else is buying this line right now
+    throw e;
+  }
+  let result: PlaceOrderResult;
+  try {
+    result = await adapter.placeOrder(input);
+  } catch (e) {
+    const unknown = e instanceof ProviderUnknownError;
+    await ctx.db.query(`UPDATE provider_orders SET status = $2, last_error = $3 WHERE id = $1`,
+      [po.id, unknown ? 'unknown' : 'failed', (e as Error).message.slice(0, 500)]);
+    if (unknown) {
+      await enqueue(ctx.db, 'reconcile_provider_order', { providerOrderId: po.id }, { delaySecs: 30, dedupeKey: `reconcile:${po.id}`, maxAttempts: 30 });
+      return { kind: 'stop' };   // do not try another provider: this one may have charged us
+    }
+    return { kind: 'next' };
+  }
+  return { kind: 'done', po, result };
 }
 
 /** Records a provider answer: stores codes (encrypted) and assigns them to the line. */
@@ -187,7 +242,16 @@ export async function reconcileProviderOrder(ctx: Ctx, payload: { providerOrderI
   await ctx.db.query(`UPDATE provider_orders SET attempts = attempts + 1 WHERE id = $1`, [po.id]);
   let r: PlaceOrderResult | null;
   try {
-    r = await adapter.findOrder(po.custom_identifier);
+    const it0 = await one(ctx.db, `SELECT face_value_cents FROM order_items WHERE id = $1`, [po.order_item_id]);
+    const claimed = (await many(ctx.db, `
+      SELECT external_transaction_id AS t FROM provider_orders
+      WHERE provider_id = $1 AND id <> $2 AND external_transaction_id IS NOT NULL AND created_at > $3::timestamptz - interval '2 days'`,
+      [po.provider_id, po.id, po.created_at])).map(x => String(x.t));
+    r = await adapter.findOrder(po.custom_identifier, {
+      externalProductId: po.external_product_id, quantity: po.quantity, placedAt: new Date(po.created_at),
+      prepared: { ...(po.request_context ?? {}), knownTransactionId: po.external_transaction_id ?? undefined, faceValueCents: it0.face_value_cents },
+      claimed
+    });
   } catch (e) {
     throw new RetryLater(60, `lookup failed: ${(e as Error).message}`);
   }

@@ -42,6 +42,8 @@ export class SafaricomPayments implements PaymentsAdapter {
   }
 
   buildStkRequest(input: InitiateInput, ts = SafaricomPayments.timestamp()) {
+    if (!input.msisdn) throw new Error('STK push needs the customer phone number');
+    const msisdn = input.msisdn;
     const password = Buffer.from(this.cfg.shortcode + this.cfg.passkey + ts).toString('base64');
     return {
       MerchantRequestID: input.reference,
@@ -50,9 +52,9 @@ export class SafaricomPayments implements PaymentsAdapter {
       Timestamp: ts,
       TransactionType: 'CustomerPayBillOnline',
       Amount: Math.round(input.amountMinor / 100),
-      PartyA: input.msisdn.replace(/^\+/, ''),
+      PartyA: msisdn.replace(/^\+/, ''),
       PartyB: this.cfg.shortcode,
-      PhoneNumber: input.msisdn.replace(/^\+/, ''),
+      PhoneNumber: msisdn.replace(/^\+/, ''),
       CallBackURL: input.callbackUrl,
       AccountReference: input.reference,
       TransactionDesc: input.description.slice(0, 40)

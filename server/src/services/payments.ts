@@ -9,7 +9,8 @@ const OPEN = ['initiated', 'pending'];
 const GIVE_UP_AFTER_SECS = 30 * 60;
 
 export const callbackUrl = (ctx: Ctx) =>
-  `${ctx.cfg.PUBLIC_BASE_URL.replace(/\/$/, '')}/v1/webhooks/mpesa/${ctx.cfg.MPESA_CALLBACK_SECRET || 'dev'}`;
+  `${ctx.cfg.PUBLIC_BASE_URL.replace(/\/$/, '')}/v1/webhooks/${ctx.payments.name === 'miniapp' ? 'mpesa-miniapp' : 'mpesa'}/${ctx.cfg.MPESA_CALLBACK_SECRET || 'dev'}`;
+const methodOf = (ctx: Ctx) => ctx.payments.name === 'mock' ? 'mock' : ctx.payments.name === 'miniapp' ? 'mpesa_miniapp' : 'mpesa';
 
 /** Customer taps "Pay": send the M-Pesa payment request for an unpaid order. */
 export async function startPayment(ctx: Ctx, customerId: string, orderId: string) {
@@ -22,7 +23,7 @@ export async function startPayment(ctx: Ctx, customerId: string, orderId: string
     const open = await maybeOne(tx, `SELECT * FROM payments WHERE order_id = $1 AND status = ANY($2)`, [orderId, OPEN]);
     if (open) return { existing: open };   // already asked: same request, the customer just needs to approve it
     const p = await one(tx, `INSERT INTO payments (order_id, method, amount_minor, msisdn) VALUES ($1,$2,$3,$4) RETURNING *`,
-      [orderId, ctx.payments.name === 'mock' ? 'mock' : 'mpesa', o.total_minor, o.msisdn]);
+      [orderId, methodOf(ctx), o.total_minor, o.msisdn]);
     return { payment: p, order: o };
   });
   if ('existing' in prep) return paymentView(prep.existing);
@@ -30,12 +31,17 @@ export async function startPayment(ctx: Ctx, customerId: string, orderId: string
   const { payment, order } = prep;
   try {
     const r = await ctx.payments.initiate({
-      amountMinor: order.total_minor, msisdn: order.msisdn, reference: order.reference,
-      description: `eCards ${order.reference}`, callbackUrl: callbackUrl(ctx)
+      paymentId: payment.id, amountMinor: order.total_minor, msisdn: order.msisdn, reference: order.reference,
+      orderCreatedAt: new Date(order.created_at), description: `eCards ${order.reference}`, callbackUrl: callbackUrl(ctx)
     });
     const p = await one(ctx.db, `
       UPDATE payments SET status = 'pending', checkout_request_id = $2, merchant_request_id = $3, request_payload = $4
-      WHERE id = $1 RETURNING *`, [payment.id, r.checkoutRequestId, r.merchantRequestId ?? null, r.raw ?? null]);
+      WHERE id = $1 RETURNING *`, [payment.id, r.checkoutRequestId, r.merchantRequestId ?? null,
+        { raw: r.raw ?? null, clientAction: r.clientAction ?? null }]);
+    if (r.immediate) {
+      await applyPaymentOutcome(ctx, r.immediate, { source: 'pay reply' });
+      return paymentView(await one(ctx.db, `SELECT * FROM payments WHERE id = $1`, [p.id]));
+    }
     // in case the callback never arrives
     await enqueue(ctx.db, 'check_payment', { paymentId: p.id }, { delaySecs: 60, dedupeKey: `check_payment:${p.id}`, maxAttempts: 40 });
     return paymentView(p);
@@ -46,7 +52,10 @@ export async function startPayment(ctx: Ctx, customerId: string, orderId: string
   }
 }
 
-const paymentView = (p: any) => ({ id: p.id, status: p.status, amountMinor: p.amount_minor, checkoutRequestId: p.checkout_request_id });
+const paymentView = (p: any) => ({
+  id: p.id, status: p.status, amountMinor: p.amount_minor, checkoutRequestId: p.checkout_request_id,
+  clientAction: p.request_payload?.clientAction ?? null   // e.g. { type: 'tradePay', paymentUrl } for the M-Pesa cashier
+});
 
 /** M-Pesa callback. Always stored first; processing is idempotent (M-Pesa may send the same result twice). */
 export async function handleMpesaCallback(ctx: Ctx, body: unknown, headers: Record<string, unknown> = {}) {

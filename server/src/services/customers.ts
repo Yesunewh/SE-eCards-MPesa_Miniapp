@@ -1,12 +1,12 @@
 import type { Ctx } from '../context.js';
-import { maybeOne, one } from '../db/pool.js';
+import { maybeOne, one, withTx } from '../db/pool.js';
 import { hashToken, newToken } from '../lib/crypto.js';
-import { AppError, EMAIL_RE, badRequest, normMsisdn } from '../lib/util.js';
+import { AppError, EMAIL_RE, badRequest, isUniqueViolation, normMsisdn } from '../lib/util.js';
 
 const SESSION_DAYS = 30;
 
 export interface Customer {
-  id: string; msisdn: string; name: string; lang: string;
+  id: string; msisdn: string | null; name: string; lang: string;
   deliver_by: 'email' | 'sms'; deliver_email: string | null; deliver_msisdn: string | null; is_blocked: boolean;
 }
 
@@ -18,18 +18,33 @@ export async function loginWithMpesa(ctx: Ctx, authCode: string, meta: { ip?: st
   } catch (e) {
     throw new AppError(401, 'login_failed', (e as Error).message);
   }
-  const msisdn = normMsisdn(user.msisdn);
-  if (!msisdn) throw new AppError(401, 'login_failed', 'M-Pesa returned an unsupported phone number');
+  // the phone number is optional: the mini program may not share it (the customer then gives one at checkout)
+  const msisdn = user.msisdn ? normMsisdn(user.msisdn) : null;
+  if (user.msisdn && !msisdn) throw new AppError(401, 'login_failed', 'M-Pesa returned an unsupported phone number');
+  if (!user.userId && !msisdn) throw new AppError(401, 'login_failed', 'M-Pesa returned no user id');
 
-  // Match by M-Pesa id first, then by phone (a customer created before ids were known).
-  const customer = await one<Customer>(ctx.db, `
-    INSERT INTO customers (mpesa_user_id, msisdn, name, deliver_msisdn, last_login_at)
-    VALUES ($1, $2, $3, $2, now())
-    ON CONFLICT (msisdn) DO UPDATE SET
-      mpesa_user_id = COALESCE(customers.mpesa_user_id, EXCLUDED.mpesa_user_id),
-      name = CASE WHEN EXCLUDED.name <> '' THEN EXCLUDED.name ELSE customers.name END,
-      last_login_at = now()
-    RETURNING *`, [user.userId, msisdn, user.name ?? '']);
+  const customer = await withTx(ctx.db, async tx => {
+    // match by M-Pesa id first, then by phone (a customer created before ids were known)
+    let c = user.userId ? await maybeOne<Customer>(tx, `SELECT * FROM customers WHERE mpesa_user_id = $1 FOR UPDATE`, [user.userId]) : null;
+    if (!c && msisdn) c = await maybeOne<Customer>(tx, `SELECT * FROM customers WHERE msisdn = $1 FOR UPDATE`, [msisdn]);
+    if (c) {
+      const taken = msisdn && !c.msisdn ? await maybeOne(tx, `SELECT 1 FROM customers WHERE msisdn = $1 AND id <> $2`, [msisdn, c.id]) : null;
+      return one<Customer>(tx, `
+        UPDATE customers SET mpesa_user_id = COALESCE(mpesa_user_id, $2), msisdn = COALESCE(msisdn, $3),
+          deliver_msisdn = COALESCE(deliver_msisdn, $3),
+          name = CASE WHEN $4 <> '' THEN $4 ELSE name END, last_login_at = now()
+        WHERE id = $1 RETURNING *`, [c.id, user.userId || null, taken ? null : msisdn, user.name ?? '']);
+    }
+    return one<Customer>(tx, `
+      INSERT INTO customers (mpesa_user_id, msisdn, name, deliver_msisdn, last_login_at)
+      VALUES ($1, $2, $3, $2, now()) RETURNING *`, [user.userId || null, msisdn, user.name ?? '']);
+  }).catch(async e => {
+    // two first logins at the same moment: the other one created the customer
+    if (!isUniqueViolation(e)) throw e;
+    const c = await maybeOne<Customer>(ctx.db, `SELECT * FROM customers WHERE mpesa_user_id = $1 OR msisdn = $2 LIMIT 1`, [user.userId || null, msisdn]);
+    if (!c) throw e;
+    return c;
+  });
   if (customer.is_blocked) throw new AppError(403, 'account_blocked');
 
   const token = newToken();

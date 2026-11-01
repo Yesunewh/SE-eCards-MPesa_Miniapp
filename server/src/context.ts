@@ -5,6 +5,7 @@ import { CodeVault } from './lib/crypto.js';
 import type { PaymentsAdapter } from './adapters/payments/types.js';
 import { MockPayments } from './adapters/payments/mock.js';
 import { SafaricomPayments } from './adapters/payments/safaricom.js';
+import { MiniAppPayments } from './adapters/payments/miniapp.js';
 import type { GiftCardProvider } from './adapters/giftcards/types.js';
 import { MockProvider } from './adapters/giftcards/mock.js';
 import { WupexProvider } from './adapters/giftcards/wupex.js';
@@ -25,7 +26,14 @@ export interface Ctx {
 
 export function createContext(cfg: Config, overrides: Partial<Ctx> & { providers?: Record<string, GiftCardProvider> } = {}): Ctx {
   const db = overrides.db ?? createPool(cfg.DATABASE_URL);
-  const payments = overrides.payments ?? (cfg.PAYMENTS_ADAPTER === 'safaricom'
+  const payments = overrides.payments ?? (cfg.PAYMENTS_ADAPTER === 'miniapp'
+    ? new MiniAppPayments({
+        gatewayUrl: cfg.MINIAPP_GATEWAY_URL, apiPrefix: cfg.MINIAPP_API_PREFIX, clientId: cfg.MINIAPP_CLIENT_ID,
+        appId: cfg.MINIAPP_APP_ID, authClientId: cfg.MINIAPP_AUTH_CLIENT_ID, privateKeyPem: cfg.MINIAPP_PRIVATE_KEY,
+        platformPublicKeyPem: cfg.MINIAPP_PLATFORM_PUBLIC_KEY, keyVersion: cfg.MINIAPP_KEY_VERSION, currency: cfg.MINIAPP_CURRENCY,
+        amountUnit: cfg.MINIAPP_AMOUNT_UNIT, productCode: cfg.MINIAPP_PRODUCT_CODE, userInfoPath: cfg.MINIAPP_USERINFO_PATH || undefined
+      })
+    : cfg.PAYMENTS_ADAPTER === 'safaricom'
     ? new SafaricomPayments({
         baseUrl: cfg.MPESA_BASE_URL, consumerKey: cfg.MPESA_CONSUMER_KEY, consumerSecret: cfg.MPESA_CONSUMER_SECRET,
         shortcode: cfg.MPESA_SHORTCODE, passkey: cfg.MPESA_PASSKEY
@@ -34,7 +42,7 @@ export function createContext(cfg: Config, overrides: Partial<Ctx> & { providers
   const providers: Record<string, GiftCardProvider> = overrides.providers ?? {
     mock: new MockProvider(),
     ...(cfg.GIFTCARD_ADAPTER === 'wupex'
-      ? { wupex: new WupexProvider({ baseUrl: cfg.WUPEX_BASE_URL, apiKey: cfg.WUPEX_API_KEY, apiSecret: cfg.WUPEX_API_SECRET }) }
+      ? { wupex: new WupexProvider({ baseUrl: cfg.WUPEX_BASE_URL, apiKey: cfg.WUPEX_API_KEY, merchant: cfg.WUPEX_MERCHANT, currency: cfg.WUPEX_CURRENCY }) }
       : {})
   };
   return {

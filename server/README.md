@@ -238,22 +238,38 @@ Customer and admin calls take `Authorization: Bearer <token>`.
 
 ## Going live: open items
 
-### Wupex (when the endpoints arrive)
-Only `src/adapters/giftcards/wupex.ts` needs filling in; the rest is built and tested against the mock provider.
-The file lists the questions to ask Wupex. The most important is whether **they accept our own order reference and can look orders up
-by it**, because that is what prevents double purchases after a timeout. Then:
+### Wupex
+`src/adapters/giftcards/wupex.ts` implements the documented API: balance, product list, `pull-codes`
+(codes come back in the reply), order detail and order list. Tested against a fake server that answers like the docs.
 
-1. Set `GIFTCARD_ADAPTER=wupex` and `WUPEX_*` in `.env`.
-2. `PUT /v1/admin/providers/wupex {"adapter":"wupex","isActive":true,"buyRate":…}`, then `POST /v1/admin/providers/wupex/sync`.
-3. Map each product: `PUT /v1/admin/products/:id/sources/wupex {"externalProductId":"…","unitCostCents":…}`.
-4. Deactivate or delete the `mock` provider.
+**Wupex takes no reference of ours**, so a purchase whose answer is lost (timeout) cannot be looked up by our id.
+The adapter stays safe by: buying one order at a time per provider (database lock), never while an earlier purchase
+is unresolved; recording the newest Wupex order id just before buying; and after a timeout, taking the order newer
+than that mark with the same SKU and quantity that no other purchase has claimed (a unique index guarantees a Wupex
+order is claimed once). Only when Wupex shows nothing for 3 minutes is the card bought again.
 
-### M-Pesa (Safaricom Ethiopia)
-- **Mini app login**: `SafaricomPayments.exchangeAuthCode` needs the auth-code exchange endpoint from the mini app SDK docs.
-- **Payments**: the STK push / query / callback code follows Safaricom's Daraja format; check paths and field names against
-  the Ethiopia docs and test in the sandbox (`apisandbox.safaricom.et`).
-- If mini app payments go through the in-app payment API instead of STK push, only `initiate` and `parseCallback` change.
-- Set a long random `MPESA_CALLBACK_SECRET` and a public `PUBLIC_BASE_URL` (HTTPS).
+Go live:
+1. `.env`: `GIFTCARD_ADAPTER=wupex`, `WUPEX_BASE_URL` (sandbox first), `WUPEX_API_KEY`, `WUPEX_MERCHANT`, `WUPEX_CURRENCY`.
+2. Register it: `PUT /v1/admin/providers/wupex {"name":"Wupex","adapter":"wupex","isActive":true,"buyRate":<Br per USD you pay>}`.
+3. Sync and map: `npm run provider:map -- wupex` shows which Wupex SKU covers each card (USA first, then global) with the
+   cost price; add `--apply` to save. Or `POST /v1/admin/providers/wupex/automap {"apply":true}`.
+4. Switch the `mock` provider off: `PUT /v1/admin/providers/mock {"isActive":false}`.
+
+Ask Wupex: currency of `price`/balance; whether `price` is the face value; whether the order list's `ReferenceId`
+filter accepts our own reference (then lookups become exact); whether they allow-list server IPs.
+
+### M-Pesa mini program
+- `src/adapters/payments/miniapp.ts`: RSA256-signed calls to the mini program gateway: `applyToken` (login),
+  `payments/pay` (returns the cashier URL), `inquiryPayment`; checks the wallet's signature on every reply.
+- `POST /v1/webhooks/mpesa-miniapp/<MPESA_CALLBACK_SECRET>` receives `notifyPayment` (signature checked, signed reply).
+- `../miniprogram/`: the native shell to upload with Mini Program Studio. It shows `https://ecards.paperless.et` in a
+  web-view and calls `my.getAuthCode` / `my.tradePay` for the page (bridge in `../assets/ecards-api.js`).
+- Customers may log in without a phone number (if M-Pesa does not share it); they then type an SMS number at checkout.
+
+Go live: generate our key pair, give M-Pesa the public key, put their values and public key in `.env`
+(`MINIAPP_*`, see `.env.example`), set `PAYMENTS_ADAPTER=miniapp`, publish the mini program.
+To confirm during onboarding: amount format (`MINIAPP_AMOUNT_UNIT`), API prefix, the profile endpoint and the scope that
+returns the phone number.
 
 ### Delivering codes
 Add an SMS gateway and/or SMTP adapter in `src/adapters/notify/`. SMS texts are English only for now; Amharic, Oromo, Somali and

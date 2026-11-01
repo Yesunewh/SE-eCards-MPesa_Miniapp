@@ -278,15 +278,19 @@ export async function syncProvider(ctx: Ctx, admin: Admin | null, id: string) {
       for (const it of items) {
         await tx.query(`
           INSERT INTO provider_products (provider_id, external_id, name, brand_name, country, currency, denomination_type,
-                                         denominations_cents, min_cents, max_cents, discount_pct, fee_cents, is_available, raw, synced_at)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, now())
+                                         denominations_cents, min_cents, max_cents, discount_pct, fee_cents, is_available, raw, price_cents, synced_at)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, now())
           ON CONFLICT (provider_id, external_id) DO UPDATE SET name = EXCLUDED.name, brand_name = EXCLUDED.brand_name,
             country = EXCLUDED.country, currency = EXCLUDED.currency, denomination_type = EXCLUDED.denomination_type,
             denominations_cents = EXCLUDED.denominations_cents, min_cents = EXCLUDED.min_cents, max_cents = EXCLUDED.max_cents,
             discount_pct = EXCLUDED.discount_pct, fee_cents = EXCLUDED.fee_cents, is_available = EXCLUDED.is_available,
-            raw = EXCLUDED.raw, synced_at = now()`,
+            raw = EXCLUDED.raw, price_cents = EXCLUDED.price_cents, synced_at = now()`,
           [id, it.externalId, it.name, it.brandName ?? null, it.country ?? null, it.currency, it.type, it.denominationsCents ?? [],
-           it.minCents ?? null, it.maxCents ?? null, it.discountPct ?? null, it.feeCents ?? null, it.available, JSON.stringify(it.raw ?? {})]);
+           it.minCents ?? null, it.maxCents ?? null, it.discountPct ?? null, it.feeCents ?? null, it.available, JSON.stringify(it.raw ?? {}), it.priceCents ?? null]);
+      }
+      // products the provider no longer lists are marked unavailable
+      if (items.length) {
+        await tx.query(`UPDATE provider_products SET is_available = false WHERE provider_id = $1 AND NOT (external_id = ANY($2))`, [id, items.map(i => i.externalId)]);
       }
       await tx.query(`UPDATE providers SET status = 'ok', status_message = NULL, balance_cents = $2, balance_currency = $3, balance_checked_at = now() WHERE id = $1`,
         [id, bal.balanceCents, bal.currency]);
