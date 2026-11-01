@@ -6,6 +6,7 @@ import type { PaymentsAdapter } from './adapters/payments/types.js';
 import { MockPayments } from './adapters/payments/mock.js';
 import { SafaricomPayments } from './adapters/payments/safaricom.js';
 import { MiniAppPayments } from './adapters/payments/miniapp.js';
+import { MpesaEtPayments } from './adapters/payments/mpesaEt.js';
 import type { GiftCardProvider } from './adapters/giftcards/types.js';
 import { MockProvider } from './adapters/giftcards/mock.js';
 import { WupexProvider } from './adapters/giftcards/wupex.js';
@@ -26,7 +27,9 @@ export interface Ctx {
 
 export function createContext(cfg: Config, overrides: Partial<Ctx> & { providers?: Record<string, GiftCardProvider> } = {}): Ctx {
   const db = overrides.db ?? createPool(cfg.DATABASE_URL);
-  const payments = overrides.payments ?? (cfg.PAYMENTS_ADAPTER === 'miniapp'
+  const payments = overrides.payments ?? (cfg.PAYMENTS_ADAPTER === 'mpesa_et'
+    ? new MpesaEtPayments({ shortcode: cfg.MPESA_SHORTCODE, baseUrl: cfg.MPESA_BASE_URL, consumerKey: cfg.MPESA_CONSUMER_KEY, consumerSecret: cfg.MPESA_CONSUMER_SECRET })
+    : cfg.PAYMENTS_ADAPTER === 'miniapp'
     ? new MiniAppPayments({
         gatewayUrl: cfg.MINIAPP_GATEWAY_URL, apiPrefix: cfg.MINIAPP_API_PREFIX, clientId: cfg.MINIAPP_CLIENT_ID,
         appId: cfg.MINIAPP_APP_ID, authClientId: cfg.MINIAPP_AUTH_CLIENT_ID, privateKeyPem: cfg.MINIAPP_PRIVATE_KEY,

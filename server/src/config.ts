@@ -20,7 +20,7 @@ const schema = z.object({
   CODE_HMAC_KEY: key32,
   RUN_WORKER: bool,
 
-  PAYMENTS_ADAPTER: z.enum(['mock', 'safaricom', 'miniapp']).default('mock'),
+  PAYMENTS_ADAPTER: z.enum(['mock', 'safaricom', 'miniapp', 'mpesa_et']).default('mock'),
 
   // M-Pesa mini program (my.getAuthCode / payments/pay / my.tradePay). Values come with mini program onboarding.
   MINIAPP_GATEWAY_URL: z.string().default(''),
@@ -75,6 +75,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   if (c.NODE_ENV === 'production') {
     if (c.MPESA_CALLBACK_SECRET.length < 24) throw new Error('MPESA_CALLBACK_SECRET must be at least 24 characters in production');
+  }
+  if (c.PAYMENTS_ADAPTER === 'mpesa_et') {
+    for (const k of ['MPESA_SHORTCODE', 'MPESA_CONSUMER_KEY', 'MPESA_CONSUMER_SECRET'] as const) {
+      if (!c[k]) throw new Error(`${k} is required when PAYMENTS_ADAPTER=mpesa_et`);
+    }
   }
   if (c.PAYMENTS_ADAPTER === 'miniapp') {
     for (const k of ['MINIAPP_GATEWAY_URL', 'MINIAPP_CLIENT_ID', 'MINIAPP_APP_ID', 'MINIAPP_AUTH_CLIENT_ID', 'MINIAPP_PRIVATE_KEY'] as const) {

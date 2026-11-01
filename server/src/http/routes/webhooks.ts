@@ -5,7 +5,7 @@ import { parse } from '../app.js';
 import { maybeOne } from '../../db/pool.js';
 import { safeEqual } from '../../lib/crypto.js';
 import { AppError, notFound } from '../../lib/util.js';
-import { handleMpesaCallback } from '../../services/payments.js';
+import { handleC2bValidation, handleMpesaCallback } from '../../services/payments.js';
 import { mockCallback, MockPayments } from '../../adapters/payments/mock.js';
 
 export async function webhookRoutes(app: FastifyInstance, ctx: Ctx) {
@@ -19,6 +19,26 @@ export async function webhookRoutes(app: FastifyInstance, ctx: Ctx) {
     if (!safeEqual(String((req.params as any).secret), expected)) throw notFound('not_found');
     const r = await handleMpesaCallback(ctx, req.body, { 'user-agent': req.headers['user-agent'] ?? null, ip: req.ip });
     return reply.status(200).send({ ResultCode: 0, ResultDesc: 'Accepted', ...(ctx.cfg.NODE_ENV !== 'production' ? { result: r } : {}) });
+  });
+
+  /**
+   * M-Pesa Ethiopia C2B (payWithMpesa in the H5 mini app). Unsigned, like all Daraja-style callbacks, so the URL
+   * carries MPESA_CALLBACK_SECRET (registered with npm run mpesa:register-urls) and every payment is checked against
+   * an open payment of ours for the exact amount. Replies use the documented { ResultCode, ResultDesc }.
+   */
+  const c2bSecretOk = (req: any) => safeEqual(String(req.params.secret), ctx.cfg.MPESA_CALLBACK_SECRET || 'dev');
+  app.post('/webhooks/mpesa-c2b/:secret/validation', async (req, reply) => {
+    if (!c2bSecretOk(req)) throw notFound('not_found');
+    return reply.status(200).send(await handleC2bValidation(ctx, req.body));
+  });
+  app.post('/webhooks/mpesa-c2b/:secret/confirmation', async (req, reply) => {
+    if (!c2bSecretOk(req)) throw notFound('not_found');
+    try {
+      await handleMpesaCallback(ctx, req.body, { ip: req.ip, kind: 'c2b-confirmation' });
+    } catch (e) {
+      req.log.error(e);   // stored in webhook_events; the money has moved, so we still acknowledge
+    }
+    return reply.status(200).send({ ResultCode: 0, ResultDesc: 'Request processed successfully' });
   });
 
   /**

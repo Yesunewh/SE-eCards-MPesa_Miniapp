@@ -3,9 +3,9 @@ import { z } from 'zod';
 import type { Ctx } from '../../context.js';
 import { customerAuth, parse } from '../app.js';
 import { getCatalog } from '../../services/catalog.js';
-import { loginWithMpesa, logout, publicCustomer, updateProfile } from '../../services/customers.js';
+import { loginWithMpesa, loginWithProfile, logout, publicCustomer, updateProfile, viewerOf } from '../../services/customers.js';
 import { cancelOrder, createOrder, getOrder, listOrders, listOrdersFull, markCodeUsed } from '../../services/orders.js';
-import { startPayment } from '../../services/payments.js';
+import { reportClientResult, startPayment } from '../../services/payments.js';
 import { addToWishlist, listWishlist, removeFromWishlist } from '../../services/wishlist.js';
 import { customerReply, listTicketsForCustomer, markSeenByCustomer, openTicket } from '../../services/support.js';
 
@@ -34,8 +34,15 @@ export async function customerRoutes(app: FastifyInstance, ctx: Ctx) {
   });
 
   app.post('/auth/mpesa', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async req => {
-    const b = parse(z.object({ authCode: z.string().min(1).max(2000) }), req.body);
-    return loginWithMpesa(ctx, b.authCode, { ip: req.ip, userAgent: req.headers['user-agent'] });
+    const meta = { ip: req.ip, userAgent: req.headers['user-agent'] };
+    const b = parse(z.union([
+      z.object({ authCode: z.string().min(1).max(2000), deviceKey: z.string().max(128).optional() }),
+      // M-Pesa Ethiopia H5: what my.call('userScopes') returned in the app
+      z.object({ profile: z.object({ userId: z.string().min(1).max(64), name: z.string().max(120).optional(), msisdn: z.string().max(20).nullish() }),
+                 deviceKey: z.string().min(16).max(128) })
+    ]), req.body);
+    if ('profile' in b) return loginWithProfile(ctx, b.profile, b.deviceKey, meta);
+    return loginWithMpesa(ctx, b.authCode, { ...meta, deviceKey: b.deviceKey });
   });
 
   app.register(async a => {
@@ -60,11 +67,18 @@ export async function customerRoutes(app: FastifyInstance, ctx: Ctx) {
       return reply.status(201).send(order);
     });
     a.get('/orders', async req => ({
-      orders: (req.query as any)?.full === '1' ? await listOrdersFull(ctx, req.customer!.id) : await listOrders(ctx, req.customer!.id)
+      orders: (req.query as any)?.full === '1' ? await listOrdersFull(ctx, req.customer!.id, 50, viewerOf(req.customer!)) : await listOrders(ctx, req.customer!.id)
     }));
-    a.get('/orders/:id', async req => getOrder(ctx, req.customer!.id, (req.params as any).id));
+    a.get('/orders/:id', async req => getOrder(ctx, req.customer!.id, (req.params as any).id, { withCodes: true, viewer: viewerOf(req.customer!) }));
     a.post('/orders/:id/pay', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async req =>
       startPayment(ctx, req.customer!.id, parse(uuid, (req.params as any).id)));
+    a.post('/orders/:id/pay-result', async req => {
+      const b = parse(z.object({
+        paymentId: uuid, status: z.enum(['success', 'cancelled', 'failed']), transactionId: z.string().max(64).optional(),
+        error: z.union([z.number(), z.string().max(40)]).optional(), errorMessage: z.string().max(300).optional()
+      }), req.body);
+      return reportClientResult(ctx, req.customer!.id, parse(uuid, (req.params as any).id), b);
+    });
     a.post('/orders/:id/cancel', async req => {
       await cancelOrder(ctx, req.customer!.id, parse(uuid, (req.params as any).id));
       return { ok: true };

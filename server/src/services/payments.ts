@@ -22,16 +22,17 @@ export async function startPayment(ctx: Ctx, customerId: string, orderId: string
     if (new Date(o.expires_at) <= new Date()) throw badRequest('order_expired');
     const open = await maybeOne(tx, `SELECT * FROM payments WHERE order_id = $1 AND status = ANY($2)`, [orderId, OPEN]);
     if (open) return { existing: open };   // already asked: same request, the customer just needs to approve it
+    const attempt = (await one(tx, `SELECT count(*)::int AS n FROM payments WHERE order_id = $1`, [orderId])).n + 1;
     const p = await one(tx, `INSERT INTO payments (order_id, method, amount_minor, msisdn) VALUES ($1,$2,$3,$4) RETURNING *`,
       [orderId, methodOf(ctx), o.total_minor, o.msisdn]);
-    return { payment: p, order: o };
+    return { payment: p, order: o, attempt };
   });
   if ('existing' in prep) return paymentView(prep.existing);
 
-  const { payment, order } = prep;
+  const { payment, order, attempt } = prep;
   try {
     const r = await ctx.payments.initiate({
-      paymentId: payment.id, amountMinor: order.total_minor, msisdn: order.msisdn, reference: order.reference,
+      paymentId: payment.id, attempt, amountMinor: order.total_minor, msisdn: order.msisdn, reference: order.reference,
       orderCreatedAt: new Date(order.created_at), description: `eCards ${order.reference}`, callbackUrl: callbackUrl(ctx)
     });
     const p = await one(ctx.db, `
@@ -143,6 +144,40 @@ export async function expireOrdersJob(ctx: Ctx) {
   return r.rowCount ?? 0;
 }
 
+/**
+ * M-Pesa Ethiopia C2B Validation: M-Pesa asks before taking the money. We accept only a bill reference
+ * that is an open payment of ours, for exactly its amount. (Result codes from the M-Pesa docs.)
+ */
+export async function handleC2bValidation(ctx: Ctx, body: any) {
+  const ev = await one(ctx.db, `INSERT INTO webhook_events (source, external_id, payload, verified) VALUES ('mpesa_c2b', $1, $2, true) RETURNING id`,
+    [String(body?.TransID ?? '') || null, JSON.stringify(body ?? null)]);
+  const ref = String(body?.BillRefNumber ?? '').trim();
+  const p = ref ? await maybeOne(ctx.db, `SELECT * FROM payments WHERE checkout_request_id = $1`, [ref]) : null;
+  let reply: { ResultCode: number | string; ResultDesc: string };
+  if (!p || p.status === 'succeeded') reply = { ResultCode: 'C2B00012', ResultDesc: 'Invalid Account Number' };
+  else if (Math.round(Number(body?.TransAmount) * 100) !== Number(p.amount_minor)) reply = { ResultCode: 'C2B00013', ResultDesc: 'Invalid Amount' };
+  else reply = { ResultCode: 0, ResultDesc: 'Request processed successfully' };
+  await ctx.db.query(`UPDATE webhook_events SET processed_at = now(), error = $2 WHERE id = $1`, [ev.id, reply.ResultCode === 0 ? null : `validation ${reply.ResultCode}`]);
+  return reply;
+}
+
+/**
+ * What the app saw after payWithMpesa. Informational: a cancel or failure closes the attempt (so the customer
+ * can try again), but only M-Pesa's confirmation marks an order paid, even if it arrives after a "cancel".
+ */
+export async function reportClientResult(ctx: Ctx, customerId: string, orderId: string,
+  r: { paymentId: string; status: 'success' | 'cancelled' | 'failed'; transactionId?: string; error?: number | string; errorMessage?: string }) {
+  const p = await maybeOne(ctx.db, `SELECT p.* FROM payments p JOIN orders o ON o.id = p.order_id WHERE p.id = $1 AND o.id = $2 AND o.customer_id = $3`,
+    [r.paymentId, orderId, customerId]);
+  if (!p) throw notFound('payment_not_found');
+  await ctx.db.query(`UPDATE payments SET client_result = $2 WHERE id = $1`, [p.id, { ...r, at: new Date().toISOString() }]);
+  if (r.status !== 'success' && OPEN.includes(p.status)) {
+    await ctx.db.query(`UPDATE payments SET status = $2, result_code = $3, result_desc = $4, completed_at = now() WHERE id = $1 AND status = ANY($5)`,
+      [p.id, r.status === 'cancelled' ? 'cancelled' : 'failed', String(r.error ?? ''), (r.errorMessage ?? r.status).slice(0, 300), OPEN]);
+  }
+  return { ok: true };
+}
+
 /** Admin: payments needing a human (mismatches, duplicates, unknown callbacks). */
 export async function paymentsNeedingReview(ctx: Ctx) {
   return many(ctx.db, `
@@ -150,4 +185,12 @@ export async function paymentsNeedingReview(ctx: Ctx) {
     FROM payments p JOIN orders o ON o.id = p.order_id
     WHERE p.status = 'failed' AND (p.result_desc LIKE 'AMOUNT MISMATCH%' OR p.result_desc LIKE 'DUPLICATE PAYMENT%')
     ORDER BY p.updated_at DESC`);
+}
+
+/** Admin: C2B confirmations that matched no payment of ours (money received, needs a human). */
+export async function unmatchedPayments(ctx: Ctx) {
+  return many(ctx.db, `
+    SELECT id, external_id AS trans_id, payload->>'BillRefNumber' AS bill_ref, payload->>'TransAmount' AS amount,
+           payload->>'MSISDN' AS msisdn, received_at
+    FROM webhook_events WHERE error = 'unknown_payment' ORDER BY received_at DESC LIMIT 200`);
 }

@@ -67,10 +67,10 @@ export async function createOrder(ctx: Ctx, customer: Customer, input: CreateOrd
       try {
         await tx.query('SAVEPOINT ref');
         const r = await tx.query(`
-          INSERT INTO orders (reference, customer_id, subtotal_minor, vat_minor, total_minor, usd_etb_rate, vat_rate,
+          INSERT INTO orders (device_hash, reference, customer_id, subtotal_minor, vat_minor, total_minor, usd_etb_rate, vat_rate,
                               deliver_by, deliver_to, lang, channel, idempotency_key, expires_at)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, now() + make_interval(secs => $13)) RETURNING id`,
-          [orderRef(), customer.id, total - vat, vat, total, s.usd_etb_rate, s.vat_rate, by, to,
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, now() + make_interval(secs => $14)) RETURNING id`,
+          [customer.session_device_hash ?? null, orderRef(), customer.id, total - vat, vat, total, s.usd_etb_rate, s.vat_rate, by, to,
            input.lang ?? customer.lang, input.channel ?? 'miniapp', input.idempotencyKey ?? null, s.payment_timeout_secs]);
         id = r.rows[0].id;
       } catch (e) {
@@ -102,7 +102,9 @@ export async function createOrder(ctx: Ctx, customer: Customer, input: CreateOrd
 }
 
 /** One order as the customer sees it, with decrypted codes for delivered cards. */
-export async function getOrder(ctx: Ctx, customerId: string | null, idOrRef: string, opts: { withCodes?: boolean } = { withCodes: true }) {
+export interface Viewer { deviceHash: Buffer | null; verified: boolean }
+
+export async function getOrder(ctx: Ctx, customerId: string | null, idOrRef: string, opts: { withCodes?: boolean; viewer?: Viewer } = { withCodes: true }) {
   const isRef = /^EC\d{8}$/.test(idOrRef);
   if (!isRef && !/^[0-9a-f-]{36}$/i.test(idOrRef)) throw notFound('order_not_found');
   const o = await maybeOne(ctx.db,
@@ -110,7 +112,10 @@ export async function getOrder(ctx: Ctx, customerId: string | null, idOrRef: str
     customerId ? [idOrRef, customerId] : [idOrRef]);
   if (!o) throw notFound('order_not_found');
   const items = await many(ctx.db, `SELECT * FROM order_items WHERE order_id = $1 ORDER BY line_no`, [o.id]);
-  const codes = opts.withCodes === false ? [] : await many(ctx.db,
+  // an unverified (userScopes) session sees codes only for orders placed from its own device
+  const v = opts.viewer;
+  const codesHidden = !!v && !v.verified && !(v.deviceHash && o.device_hash && Buffer.compare(v.deviceHash, o.device_hash) === 0);
+  const codes = opts.withCodes === false || codesHidden ? [] : await many(ctx.db,
     `SELECT id, order_item_id, code_enc, pin_enc, serial, expires_on, customer_used_at
      FROM gift_codes WHERE order_item_id = ANY($1) ORDER BY sold_at, id`, [items.map(i => i.id)]);
   const payment = await maybeOne(ctx.db,
@@ -126,6 +131,7 @@ export async function getOrder(ctx: Ctx, customerId: string | null, idOrRef: str
       faceValueUsd: it.face_value_cents / 100, quantity: it.quantity, deliveredQuantity: it.delivered_quantity,
       unitPriceMinor: it.unit_price_minor, lineTotalMinor: it.line_total_minor, status: it.status,
       eta: it.status === 'waiting' ? it.eta : null, deliveredAt: it.delivered_at,
+      codesHidden: codesHidden && it.delivered_quantity > 0,
       codes: codes.filter(c => c.order_item_id === it.id).map(c => ({
         id: c.id, code: ctx.vault.decrypt(c.code_enc), pin: c.pin_enc ? ctx.vault.decrypt(c.pin_enc) : null,
         serial: c.serial, expiresOn: c.expires_on, usedAt: c.customer_used_at
@@ -135,11 +141,11 @@ export async function getOrder(ctx: Ctx, customerId: string | null, idOrRef: str
 }
 
 /** Paid orders with lines and codes, newest first (the app's My Orders and wallet in one call). */
-export async function listOrdersFull(ctx: Ctx, customerId: string, limit = 50) {
+export async function listOrdersFull(ctx: Ctx, customerId: string, limit = 50, viewer?: Viewer) {
   const ids = await many(ctx.db, `SELECT id FROM orders WHERE customer_id = $1 AND status IN ('paid','awaiting_stock','completed')
                                   ORDER BY created_at DESC LIMIT $2`, [customerId, Math.min(limit, 100)]);
   const out = [];
-  for (const r of ids) out.push(await getOrder(ctx, customerId, r.id));
+  for (const r of ids) out.push(await getOrder(ctx, customerId, r.id, { withCodes: true, viewer }));
   return out;
 }
 

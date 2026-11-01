@@ -4,7 +4,7 @@ import type { Ctx } from '../../context.js';
 import { adminAuth, parse } from '../app.js';
 import * as A from '../../services/admin.js';
 import { getSettings } from '../../services/catalog.js';
-import { paymentsNeedingReview } from '../../services/payments.js';
+import { paymentsNeedingReview, unmatchedPayments } from '../../services/payments.js';
 import { setRestockEta, stockOverview, uploadCodes, voidCode } from '../../services/stock.js';
 import { listTicketsForStaff, staffReply } from '../../services/support.js';
 import { applyMappings, suggestMappings } from '../../services/providerMapping.js';
@@ -44,7 +44,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: Ctx) {
       await A.resendCodes(ctx, req.admin!, id(req), b);
       return { ok: true };
     });
-    a.get('/payments/review', async () => ({ payments: await paymentsNeedingReview(ctx) }));
+    a.get('/payments/review', async () => ({ payments: await paymentsNeedingReview(ctx), unmatched: await unmatchedPayments(ctx) }));
 
     // ---- stock
     a.get('/stock', async () => ({ products: await stockOverview(ctx) }));

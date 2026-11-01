@@ -177,6 +177,76 @@
   }
   const notInMpesa = () => { const e = new Error('Open eCards from the M-Pesa app to log in and pay.'); e.code = 'openInMpesa'; return e; };
 
+  /* ---------------------------------------------------------------- M-Pesa Ethiopia H5 SDK (hylid-bridge)
+   * developer.safaricom.et → Mini App → H5 Mini-app: inside the M-Pesa app (user agent contains "MiniProgram")
+   * the page loads the JSBridge SDK, which defines a global `my` with my.call(…):
+   *   my.call('userScopes', { scopes })      → { kycAllowed: [{ key, value }], kycRejected: [...] }
+   *   my.call('payWithMpesa', { businessID, billReference, amount, currency, reason }) → { transactionId }
+   *   failures                                → { error, errorMessage }   (201 = cancelled by the user)
+   * The mini program needs the features UserScopes and PaymentET enabled in the portal.
+   */
+  const SDK_URL = 'https://cdn.marmot-cloud.com/npm/hylid-bridge/2.10.0/index.js';
+  const inMpesa = /MiniProgram/.test(navigator.userAgent || '');
+  let sdkReady = null;
+  function loadSdk() {
+    if (sdkReady) return sdkReady;
+    sdkReady = new Promise(res => {
+      if (window.my && typeof window.my.call === 'function') return res(true);
+      if (!inMpesa) return res(false);
+      const sc = document.createElement('script');
+      sc.src = SDK_URL;
+      const t = setTimeout(() => res(false), 10000);
+      sc.onload = () => { clearTimeout(t); res(!!(window.my && typeof window.my.call === 'function')); };
+      sc.onerror = () => { clearTimeout(t); res(false); };
+      document.head.appendChild(sc);
+    });
+    return sdkReady;
+  }
+  /** my.call as a promise: { ok, res } */
+  const myCall = (name, params) => new Promise(resolve => {
+    try {
+      window.my.call(name, Object.assign({}, params, {
+        success: res => resolve({ ok: !(res && res.error), res: res || {} }),
+        fail: res => resolve({ ok: false, res: res || {} })
+      }));
+    } catch (e) { resolve({ ok: false, res: { error: 'bridge', errorMessage: e.message } }); }
+  });
+  A.inMpesa = inMpesa;
+
+  /** A random key per app install, so codes are shown only on the phone that bought them (see server customers.ts). */
+  A.deviceKey = function () {
+    let k = LS.get('ecards-device-key');
+    if (!k || k.length < 32) {
+      const b = new Uint8Array(24); (window.crypto || window.msCrypto).getRandomValues(b);
+      k = 'dk-' + Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+      LS.set('ecards-device-key', k);
+    }
+    return k;
+  };
+
+  /**
+   * Log in. Inside M-Pesa: userScopes (the user approves sharing name and mobile). Outside M-Pesa (staging only):
+   * a mock code. Resolves { token, customer }.
+   */
+  A.signIn = async function (demoPhone, demoName) {
+    if (await loadSdk()) {
+      const r = await myCall('userScopes', { scopes: ['USER_ID', 'USER_NAME', 'USER_MNAME', 'USER_LNAME', 'USER_MOBILE'] });
+      if (!r.ok) {
+        const e = new Error(r.res.errorMessage || 'M-Pesa login failed'); e.code = String(r.res.error) === '201' ? 'loginCancelled' : 'login_failed'; throw e;
+      }
+      const kv = {}; (r.res.kycAllowed || []).forEach(x => { if (x && x.key) kv[x.key] = x.value; });
+      if (!kv.USER_ID) { const e = new Error('M-Pesa did not share your account id'); e.code = 'login_failed'; throw e; }
+      const name = [kv.USER_NAME, kv.USER_MNAME, kv.USER_LNAME].filter(v => v && !/^[0-9a-f]{8,}(-[0-9a-f]+)+$/i.test(v)).join(' ');
+      const out = await req('POST', '/v1/auth/mpesa', { profile: { userId: String(kv.USER_ID), name, msisdn: kv.USER_MOBILE || null }, deviceKey: A.deviceKey() }, { noAuth: true });
+      A.token = out.token;
+      return out;
+    }
+    const code = await A.authCode(demoPhone, demoName);
+    const out = await req('POST', '/v1/auth/mpesa', { authCode: code, deviceKey: A.deviceKey() }, { noAuth: true });
+    A.token = out.token;
+    return out;
+  };
+
   /* ---------------------------------------------------------------- customer session */
   /** Login code from M-Pesa (mini program); outside M-Pesa a mock code, accepted only by the staging server. */
   A.authCode = async function (demoPhone, demoName) {
@@ -230,7 +300,8 @@
       if (it.deliveredQuantity > 0) {
         items.push(Object.assign({}, base, {
           qty: it.deliveredQuantity, status: 'delivered', deliveredAt: ms(it.deliveredAt) || ms(o.paidAt),
-          codes: it.codes.map(c => c.code), codeIds: it.codes.map(c => c.id), usedAt: it.codes.map(c => ms(c.usedAt))
+          codes: it.codesHidden ? Array.from({ length: it.deliveredQuantity }, () => 'SENT BY SMS · SHOWN ON THE PHONE THAT BOUGHT IT') : it.codes.map(c => c.code),
+          codeIds: it.codesHidden ? [] : it.codes.map(c => c.id), usedAt: it.codesHidden ? [] : it.codes.map(c => ms(c.usedAt))
         }));
       }
       const left = it.quantity - it.deliveredQuantity;
@@ -258,6 +329,16 @@
     }, { headers: { 'idempotency-key': key } });
     const pay = await req('POST', `/v1/orders/${order.id}/pay`);
     onStage && onStage('pin', order);
+    if (pay.clientAction && pay.clientAction.type === 'payWithMpesa') {   // M-Pesa Ethiopia H5: M-Pesa's own confirmation screen
+      if (!(await loadSdk())) throw notInMpesa();
+      const ca = pay.clientAction;
+      const r = await myCall('payWithMpesa', { businessID: ca.businessID, billReference: ca.billReference, amount: ca.amount, currency: ca.currency, reason: ca.reason });
+      const report = r.ok ? { paymentId: pay.id, status: 'success', transactionId: r.res.transactionId ? String(r.res.transactionId) : undefined }
+        : { paymentId: pay.id, status: String(r.res.error) === '201' ? 'cancelled' : 'failed', error: r.res.error, errorMessage: r.res.errorMessage };
+      await req('POST', `/v1/orders/${order.id}/pay-result`, report).catch(() => {});
+      if (!r.ok) { const e = new Error(r.res.errorMessage || 'payment failed'); e.code = report.status === 'cancelled' ? 'payCancelled' : 'payFailed'; e.order = order; throw e; }
+      // paid in M-Pesa: the server's confirmation from M-Pesa (C2B) decides below
+    }
     if (pay.clientAction && pay.clientAction.type === 'tradePay') {   // M-Pesa mini program: the cashier opens in the app
       const code = await A.tradePay(pay.clientAction.paymentUrl);
       if (code === '6001') { const e = new Error('payment cancelled'); e.code = 'payCancelled'; e.order = order; throw e; }

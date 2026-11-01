@@ -18,7 +18,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "provider:map": "node dist/scripts/provider-map.js",
-    "provider:map:dev": "tsx src/scripts/provider-map.ts"
+    "provider:map:dev": "tsx src/scripts/provider-map.ts",
+    "mpesa:register-urls": "node dist/scripts/mpesa-register-urls.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.1",

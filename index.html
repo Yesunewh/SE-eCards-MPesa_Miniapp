@@ -731,7 +731,7 @@ const I18N = {
     decrease: 'Decrease quantity', increase: 'Increase quantity', remove: 'Remove',
     payFailed: 'Payment was not completed. No money was taken. Please try again.', payTimeout: 'M-Pesa has not confirmed yet. We will show the order as soon as it does.',
     serverError: 'Could not reach eCards. Check your connection and try again.', demoOnly: 'Only available in the demo.',
-    payCancelled: 'Payment cancelled. Nothing was charged.', openInMpesa: 'Open eCards from the M-Pesa app to log in and pay.',
+    payCancelled: 'Payment cancelled. Nothing was charged.', loginCancelled: 'Login cancelled. eCards needs your M-Pesa name and number to deliver your cards.', openInMpesa: 'Open eCards from the M-Pesa app to log in and pay.',
     confirmPayment: 'Confirm payment', merchant: 'Merchant', qtyLabel: 'Cards', payFrom: 'Pay from',
     payNote: 'Demo payment. In the live mini app, M-Pesa’s own payment screen opens here and you approve with your PIN. No money moves in this preview.',
     cancel: 'Cancel', payNow: 'Pay now', waiting: 'Waiting for M-Pesa', approving: 'Approving {amount}…',
@@ -2925,7 +2925,7 @@ async function refreshMine() {
   if (wl) { wish = wl.filter(x => BR[x.bid]); saveWish(); }
 }
 function serverLogin(cs, w) {
-  API.authCode(DEMO_MSISDN, DEMO_USER.name).then(API.login).then(async r => {
+  API.signIn(DEMO_MSISDN, DEMO_USER.name).then(async r => {
     session = API.toSession(r.customer, r.token, session);
     store.set(K_SESSION, session);
     await refreshMine();

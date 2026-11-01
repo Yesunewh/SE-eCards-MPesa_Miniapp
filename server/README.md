@@ -258,18 +258,21 @@ Go live:
 Ask Wupex: currency of `price`/balance; whether `price` is the face value; whether the order list's `ReferenceId`
 filter accepts our own reference (then lookups become exact); whether they allow-list server IPs.
 
-### M-Pesa mini program
-- `src/adapters/payments/miniapp.ts`: RSA256-signed calls to the mini program gateway: `applyToken` (login),
-  `payments/pay` (returns the cashier URL), `inquiryPayment`; checks the wallet's signature on every reply.
-- `POST /v1/webhooks/mpesa-miniapp/<MPESA_CALLBACK_SECRET>` receives `notifyPayment` (signature checked, signed reply).
-- `../miniprogram/`: the native shell to upload with Mini Program Studio. It shows `https://ecards.paperless.et` in a
-  web-view and calls `my.getAuthCode` / `my.tradePay` for the page (bridge in `../assets/ecards-api.js`).
-- Customers may log in without a phone number (if M-Pesa does not share it); they then type an SMS number at checkout.
-
-Go live: generate our key pair, give M-Pesa the public key, put their values and public key in `.env`
-(`MINIAPP_*`, see `.env.example`), set `PAYMENTS_ADAPTER=miniapp`, publish the mini program.
-To confirm during onboarding: amount format (`MINIAPP_AMOUNT_UNIT`), API prefix, the profile endpoint and the scope that
-returns the phone number.
+### M-Pesa Ethiopia (H5 mini app): `PAYMENTS_ADAPTER=mpesa_et`
+Following developer.safaricom.et → Mini App → H5 Mini-app:
+- The mini program is of type **HTML5** with Entrance URL `https://ecards.paperless.et/`, features **UserScopes** and
+  **PaymentET** enabled. Inside M-Pesa the page loads the SDK `https://cdn.marmot-cloud.com/npm/hylid-bridge/2.10.0/index.js`
+  (`assets/ecards-api.js` does it when the user agent contains `MiniProgram`).
+- **Login**: `my.call('userScopes', …)` returns the M-Pesa id, name and mobile to the page, which sends them with a random
+  per-install device key to `POST /v1/auth/mpesa`. Our server cannot verify this identity, so such sessions see gift codes
+  **only for orders placed from the same device** (codes also go by SMS; the payer's number comes from M-Pesa itself).
+- **Pay**: the server answers `POST /v1/orders/:id/pay` with `{ type: 'payWithMpesa', businessID, billReference, amount, currency }`;
+  the page calls `my.call('payWithMpesa', …)` and reports the outcome to `POST /v1/orders/:id/pay-result` (informational).
+- **Money**: M-Pesa calls `…/v1/webhooks/mpesa-c2b/<MPESA_CALLBACK_SECRET>/validation` (we accept only an open payment's bill
+  reference for its exact amount) and `…/confirmation` (marks the order paid; duplicates are harmless; wrong amounts and unknown
+  references are flagged in `GET /v1/admin/payments/review`). Register both once: `npm run mpesa:register-urls`.
+- `adapters/payments/miniapp.ts` (RSA-signed `payments/pay` template) and `../miniprogram/` (native web-view shell) are kept
+  but not used for M-Pesa Ethiopia.
 
 ### Delivering codes
 Add an SMS gateway and/or SMTP adapter in `src/adapters/notify/`. SMS texts are English only for now; Amharic, Oromo, Somali and
