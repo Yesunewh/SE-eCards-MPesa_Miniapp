@@ -1,0 +1,75 @@
+---
+title: Configuration Reference
+tags: [ecards, technical, config]
+---
+
+# Configuration Reference
+
+Back to [[00 Home]]
+
+All settings are environment variables. On the VPS they live in `/opt/ecards/.env` (mode 600). The full commented template, **with no values**, is `server/.env.example`. The config is validated with zod at start-up, so a bad value stops the app with a clear message.
+
+> [!warning] Never paste real values into git, these notes or chat.
+
+## Core
+| Variable | Meaning | Staging value |
+|---|---|---|
+| `NODE_ENV` | `development` / `test` / `production` | `production` |
+| `HOST` | Listen address. Use `127.0.0.1` behind nginx. | `0.0.0.0` → change to `127.0.0.1` after HTTPS |
+| `PORT` | Listen port | `10011` |
+| `DATABASE_URL` | Postgres URL | `postgres://ecards:***@127.0.0.1:5433/ecards` |
+| `CORS_ORIGINS` | Allowed browser origins (comma separated) | the site origins |
+| `CODE_ENCRYPTION_KEY` | 32 bytes base64, AES key for codes. **Back it up separately.** | generated |
+| `CODE_HMAC_KEY` | 32 bytes base64, fingerprint key | generated |
+| `RUN_WORKER` | Run background jobs in this process | `true` |
+| `STATIC_DIR` | Folder with index.html/admin.html/assets | set by the installer |
+| `PUBLIC_BASE_URL` | Public URL used to build callback URLs | → `https://ecards.paperless.et` |
+
+## Payments
+| Variable | Meaning |
+|---|---|
+| `PAYMENTS_ADAPTER` | `mock` (staging) · **`mpesa_et`** (go-live) · `miniapp` · `safaricom` |
+| `MPESA_BASE_URL` | `https://apisandbox.safaricom.et` (sandbox) or the live URL |
+| `MPESA_CONSUMER_KEY` / `MPESA_CONSUMER_SECRET` | From developer.safaricom.et → My Apps |
+| `MPESA_SHORTCODE` | businessID / C2B ShortCode. Candidate: `0711885151` (**to confirm**) |
+| `MPESA_PASSKEY` | STK push only (not used) |
+| `MPESA_CALLBACK_SECRET` | Long random string that goes into the callback paths |
+| `MINIAPP_*` | Generic signed mini program API (not used in Ethiopia): `GATEWAY_URL`, `API_PREFIX`, `CLIENT_ID`, `APP_ID`, `AUTH_CLIENT_ID`, `PRIVATE_KEY`, `PLATFORM_PUBLIC_KEY`, `KEY_VERSION`, `CURRENCY`, `AMOUNT_UNIT`, `PRODUCT_CODE`, `USERINFO_PATH` |
+
+## Gift cards
+| Variable | Meaning |
+|---|---|
+| `GIFTCARD_ADAPTER` | `mock` (DEMO codes) · `wupex` |
+| `WUPEX_BASE_URL` | sandbox `https://sandbox-service.wupex.com` · live `https://service.wupex.com` |
+| `WUPEX_API_KEY` | from Wupex |
+| `WUPEX_MERCHANT` | merchant code for pull-codes |
+| `WUPEX_CURRENCY` | currency of prices/balance (default USD; confirm) |
+
+## Notifications and staging
+| Variable | Meaning |
+|---|---|
+| `NOTIFY_ADAPTER` | `log` (only option now). An SMS gateway or SMTP is still to be added. |
+| `ALLOW_MOCK_ADAPTERS` | `true` lets mock adapters run with `NODE_ENV=production` (staging). **Set to false for go-live.** |
+| `DEV_SIMULATE_KEY` | Key for `/v1/dev/mpesa/simulate` (header `x-dev-key`) and the app's `?devkey=` |
+
+## Business settings (in the database, not env)
+Edit these in **Admin → Settings**. They are stored in `app_settings`:
+USD→ETB rate · VAT rate (0.15) · seller name · low-stock threshold (5) · auto-fulfil (on) · max quantity per line (10) · max order total (Br 500,000) · payment timeout (900 s) · default restock days (3) · support contacts (phone, email, Telegram, WhatsApp, hours).
+
+## Go-live changes, in short
+```
+HOST=127.0.0.1
+PUBLIC_BASE_URL=https://ecards.paperless.et
+PAYMENTS_ADAPTER=mpesa_et
+MPESA_BASE_URL=<live url from Safaricom>
+MPESA_CONSUMER_KEY=<production key>
+MPESA_CONSUMER_SECRET=<production secret>
+MPESA_SHORTCODE=<confirmed business number>
+MPESA_CALLBACK_SECRET=<new long random>
+GIFTCARD_ADAPTER=wupex
+WUPEX_BASE_URL=https://service.wupex.com
+WUPEX_API_KEY=<key>
+WUPEX_MERCHANT=<code>
+ALLOW_MOCK_ADAPTERS=false
+```
+Then run `sudo systemctl restart ecards-api` and register the C2B URLs ([[Payments – M-Pesa Ethiopia#Registering the callback URLs]]).
