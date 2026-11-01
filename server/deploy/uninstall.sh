@@ -30,7 +30,9 @@ if id ecards >/dev/null 2>&1; then
 fi
 
 if [[ "${1:-}" == "--drop-database" ]]; then
-  if [[ -z "$DB_NAME" || -z "$DB_USER" ]]; then
+  if ! id postgres >/dev/null 2>&1; then
+    echo "the database is not in a host PostgreSQL (e.g. its own Docker container): remove that container/volume yourself"
+  elif [[ -z "$DB_NAME" || -z "$DB_USER" ]]; then
     echo "settings file not found: not dropping any database. Drop it by hand if needed."
   else
     AS postgres psql -p "$DB_PORT" -qc "DROP DATABASE IF EXISTS \"$DB_NAME\"" -c "DROP ROLE IF EXISTS \"$DB_USER\""

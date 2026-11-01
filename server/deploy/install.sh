@@ -3,6 +3,7 @@
 #
 #   bash install.sh ecards-server.tar.gz          # install or update (asks before changing anything)
 #   bash install.sh ecards-server.tar.gz --check  # preflight only: changes nothing
+#   ECARDS_DATABASE_URL=postgres://… bash install.sh …  # use an existing database (e.g. its own Docker container)
 #
 # What it does, and what it never does:
 #   + its own system user `ecards`, everything under /opt/ecards, its own Node.js copy in /opt/ecards/node
@@ -28,6 +29,9 @@ say()  { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 ok()   { printf '   ok    %s\n' "$*"; }
 warn() { printf '   WARN  %s\n' "$*"; }
 die()  { printf '\n   STOP  %s\n\n' "$*" >&2; exit 1; }
+# random secrets: base64 (keys) and hex (passwords, URL secrets)
+rand() { head -c "$1" /dev/urandom | base64 | tr -d '\n'; }
+hex()  { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
 
 [[ $EUID -eq 0 ]] && SUDO="" || SUDO="sudo"
 # run a command as another user, whether we are root or a sudoer
@@ -63,8 +67,12 @@ else
   ok "port $PORT is free"
 fi
 
+EXT_DB="${ECARDS_DATABASE_URL:-}"
 PG_RUNNING=false; PG_PORT=5432
-if command -v pg_lsclusters >/dev/null && pg_lsclusters -h 2>/dev/null | awk '$4=="online"' | grep -q .; then
+if [[ -n "$EXT_DB" ]]; then
+  [[ "$EXT_DB" =~ ^postgres(ql)?:// ]] || die "ECARDS_DATABASE_URL must start with postgres://"
+  ok "database: given by ECARDS_DATABASE_URL (${EXT_DB%%:*}://…@${EXT_DB#*@}), host PostgreSQL is not used"
+elif command -v pg_lsclusters >/dev/null && pg_lsclusters -h 2>/dev/null | awk '$4=="online"' | grep -q .; then
   PG_RUNNING=true
   PG_PORT=$(pg_lsclusters -h | awk '$4=="online" {print $3; exit}')
   ok "PostgreSQL $(pg_lsclusters -h | awk '$4=="online" {print $1; exit}') is running on port $PG_PORT: will add one database to it, nothing else"
@@ -112,13 +120,14 @@ ok "Node.js $($NODE -v) in $BASE/node (private copy)"
 
 # ---------------------------------------------------------------- PostgreSQL
 say "Database"
+if [[ -n "$EXT_DB" ]]; then
+  ok "using the database from ECARDS_DATABASE_URL"
+else
 if ! $PG_RUNNING; then
   $SUDO apt-get update -qq
   $SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-upgrade postgresql
   PG_PORT=$(pg_lsclusters -h | awk '$4=="online" {print $3; exit}'); PG_PORT=${PG_PORT:-5432}
 fi
-rand() { head -c "$1" /dev/urandom | base64 | tr -d '\n'; }
-hex()  { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
 
 if $FIRST_INSTALL; then DB_PASS=$(hex 24); else DB_PASS=$($SUDO grep '^DATABASE_URL=' $BASE/.env | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#'); fi
 psqlq() { AS postgres psql -p "$PG_PORT" -v ON_ERROR_STOP=1 -qtAX "$@"; }
@@ -131,6 +140,7 @@ fi
 [[ -n "$ROLE_EXISTS" ]] || psqlq -c "CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASS'"
 [[ -n "$DB_EXISTS" ]] || psqlq -c "CREATE DATABASE $DB_NAME OWNER $DB_USER"
 ok "database $DB_NAME (role $DB_USER) on localhost:$PG_PORT"
+fi
 
 # ---------------------------------------------------------------- configuration (kept across updates)
 if $FIRST_INSTALL; then
@@ -142,7 +152,7 @@ if $FIRST_INSTALL; then
 NODE_ENV=production
 HOST=0.0.0.0
 PORT=$PORT
-DATABASE_URL=postgres://$DB_USER:$DB_PASS@localhost:$PG_PORT/$DB_NAME
+DATABASE_URL=${EXT_DB:-postgres://$DB_USER:$DB_PASS@localhost:$PG_PORT/$DB_NAME}
 CORS_ORIGINS=https://ecard-miniapp.paperless.et
 CODE_ENCRYPTION_KEY=$(rand 32)
 CODE_HMAC_KEY=$(rand 32)
