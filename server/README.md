@@ -74,6 +74,44 @@ Then `POST /v1/orders/<id>/pay`, and approve it as if the customer typed their P
 
 ---
 
+## How the front end is wired to the API
+
+`../index.html` (mini app) and `../admin.html` (admin panel) load `../assets/ecards-api.js` and then decide:
+
+- **Server mode**: `GET /health` answers, so every piece of data comes from the API.
+  The API is found from `?api=https://…` in the address (remembered), from a `<meta name="ecards-api">` tag, or from the
+  page's own server. The API serves the pages itself when `STATIC_DIR` is set, so `http://<server>:10011/` just works.
+- **Demo mode**: no API answers (for example the copy on cPanel), and the old browser-storage demo runs unchanged.
+
+The screens were not rewritten. `ecards-api.js` converts server answers into the exact objects the screens already used
+(`cfg`, `stock`, `orders`, `tickets`), and the pages call the API at the few places where data changes:
+
+| In the mini app | API call |
+|---|---|
+| Start, then every 20 s | `GET /v1/catalog` (prices, brands, stock, banners); when signed in also `GET /v1/orders?full=1`, `/v1/wishlist`, `/v1/support/tickets` |
+| Log in with M-Pesa | M-Pesa SDK `getAuthCode` (mock code outside M-Pesa) → `POST /v1/auth/mpesa` → session token |
+| Pay | `POST /v1/orders` (with an idempotency key) → `POST /v1/orders/:id/pay` → poll `GET /v1/orders/:id` until paid or declined |
+| Mark a code as used | `POST /v1/codes/:id/used` |
+| Wishlist heart | `PUT` / `DELETE /v1/wishlist/:productId` |
+| Receive by email / SMS, language | `PATCH /v1/me` |
+| Support: new message, reply, read | `POST /v1/support/tickets`, `…/:id/messages`, `…/:id/seen` |
+
+The admin panel signs in with `POST /v1/admin/login` and loads catalog, settings, stock, orders and tickets
+(`GET /v1/admin/…`) every 15 s. Every change in the panel already went through one function, `act()`. In server mode
+`act()` runs the change on a copy, compares before and after (`EcardsAPI.adminDiff`), and sends only the difference:
+pasted codes → `POST /v1/admin/stock/:id/codes`, expected date → `PUT …/eta`, rate/VAT/support → `PATCH /v1/admin/settings`,
+brand edits and values → `PUT /v1/admin/brands/:id` / `PATCH /v1/admin/products/:id`, banners and popular → `PUT /v1/admin/home`,
+support replies → `POST /v1/admin/tickets/:id/reply`, close/reopen → `POST …/status`. Then it reloads from the server.
+In server mode stock is the codes you upload (no stock count without codes), pre-orders are delivered by the server,
+codes are shown masked, and providers (Wupex) are set up through the API, not the panel.
+
+Staging only: with mock M-Pesa, add `?devkey=<DEV_SIMULATE_KEY>` once to the mini app address so the Pay button
+approves itself. Without it, payments wait for a real M-Pesa answer.
+
+`../web.html` (the public web store) still runs as the demo; it can use the same `ecards-api.js` in a later step.
+
+---
+
 ## How it works
 
 ```

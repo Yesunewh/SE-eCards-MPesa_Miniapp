@@ -39,7 +39,10 @@ const schema = z.object({
   // Staging only: run with NODE_ENV=production but mock M-Pesa / mock provider (no real money, DEMO codes).
   ALLOW_MOCK_ADAPTERS: bool,
   // When set, POST /v1/dev/mpesa/simulate works (mock payments only) but needs header x-dev-key with this value.
-  DEV_SIMULATE_KEY: z.string().default('')
+  DEV_SIMULATE_KEY: z.string().default(''),
+
+  // Folder with index.html, admin.html, web.html and assets/ to serve at /. Empty = API only.
+  STATIC_DIR: z.string().default('')
 });
 
 export type Config = z.infer<typeof schema> & { runWorker: boolean; corsOrigins: string[] };

@@ -1,6 +1,8 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
+import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { ZodError, type ZodType } from 'zod';
 import type { Ctx } from '../context.js';
 import { AppError } from '../lib/util.js';
@@ -80,5 +82,35 @@ export async function buildApp(ctx: Ctx): Promise<FastifyInstance> {
   await app.register(async a => customerRoutes(a, ctx), { prefix: '/v1' });
   await app.register(async a => webhookRoutes(a, ctx), { prefix: '/v1' });
   await app.register(async a => adminRoutes(a, ctx), { prefix: '/v1/admin' });
+
+  // The mini app, admin panel and web store, served from the same address as the API (no CORS needed).
+  // Only index/admin/web.html and files under assets/ are served; everything else is 404.
+  if (ctx.cfg.STATIC_DIR) {
+    const root = path.resolve(ctx.cfg.STATIC_DIR);
+    const TYPES: Record<string, string> = {
+      '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.webp': 'image/webp',
+      '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8', '.ico': 'image/x-icon'
+    };
+    const serve = async (rel: string, reply: any) => {
+      const file = path.resolve(root, rel);
+      if (!file.startsWith(root + path.sep)) return reply.status(404).send({ error: 'not_found' });
+      const type = TYPES[path.extname(file).toLowerCase()];
+      if (!type) return reply.status(404).send({ error: 'not_found' });
+      try {
+        const body = await readFile(file);
+        const fresh = file.endsWith('.html') || file.endsWith('ecards-api.js');
+        return reply.header('content-type', type).header('cache-control', fresh ? 'no-cache' : 'public, max-age=3600')
+          .header('x-content-type-options', 'nosniff').send(body);
+      } catch { return reply.status(404).send({ error: 'not_found' }); }
+    };
+    app.get('/', (_req, reply) => serve('index.html', reply));
+    for (const page of ['index.html', 'admin.html', 'web.html']) app.get(`/${page}`, (_req, reply) => serve(page, reply));
+    app.get('/assets/*', (req, reply) => {
+      const rel = decodeURIComponent((req.params as any)['*'] ?? '');
+      if (rel.includes('..') || rel.includes('\\') || rel.includes('\0')) return reply.status(404).send({ error: 'not_found' });
+      return serve(path.join('assets', rel), reply);
+    });
+  }
   return app;
 }

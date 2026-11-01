@@ -4,7 +4,7 @@ import type { Ctx } from '../../context.js';
 import { customerAuth, parse } from '../app.js';
 import { getCatalog } from '../../services/catalog.js';
 import { loginWithMpesa, logout, publicCustomer, updateProfile } from '../../services/customers.js';
-import { cancelOrder, createOrder, getOrder, listOrders, markCodeUsed } from '../../services/orders.js';
+import { cancelOrder, createOrder, getOrder, listOrders, listOrdersFull, markCodeUsed } from '../../services/orders.js';
 import { startPayment } from '../../services/payments.js';
 import { addToWishlist, listWishlist, removeFromWishlist } from '../../services/wishlist.js';
 import { customerReply, listTicketsForCustomer, markSeenByCustomer, openTicket } from '../../services/support.js';
@@ -59,7 +59,9 @@ export async function customerRoutes(app: FastifyInstance, ctx: Ctx) {
       const order = await createOrder(ctx, req.customer!, { ...b, idempotencyKey: typeof key === 'string' ? key.slice(0, 100) : undefined });
       return reply.status(201).send(order);
     });
-    a.get('/orders', async req => ({ orders: await listOrders(ctx, req.customer!.id) }));
+    a.get('/orders', async req => ({
+      orders: (req.query as any)?.full === '1' ? await listOrdersFull(ctx, req.customer!.id) : await listOrders(ctx, req.customer!.id)
+    }));
     a.get('/orders/:id', async req => getOrder(ctx, req.customer!.id, (req.params as any).id));
     a.post('/orders/:id/pay', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async req =>
       startPayment(ctx, req.customer!.id, parse(uuid, (req.params as any).id)));

@@ -67,7 +67,7 @@ export async function getCatalog(q: Queryable) {
   for (const p of products) byBrand.set(p.brandId, [...(byBrand.get(p.brandId) ?? []), p]);
   const live = new Set(brands.filter(b => !b.is_hidden && byBrand.has(b.id)).map(b => b.id));
 
-  const banners = await many(q, `SELECT brand_id, title, accent FROM home_banners WHERE is_active ORDER BY position`);
+  const banners = await many(q, `SELECT brand_id, title, accent, is_active FROM home_banners ORDER BY position`);
   const popular = await many(q, `SELECT brand_id FROM home_popular_brands ORDER BY position`);
   const rowItems = await many(q, `SELECT row_key, product_id FROM home_row_items ORDER BY row_key, position`);
   const productIds = new Set(products.map(p => p.id));
@@ -77,7 +77,7 @@ export async function getCatalog(q: Queryable) {
   return {
     settings: {
       currency: 'ETB', usdEtbRate: s.usd_etb_rate, vatRate: s.vat_rate, seller: s.seller_name,
-      maxQtyPerLine: s.max_qty_per_line, support: s.support
+      maxQtyPerLine: s.max_qty_per_line, lowStockThreshold: s.low_stock_threshold, support: s.support
     },
     brands: brands.map(b => ({
       id: b.id, name: b.name, label: b.label, mark: b.mark, category: b.category, hidden: b.is_hidden,
@@ -87,7 +87,7 @@ export async function getCatalog(q: Queryable) {
       products: byBrand.get(b.id) ?? []
     })),
     home: {
-      banners: banners.filter(x => live.has(x.brand_id)).map(x => ({ brandId: x.brand_id, title: x.title, accent: x.accent })),
+      banners: banners.filter(x => live.has(x.brand_id)).map(x => ({ brandId: x.brand_id, title: x.title, accent: x.accent, active: x.is_active })),
       popular: popular.map(x => x.brand_id).filter(id => live.has(id)),
       rows: Object.entries(rows).map(([key, items]) => ({ key, productIds: items }))
     }

@@ -819,9 +819,14 @@ body.locked{overflow:hidden}
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="assets/ecards-api.js"></script>
 <script>
 (() => {
 'use strict';
+/* ---------- server mode: when the eCards API is reachable, the panel reads and changes the real data (assets/ecards-api.js) ---------- */
+const API = window.EcardsAPI || { on: false, init: () => Promise.resolve(false) };
+const SV = { config: null, stock: {}, pid: {}, orders: [], tickets: [] };
+let svPolling = false;   // true while a server refresh replays the cross-tab sync below
 
 /* =====================================================================
    Shared with the mini app (index.html). Keep these in step with the app:
@@ -936,7 +941,7 @@ function defaultConfig() {
   };
 }
 function loadConfig() {
-  const d = defaultConfig(), sv = store.get(K_CONFIG, null);
+  const d = defaultConfig(), sv = API.on && SV.config ? SV.config : store.get(K_CONFIG, null);
   if (!sv || typeof sv !== 'object') { applyBrands(d); return d; }
   const c = { ...d, ...sv };
   c.rate = +c.rate > 0 ? +c.rate : d.rate;
@@ -979,6 +984,7 @@ function takeCodes(x, n) { const out = x.codes.splice(0, n); while (out.length <
 const skey = (bid, v) => `${bid}:${v}`;
 /* oldest pre-orders first; a line is delivered only when its whole quantity is in stock */
 function fulfilWaiting(onlyKey) {
+  if (API.on) return 0;   // server mode: the server delivers pre-orders itself after a restock
   let n = 0;
   orders.slice().sort((a, b) => a.at - b.at).forEach(o => o.items.forEach(it => {
     if (it.status !== 'waiting') return;
@@ -1046,6 +1052,16 @@ function apiBuy(A, line, ref, src) {
 const K_TICKETS = 'ecards-et-v2-tickets';   // support messages, written in the app and answered here
 let cfg, stock, orders, wish, session, tickets, apiS;
 function reload() {
+  if (API.on) {
+    cfg = loadConfig();
+    stock = JSON.parse(JSON.stringify(SV.stock));
+    BRANDS.filter(b => !b.hidden).forEach(b => cfg.values.forEach(v => { const k = `${b.id}:${v}`; if (!stock[k]) stock[k] = { qty: 0, eta: null, codes: [] }; }));
+    orders = JSON.parse(JSON.stringify(SV.orders)).sort((a, b) => b.at - a.at);
+    tickets = JSON.parse(JSON.stringify(SV.tickets));
+    wish = []; session = null;
+    apiS = { providers: [], products: [], sell: {}, log: [] };
+    return;
+  }
   cfg = loadConfig();
   stock = loadStock(cfg);
   orders = (store.get(K_ORDERS, []) || []).filter(o => o && Array.isArray(o.items)).sort((a, b) => b.at - a.at);
@@ -1065,6 +1081,7 @@ function save(parts) {   // stock and orders first, so the app never sees a new 
 /* every change: read the latest saved data first (the app may have changed it), change it, save, redraw */
 const ABORT = Symbol('abort');   // returned by a change that turned out not to be possible
 function act(fn, parts, msg) {
+  if (API.on) return serverAct(fn, parts, msg);
   reload();
   const r = fn();
   if (r === ABORT) { render(); return r; }
@@ -1612,7 +1629,7 @@ function openStock(k, suggest) {
         <span class="lbl">Add cards</span>
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><div class="stepper"><button type="button" data-step="-1" aria-label="Fewer">${ic('minus')}</button><input id="add-n" type="number" min="1" max="10000" inputmode="numeric" value="${Math.max(1, suggest || need || 10)}" aria-label="Number of cards to add"><button type="button" data-step="1" aria-label="More">${ic('plus')}</button></div>
           <button class="btn" type="submit" id="add-btn">Add to stock</button></div>
-        <details style="margin-top:4px"><summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--blue)">Paste real codes instead</summary>
+        <details${API.on ? ' open' : ''} style="margin-top:4px"><summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--blue)">${API.on ? 'Paste the codes (live system: stock is the codes you upload)' : 'Paste real codes instead'}</summary>
           <textarea class="ta" id="add-codes" placeholder="One code per line" aria-label="Codes, one per line" style="margin-top:8px"></textarea>
           <span class="hint">When you paste codes, the number added is the number of codes. Customers get these codes first.</span></details>
         ${wCards ? `<span class="hint">${cfg.autoFulfil ? `The ${waits.length} waiting pre-order${waits.length === 1 ? '' : 's'} will be delivered first, oldest first.` : 'Automatic delivery is off: deliver pre-orders from the Pre-orders page.'}</span>` : ''}
@@ -2641,6 +2658,7 @@ window.addEventListener('resize', () => { if (pv.classList.contains('on')) fitPh
 /* live updates from the mini app (another tab, or the preview) */
 let pending = false;
 window.addEventListener('storage', e => {
+  if (API.on && !svPolling) return;
   if (e.key !== null && ![K_ORDERS, K_CONFIG, K_STOCK, K_WISH, K_SESSION, K_MEDIA, K_TICKETS].includes(e.key)) return;
   const before = new Set(orders.map(o => o.id));
   const seen = new Map(tickets.map(x => [x.id, x.msgs.length]));
@@ -2717,6 +2735,7 @@ function marginOf(v, cost, p) {   // share of the price (after VAT) you keep
 const apiIssue = p => p.on === false ? null : p.status === 'error' ? 'error' : p.status === 'ok' && p.balance < (+p.lowAt || 0) ? 'low' : null;
 /* deliver pre-orders that a provider can now fill (oldest first) */
 function fulfilApi(onlyKey) {
+  if (API.on) return 0;   // server mode: the server delivers pre-orders itself after a restock
   let n = 0;
   orders.slice().sort((a, b) => a.at - b.at).forEach(o => o.items.forEach((it, i) => {
     if (it.status !== 'waiting') return;
@@ -3029,7 +3048,7 @@ const nameFrom = email => email.split('@')[0].split(/[._-]+/).filter(Boolean).ma
 const LG_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function whoHTML() {
   const a = admin || { name: 'Admin', email: '' };
-  return `<span class="avatar">${esc(initials(a.name))}</span><div><b>${esc(a.name)} <span class="tag">Demo</span></b><small title="${esc(a.email)}">${esc(a.email || 'Signed in')}</small></div>`
+  return `<span class="avatar">${esc(initials(a.name))}</span><div><b>${esc(a.name)} <span class="tag">${API.on ? esc(a.role || 'admin') : 'Demo'}</span></b><small title="${esc(a.email)}">${esc(a.email || 'Signed in')}</small></div>`
     + `<button class="signout" id="signout" aria-label="Sign out" title="Sign out">${ic('logout')}</button>`;
 }
 function drawWho() { $('#who').innerHTML = whoHTML(); $('#signout').addEventListener('click', signOut); }
@@ -3073,6 +3092,7 @@ function finishSignIn(a, msg) {
   }, 650);
 }
 function signOut() {
+  if (API.on) { API.adminLogout(); API.token = null; }
   setAdmin(null); closeDrawer(true); lgStep(false); lockApp(true);
   toast('Signed out');
 }
@@ -3102,6 +3122,7 @@ function initLogin() {
     }
     if (!$('#lg-pw').value) return lgErr('Enter your password.', $('#lg-pw'));
     const em = $('#lg-email').value.trim(), name = nameFrom(em);
+    if (API.on) { serverSignIn(em, $('#lg-pw').value); return; }
     finishSignIn({ name, email: em, via: 'email' }, `Welcome back, ${name.split(' ')[0]}`);
   });
   window.addEventListener('storage', e => {   // signed in or out in another tab
@@ -3114,8 +3135,64 @@ function initLogin() {
   lockApp(!admin);
   if (!admin) setTimeout(() => $('#lg-email').focus(), 60);
 }
+/* ================= server mode ================= */
+async function serverLoad() {
+  const r = await API.adminLoad(ORIG);
+  SV.config = r.config; SV.stock = r.stock; SV.pid = r.pid; SV.orders = r.orders; SV.tickets = r.tickets;
+}
+/** One admin change against the server: run it on a copy, send the difference, then show the server's answer. */
+function serverAct(fn, parts, msg) {
+  reload();
+  const before = JSON.parse(JSON.stringify({ cfg, stock, orders, tickets }));
+  const r = fn();
+  if (r === ABORT) { render(); return r; }
+  const { calls, notes } = API.adminDiff(before, { cfg, stock, orders, tickets }, parts, SV.pid);
+  if (parts.includes('cfg')) applyBrands(cfg);
+  render();
+  (async () => {
+    for (const c of calls) await c();
+    await serverLoad();
+  })().then(() => {
+    reload(); render(); refreshDrawer();
+    if (notes.length) toast(notes[0]);
+    else if (calls.length && msg) toast(typeof msg === 'function' ? msg(r) : msg);
+    else if (!calls.length) toast('Nothing to change on the server');
+  }).catch(e => {
+    serverLoad().catch(() => {}).then(() => { reload(); render(); refreshDrawer(); });
+    toast(e.code === 'forbidden' ? 'Your role cannot make this change' : `Not saved: ${e.message}`);
+  });
+  return r;
+}
+function serverSignIn(email, password) {
+  const go = $('#lg-go');
+  go.disabled = true;
+  API.adminLogin(email, password).then(async r => {
+    await serverLoad(); reload();
+    go.disabled = false;
+    finishSignIn({ name: r.admin.name, email: r.admin.email, role: r.admin.role, token: r.token, via: 'server' }, `Welcome back, ${r.admin.name.split(' ')[0]}`);
+  }).catch(e => {
+    go.disabled = false;
+    lgErr(e.code === 'account_locked' ? 'Too many attempts. Try again in 15 minutes.' : e.code === 'network' ? 'Cannot reach the eCards server.' : 'Wrong email or password.', $('#lg-pw'));
+  });
+}
+async function serverStart() {
+  API.onUnauthorized = () => { if (admin) signOut(); };
+  $('#lg-demo').innerHTML = `${ic('info')}<span>Live system: sign in with your eCards admin account.</span>`;
+  $('#lg-google').hidden = true;
+  if (admin && !admin.token) signOut();   // a demo sign-in is not valid against the real server
+  API.token = admin && admin.token;
+  if (admin) { await serverLoad().catch(() => {}); reload(); render(); }
+  setInterval(async () => {   // every 15 s: new orders, stock and support messages from the server
+    if (document.hidden || !admin) return;
+    try { await serverLoad(); } catch (e) { return; }
+    svPolling = true;
+    try { window.dispatchEvent(new StorageEvent('storage', { key: null })); } finally { svPolling = false; }
+  }, 15000);
+}
+
 /* ================= start ================= */
 reload();
+API.init().then(on => { if (on) serverStart().catch(() => {}); });
 loadMedia();
 parseHash();
 const onHist = () => { if (!hashOK) return; parseHash(); closeDrawer(true); render(); };

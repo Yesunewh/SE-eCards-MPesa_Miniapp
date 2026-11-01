@@ -224,6 +224,26 @@ describe('admin API', () => {
     expect(w.json().error).toBe('adapter_not_configured');
   });
 
+  it('panel endpoints: full order list, masked codes, ticket status', async () => {
+    const t = await login();
+    const order = (await call('POST', '/v1/orders', t, { items: [{ brandId: 'netflix', faceValueUsd: 50, quantity: 2 }] })).json();
+    const pay = (await call('POST', `/v1/orders/${order.id}/pay`, t)).json();
+    await call('POST', '/v1/dev/mpesa/simulate', undefined, { paymentId: pay.id });
+    await drainJobs(ctx);
+    const mine = (await call('GET', '/v1/orders?full=1', t)).json().orders;
+    expect(mine[0].items[0].codes).toHaveLength(2);
+    expect(mine[0].items[0].codes[0].code).toMatch(/^TST-/);
+    const staff = await adminToken('support');
+    const panel = (await call('GET', '/v1/admin/orders?full=1', staff)).json().orders;
+    expect(panel[0]).toMatchObject({ reference: order.reference, msisdn: '+251712345482' });
+    expect(panel[0].items[0].codes.every((c: string) => c.startsWith('••••'))).toBe(true);
+    const tk = (await call('POST', '/v1/support/tickets', t, { topic: 'other', text: 'hello there' })).json();
+    expect((await call('POST', `/v1/admin/tickets/${tk.id}/status`, staff, { status: 'closed' })).statusCode).toBe(200);
+    expect((await call('GET', '/v1/support/tickets', t)).json().tickets[0].status).toBe('closed');
+    const viewer = await adminToken('viewer');
+    expect((await call('POST', `/v1/admin/tickets/${tk.id}/status`, viewer, { status: 'open' })).statusCode).toBe(403);
+  });
+
   it('dashboard counts', async () => {
     const owner = await adminToken('owner');
     const d = (await call('GET', '/v1/admin/dashboard', owner)).json();

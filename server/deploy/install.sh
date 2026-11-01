@@ -159,6 +159,8 @@ DEV_SIMULATE_KEY=$(hex 16)
 EOF
   ok "wrote $BASE/.env (new keys generated)"
 fi
+# serve the mini app and admin panel from this server (added to older installs too)
+$SUDO grep -q '^STATIC_DIR=' $BASE/.env || echo "STATIC_DIR=$BASE/current/public" | $SUDO tee -a $BASE/.env >/dev/null
 $SUDO chown root:$APP_USER $BASE/.env && $SUDO chmod 640 $BASE/.env
 
 # ---------------------------------------------------------------- application release
@@ -218,6 +220,7 @@ if $FIRST_INSTALL && [[ -t 0 ]]; then
 fi
 
 say "Done"
+echo "   Mini app:   http://$(curl -fsS -4 --max-time 5 https://api.ipify.org 2>/dev/null || echo '<server-ip>'):$PORT/      Admin: /admin.html"
 echo "   API:        http://$(curl -fsS -4 --max-time 5 https://api.ipify.org 2>/dev/null || echo '<server-ip>'):$PORT/health"
 echo "   Catalog:    /v1/catalog      Admin: /v1/admin/login"
 echo "   Logs:       sudo journalctl -u $SERVICE -f"

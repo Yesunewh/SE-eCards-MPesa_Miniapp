@@ -87,6 +87,34 @@ export async function searchOrders(ctx: Ctx, f: { q?: string; status?: string; l
     ORDER BY o.created_at DESC LIMIT $3 OFFSET $4`, [f.status ?? null, q, Math.min(f.limit ?? 50, 200), f.offset ?? 0]);
 }
 
+/**
+ * Paid orders with their lines, for the admin panel's orders and pre-orders pages.
+ * Codes are masked here; the full code needs orderDetail(reveal) and is audited.
+ */
+export async function ordersForPanel(ctx: Ctx, limit = 300) {
+  return many(ctx.db, `
+    SELECT o.id, o.reference, o.status, o.total_minor, o.created_at, o.paid_at, o.deliver_by, o.deliver_to,
+           c.name AS customer_name, c.msisdn,
+           (SELECT receipt_number FROM payments p WHERE p.order_id = o.id AND p.status = 'succeeded') AS receipt,
+           (SELECT json_agg(json_build_object(
+               'id', i.id, 'brandId', i.brand_id, 'faceValueUsd', i.face_value_cents / 100.0, 'quantity', i.quantity,
+               'deliveredQuantity', i.delivered_quantity, 'unitPriceMinor', i.unit_price_minor, 'status', i.status,
+               'eta', i.eta, 'deliveredAt', i.delivered_at,
+               'codes', (SELECT COALESCE(json_agg('••••' || g.code_last4 ORDER BY g.sold_at), '[]') FROM gift_codes g WHERE g.order_item_id = i.id),
+               'provider', (SELECT po.provider_id FROM provider_orders po WHERE po.order_item_id = i.id AND po.status = 'succeeded' LIMIT 1)
+             ) ORDER BY i.line_no) FROM order_items i WHERE i.order_id = o.id) AS items
+    FROM orders o JOIN customers c ON c.id = o.customer_id
+    WHERE o.status IN ('paid','awaiting_stock','completed')
+    ORDER BY o.created_at DESC LIMIT $1`, [Math.min(limit, 1000)]);
+}
+
+export async function setTicketStatus(ctx: Ctx, admin: Admin, ticketId: string, status: 'open' | 'answered' | 'closed') {
+  requireRole(admin, 'support');
+  const r = await ctx.db.query(`UPDATE support_tickets SET status = $2, staff_seen_at = now() WHERE id = $1`, [ticketId, status]);
+  if (!r.rowCount) throw notFound('ticket_not_found');
+  await audit(ctx.db, admin.id, 'ticket.status', 'support_ticket', ticketId, { status });
+}
+
 /** Order detail for staff. Codes are masked unless revealCodes (admin+ only, written to the audit log). */
 export async function orderDetail(ctx: Ctx, admin: Admin, orderId: string, revealCodes = false, ip?: string) {
   if (revealCodes) requireRole(admin, 'admin');

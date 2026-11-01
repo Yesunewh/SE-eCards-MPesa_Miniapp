@@ -673,9 +673,14 @@ h1,h2,h3,h4{text-wrap:balance}
 </svg>
 <div id="app"></div>
 
+<script src="assets/ecards-api.js"></script>
 <script>
 (() => {
 'use strict';
+/* ---------- server mode: when the eCards API is reachable, data comes from it (see assets/ecards-api.js) ---------- */
+const API = window.EcardsAPI || { on: false, init: () => Promise.resolve(false) };
+const SV = { config: null, stock: null, pid: {}, orders: [], tickets: [] };   // latest server data, in the app's own shapes
+const DEMO_MSISDN = '0712345482';   // staging login outside the M-Pesa app (mock M-Pesa only)
 
 /* ================= settings ================= */
 const CUR = { sym: 'Br', code: 'ETB' };   // Ethiopian Birr
@@ -724,6 +729,8 @@ const I18N = {
     myCart: 'My Cart', cartEmptyT: 'Your cart is empty', cartEmptyP: 'Cards you add will appear here.', browse: 'Browse cards',
     subtotal: 'Subtotal', vatIncl: 'VAT included ({vat}%)', total: 'Total', payWithMpesa: 'Pay with M-Pesa',
     decrease: 'Decrease quantity', increase: 'Increase quantity', remove: 'Remove',
+    payFailed: 'Payment was not completed. No money was taken. Please try again.', payTimeout: 'M-Pesa has not confirmed yet. We will show the order as soon as it does.',
+    serverError: 'Could not reach eCards. Check your connection and try again.', demoOnly: 'Only available in the demo.',
     confirmPayment: 'Confirm payment', merchant: 'Merchant', qtyLabel: 'Cards', payFrom: 'Pay from',
     payNote: 'Demo payment. In the live mini app, M-Pesa’s own payment screen opens here and you approve with your PIN. No money moves in this preview.',
     cancel: 'Cancel', payNow: 'Pay now', waiting: 'Waiting for M-Pesa', approving: 'Approving {amount}…',
@@ -1322,7 +1329,7 @@ function defaultConfig() {
   };
 }
 function loadConfig() {
-  const d = defaultConfig(), sv = store.get(K_CONFIG, null);
+  const d = defaultConfig(), sv = API.on && SV.config ? SV.config : store.get(K_CONFIG, null);
   if (!sv || typeof sv !== 'object') { applyBrands(d); return d; }
   const c = { ...d, ...sv };
   c.rate = +c.rate > 0 ? +c.rate : d.rate;
@@ -1427,6 +1434,14 @@ function apiBuy(A, line, ref, src) {
 }
 let api = { providers: [], products: [], sell: {}, log: [] };
 function loadShared() {
+  if (API.on) {   // server mode: settings, stock and this customer's orders come from the server
+    cfg = loadConfig(); applyCfg();
+    api = { providers: [], products: [], sell: {}, log: [] };
+    stock = Object.assign({}, SV.stock || {});
+    BRANDS.filter(b => !b.hidden).forEach(b => cfg.values.forEach(v => { const k = `${b.id}:${v}`; if (!stock[k]) stock[k] = { qty: 0, eta: null, codes: [] }; }));
+    allOrders = SV.orders.slice(); orders = allOrders.slice();
+    return;
+  }
   cfg = loadConfig(); applyCfg();
   api = loadApi();
   stock = loadStock(cfg);
@@ -1456,7 +1471,7 @@ const K_TICKETS = 'ecards-et-v2-tickets';
 const TOPIC_KEY = { order: 'topicOrder', payment: 'topicPayment', pre: 'topicPre', other: 'topicOther' };
 const TK_ST = { open: 'tkWaiting', answered: 'tkAnswered', closed: 'tkClosed' };
 let tickets = [];
-const loadTickets = () => { tickets = (store.get(K_TICKETS, []) || []).filter(x => x && Array.isArray(x.msgs) && x.msgs.length); };
+const loadTickets = () => { if (API.on) { tickets = SV.tickets.slice(); return; } tickets = (store.get(K_TICKETS, []) || []).filter(x => x && Array.isArray(x.msgs) && x.msgs.length); };
 const mineT = x => session && x.phone === session.phone;
 const myTickets = () => tickets.filter(mineT).sort((a, b) => b.msgs[b.msgs.length - 1].at - a.msgs[a.msgs.length - 1].at);
 const tkUnread = x => x.msgs.some(m => m.from === 'support' && m.at > (x.custSeen || 0));
@@ -1495,6 +1510,10 @@ function toggleWish(bid, amount) {
   if (inWish(bid, amount)) { wish = wish.filter(x => !(x.bid === bid && x.amount === amount)); toast(t('wishRemoved')); }
   else { wish.unshift({ bid, amount, at: Date.now(), wasOut: isOut(bid, amount) }); toast(t('wishAdded')); }
   saveWish(); emit();
+  if (API.on && session && session.token) {
+    const p = SV.pid[`${bid}:${amount}`];
+    if (p) (inWish(bid, amount) ? API.wishAdd(p) : API.wishRemove(p)).catch(() => {});
+  }
 }
 
 /* ---------- pre-orders: paid order lines waiting for stock ---------- */
@@ -1503,6 +1522,7 @@ function orderLines(statuses) {
 }
 const waitingLines = () => orderLines(['waiting']);
 function restockDemo() {   // demo: stock arrives, waiting pre-orders get their codes
+  if (API.on) { toast(t('demoOnly')); return; }
   loadShared();
   const had = waitingLines().length, need = {};
   allOrders.forEach(o => o.items.forEach(it => { if (it.status === 'waiting') { const k = skey(it.bid, it.amount); need[k] = (need[k] || 0) + it.qty; } }));
@@ -1604,6 +1624,7 @@ function saveRecv(by, v) {
   session.recvBy = by;
   if (by === 'phone') session.recvPhone = v; else session.email = v;
   store.set(K_SESSION, session);
+  if (API.on && session.token) API.saveDelivery(by, v).catch(e => toast(errText(e)));
 }
 function wireRecv(root, st, redraw) {
   root.addEventListener('input', e => {
@@ -1809,6 +1830,7 @@ function openPay() {
   const pay = w.querySelector('.pay');
   w.querySelector('[data-pay]').addEventListener('click', () => {
     pay.dataset.state = 'wait'; w.dataset.lock = '1';
+    if (API.on) { serverCheckout(pay, w); return; }
     setTimeout(() => { placeOrder(); pay.dataset.state = 'done'; delete w.dataset.lock; }, 1900);
   });
 }
@@ -2141,6 +2163,7 @@ const sentTo = o => o.smsTo ? `${ic('phone')}<span>${esc(t('delivery'))}: <b>${e
   : o.email ? `${ic('mail')}<span>${esc(t('delivery'))}: <b>${esc(o.email)}</b></span>` : '';
 /* demo helper: a few clearly marked sample orders so the wallet can be shown without buying first */
 function addSampleOrders() {
+  if (API.on) { toast(t('demoOnly')); return; }
   const now = Date.now(), H = 3600000, D = 24 * H, email = (session && session.email) || '';
   const line = (bid, amount, qty = 1) => ({ bid, region: 'ETH', amount, qty, unit: priceOf(amount), codes: Array.from({ length: qty }, makeCode), status: 'delivered' });
   const sample = [[H, [line('netflix', 100)]], [D + 3 * H, [line('spotify', 50), line('playstation', 100)]], [3 * D, [line('apple', 50)]], [9 * D, [line('pubg', 50), line('steam', 50)]]]
@@ -2175,6 +2198,10 @@ const purchaseRow = w => {
 function setUsed(w, used) {
   if (used) usedSet.add(w.key); else usedSet.delete(w.key);
   saveUsed(); emit();
+  if (API.on && w.it.codeIds) {
+    const id = w.it.codeIds[w.it.codes.indexOf(w.code)];
+    if (id) API.markUsed(id, used).catch(() => {});
+  }
 }
 function markUsedWithUndo(w) {
   setUsed(w, true);
@@ -2617,13 +2644,21 @@ function openTicketForm() {
     if (text.length < 10) { ta.classList.add('err'); ta.setAttribute('aria-invalid', 'true'); note.classList.add('err'); note.setAttribute('role', 'alert'); note.textContent = t('msgShort'); ta.focus(); return; }
     const sel = w.querySelector('#tk-order'), now = Date.now(), u = session || DEMO_USER;
     const tk = { id: 'T' + String(Math.floor(100000 + Math.random() * 899999)), at: now, name: u.name, phone: u.phone, email: (session && session.email) || '', topic, orderId: sel && sel.value ? sel.value : null, status: 'open', custSeen: now, msgs: [{ from: 'customer', text, at: now }] };
+    if (API.on) {
+      const btn = w.querySelector('[data-tk-send]'); btn.disabled = true;
+      const sid = tk.orderId ? (SV.orders.find(o => o.id === tk.orderId) || {}).sid : null;
+      API.ticketCreate(topic, text, sid).then(refreshMine).then(() => { closeSheet(); loadTickets(); emit(); toast(t('msgSent')); })
+        .catch(e => { btn.disabled = false; toast(errText(e)); });
+      return;
+    }
     mutateTickets(list => list.unshift(tk));
     closeSheet(); emit(); toast(t('msgSent'));
   });
 }
 function openTicketSheet(id) {
   const x = myTickets().find(y => y.id === id); if (!x) return;
-  mutateTickets(list => { const y = list.find(z => z.id === id); if (y) y.custSeen = Date.now(); });
+  if (API.on) { const y = SV.tickets.find(z => z.id === id); if (y) y.custSeen = Date.now(); loadTickets(); API.ticketSeen(id).catch(() => {}); }
+  else mutateTickets(list => { const y = list.find(z => z.id === id); if (y) y.custSeen = Date.now(); });
   emit();
   const w = openSheet(`<div class="grab"></div>
     <div class="tk-head"><h3 class="ls-title">${esc(t(TOPIC_KEY[x.topic] || 'topicOther'))}</h3><span class="tk-st ${esc(x.status)}">${esc(t(TK_ST[x.status] || 'tkWaiting'))}</span></div>
@@ -2636,6 +2671,10 @@ function openTicketSheet(id) {
     e.preventDefault();
     const ta = f.querySelector('textarea'), text = ta.value.trim();
     if (text.length < 2) { ta.classList.add('err'); ta.focus(); return; }
+    if (API.on) {
+      API.ticketReply(id, text).then(refreshMine).then(() => { closeSheet(); loadTickets(); emit(); toast(t('msgSent')); }).catch(e => toast(errText(e)));
+      return;
+    }
     mutateTickets(list => { const y = list.find(z => z.id === id); if (!y) return; const now = Date.now(); y.msgs.push({ from: 'customer', text, at: now }); y.status = 'open'; y.custSeen = now; });
     closeSheet(); emit(); toast(t('msgSent'));
   });
@@ -2648,6 +2687,7 @@ function applyLang(code) {
   if (!I18N[code] || code === lang) return;
   lang = code;
   store.set(K_LANG, code);
+  if (API.on && session && session.token) API.saveLang(code).catch(() => {});
   document.documentElement.lang = code;
   rebuildScreens();
   if (loginEl && loginEl.isConnected) { const nu = Login(); loginEl.replaceWith(nu); loginEl = nu; }
@@ -2683,6 +2723,7 @@ function syncFromAdmin() {
   if (arrived) toast(t('arrived'));
 }
 window.addEventListener('storage', e => {
+  if (API.on && [K_CONFIG, K_STOCK, K_ORDERS, K_TICKETS, K_API, K_USED, K_SESSION].includes(e.key)) return;
   if (e.key === null || e.key === K_MEDIA) loadMedia();
   if (e.key === null || e.key === K_WISH) wish = (store.get(K_WISH, []) || []).filter(x => x && BR[x.bid]);
   if (e.key === null || e.key === K_USED) usedSet = new Set(store.get(K_USED, []) || []);
@@ -2738,6 +2779,7 @@ function openConsent() {
   w.querySelector('[data-cancel]').addEventListener('click', () => { closeSheet(); toast(t('needLogin')); });
   w.querySelector('[data-allow]').addEventListener('click', () => {
     cs.dataset.state = 'wait'; w.dataset.lock = '1';
+    if (API.on) { serverLogin(cs, w); return; }
     setTimeout(() => {
       session = { name: DEMO_USER.name, phone: DEMO_USER.phone, at: Date.now() };
       store.set(K_SESSION, session);
@@ -2771,6 +2813,7 @@ function enterHome(fromEl) {
 }
 function logout(msgKey) {
   closeSheet(true);
+  if (API.on) { if (session && session.token) API.logout(); API.token = null; SV.orders = []; SV.tickets = []; }
   session = null; store.set(K_SESSION, null);
   const old = stack.splice(0);
   const lg = Login(); loginEl = lg;
@@ -2781,6 +2824,7 @@ function logout(msgKey) {
   toast(t(msgKey || 'loggedOut'));
 }
 function resetDemo() {   // this customer's orders, cart and wishlist back to the start; the admin's brands, prices and stock stay
+  if (API.on) { cart = []; store.set(K_CART, cart); logout(); return; }   // server mode: real orders are never deleted from the app
   loadShared();
   allOrders = allOrders.filter(o => !mine(o)); saveOrders();
   cart = []; usedSet.clear(); saveUsed();
@@ -2862,9 +2906,73 @@ app.addEventListener('click', e => {
   }
 });
 
+/* ================= server mode ================= */
+const errText = e => e && e.code === 'network' ? t('serverError') : e && e.code && I18N.en[e.code] ? t(e.code) : (e && e.message) || t('serverError');
+async function refreshCatalog() {
+  const r = API.fromCatalog(await API.catalog(), ORIG);
+  SV.config = r.config; SV.stock = r.stock; SV.pid = r.pid;
+}
+/** this customer's orders (with codes), wishlist and support messages */
+async function refreshMine() {
+  if (!session || !session.token) { SV.orders = []; SV.tickets = []; return; }
+  const [ords, wl] = await Promise.all([API.orders(), API.wishlist().catch(() => null)]);
+  SV.orders = ords;
+  const refs = Object.fromEntries(ords.map(o => [o.sid, o.id]));
+  SV.tickets = (await API.tickets(refs)).map(x => Object.assign(x, { name: session.name, phone: session.phone }));
+  ords.forEach(o => o.items.forEach((it, ii) => (it.usedAt || []).forEach((u, ci) => { const k = `${o.id}-${ii}-${ci}`; if (u) usedSet.add(k); else usedSet.delete(k); })));
+  saveUsed();
+  if (wl) { wish = wl.filter(x => BR[x.bid]); saveWish(); }
+}
+function serverLogin(cs, w) {
+  API.authCode(DEMO_MSISDN, DEMO_USER.name).then(API.login).then(async r => {
+    session = API.toSession(r.customer, r.token, session);
+    store.set(K_SESSION, session);
+    await refreshMine();
+    loadShared(); loadTickets();
+    delete w.dataset.lock;
+    closeSheet(true);
+    enterHome(loginEl);
+  }).catch(e => { delete w.dataset.lock; cs.dataset.state = 'ask'; toast(errText(e)); });
+}
+/** Pay button in server mode: order on the server, M-Pesa payment request, wait for the result. */
+function serverCheckout(pay, w) {
+  const lines = cart.map(it => ({ productId: SV.pid[`${it.bid}:${it.amount}`], quantity: it.qty }));
+  const fail = e => { delete w.dataset.lock; pay.dataset.state = 'confirm'; toast(errText(e)); };
+  if (lines.some(l => !l.productId)) { fail({ code: 'serverError' }); return; }
+  API.checkout(lines, { by: recvBy(), to: recvTo() }, lang).then(async () => {
+    cart = []; saveCart();
+    await Promise.all([refreshCatalog(), refreshMine()]).catch(() => {});
+    loadShared();
+    pay.dataset.state = 'done'; delete w.dataset.lock; emit();
+  }).catch(e => { fail(e); if (e.code === 'payTimeout') refreshMine().then(() => { loadShared(); emit(); }).catch(() => {}); });
+}
+/** first load from the server; a saved demo session (no token) is not valid against the real server */
+async function serverStart() {
+  API.onUnauthorized = () => { if (session) logout('loggedOut'); };
+  if (session && !session.token) { session = null; store.set(K_SESSION, null); }
+  API.token = session ? session.token : null;
+  await refreshCatalog();
+  if (session) await refreshMine().catch(() => {});
+  loadShared(); loadTickets();
+  cart = cart.filter(it => BR[it.bid] && !BR[it.bid].hidden && !BR[it.bid].off && BR[it.bid].amounts.includes(it.amount));
+  store.set(K_CART, cart);
+  setInterval(serverPoll, 20000);
+}
+/** every 20 s while the app is open: new prices / stock, delivered pre-orders, support replies */
+async function serverPoll() {
+  if (document.hidden) return;
+  try {
+    const unread = unreadCount();
+    await Promise.all([refreshCatalog(), refreshMine()]);
+    syncFromAdmin();
+    loadTickets(); emit();
+    if (unreadCount() > unread) toast(t('newReply'));
+  } catch (e) { /* offline for a moment: try again next time */ }
+}
+
 /* ================= boot ================= */
 app.classList.add('booting');
-probeAssets().then(() => {
+Promise.all([probeAssets(), API.init().then(on => on ? serverStart().catch(() => {}) : null)]).then(() => {
   loadMedia();
   app.classList.remove('booting');
   const splash = Splash();

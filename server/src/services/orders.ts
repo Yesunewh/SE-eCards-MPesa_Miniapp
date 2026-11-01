@@ -134,6 +134,15 @@ export async function getOrder(ctx: Ctx, customerId: string | null, idOrRef: str
   };
 }
 
+/** Paid orders with lines and codes, newest first (the app's My Orders and wallet in one call). */
+export async function listOrdersFull(ctx: Ctx, customerId: string, limit = 50) {
+  const ids = await many(ctx.db, `SELECT id FROM orders WHERE customer_id = $1 AND status IN ('paid','awaiting_stock','completed')
+                                  ORDER BY created_at DESC LIMIT $2`, [customerId, Math.min(limit, 100)]);
+  const out = [];
+  for (const r of ids) out.push(await getOrder(ctx, customerId, r.id));
+  return out;
+}
+
 export async function listOrders(ctx: Ctx, customerId: string, limit = 50) {
   const rows = await many(ctx.db, `
     SELECT o.id, o.reference, o.status, o.total_minor, o.created_at, o.paid_at,

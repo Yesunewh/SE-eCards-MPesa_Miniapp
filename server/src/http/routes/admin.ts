@@ -30,6 +30,7 @@ export async function adminRoutes(app: FastifyInstance, ctx: Ctx) {
     a.get('/orders', async req => {
       const q = parse(z.object({ q: z.string().max(100).optional(), status: z.string().max(30).optional(),
         limit: z.coerce.number().int().optional(), offset: z.coerce.number().int().optional() }), req.query);
+      if ((req.query as any)?.full === '1') return { orders: await A.ordersForPanel(ctx, q.limit) };
       return { orders: await A.searchOrders(ctx, q) };
     });
     a.get('/orders/:id', async req => {
@@ -129,6 +130,12 @@ export async function adminRoutes(app: FastifyInstance, ctx: Ctx) {
     a.post('/tickets/:id/reply', { preHandler: role('support') }, async req => {
       const b = parse(z.object({ text: z.string().min(1).max(4000), close: z.boolean().optional() }), req.body);
       await staffReply(ctx, req.admin!.id, id(req), b.text, b.close);
+      return { ok: true };
+    });
+
+    a.post('/tickets/:id/status', async req => {
+      const b = parse(z.object({ status: z.enum(['open', 'answered', 'closed']) }), req.body);
+      await A.setTicketStatus(ctx, req.admin!, id(req), b.status);
       return { ok: true };
     });
 
