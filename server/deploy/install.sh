@@ -215,6 +215,8 @@ ok "ecards-api is running: $(curl -fsS http://127.0.0.1:$PORT/health)"
 # keep the 3 newest releases
 ls -1dt $BASE/releases/*/ | tail -n +4 | xargs -r $SUDO rm -rf
 
+# behind nginx (HOST=127.0.0.1 in .env) the port must stay closed: no firewall rule then
+if $SUDO grep -q '^HOST=127.0.0.1' $BASE/.env; then FW=none; ok "app listens on localhost only (behind nginx): firewall left as it is"; fi
 case $FW in
   ufw)       $SUDO ufw allow "$PORT/tcp" comment 'ecards-api' >/dev/null && ok "ufw: allowed $PORT/tcp" ;;
   firewalld) $SUDO firewall-cmd -q --permanent --add-port="$PORT/tcp" && $SUDO firewall-cmd -q --reload && ok "firewalld: opened $PORT/tcp" ;;
