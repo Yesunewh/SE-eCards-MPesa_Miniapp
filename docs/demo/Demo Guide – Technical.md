@@ -19,7 +19,7 @@ This demo runs on **staging**: mock M-Pesa (no real money) and the mock provider
    - **Customer**: `https://ecards.paperless.et/?devkey=<key>` in phone view (Chrome DevTools → device toolbar → a phone such as Pixel 7). The key is remembered, so payments approve themselves.
    - **Admin**: `https://ecards.paperless.et/admin.html`, logged in as the owner admin.
 4. Optional: open a terminal for the curl part (section 6).
-5. To show pre-orders, have one product with **zero stock**. Admin → Stock: check that a product shows 0 available. If needed, void its demo codes, or use a brand/value never stocked.
+5. Staging was seeded with DEMO stock for most cards. A few cards have **none**: Netflix $100, PlayStation $50, Spotify $150, Steam $100, Apple $200, Google Play $150, and all PUBG. A **mock supplier** stands in for Wupex and is linked to every card, so empty cards still deliver instantly ("bought from the supplier"). To show a **pre-order**, switch the mock provider off in Admin → Providers first, and switch it back on afterwards.
 
 > [!note] Outside the M-Pesa app, the page has no `my` bridge, so login falls back to the staging login (phone + name). Inside M-Pesa, it uses `userScopes` and `payWithMpesa`. The rest of the flow is identical.
 
