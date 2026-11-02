@@ -20,7 +20,7 @@ What was done, in order. Commits are on branch `backend-api`, authored by Yesune
 - Push access: the first push got a 403. The owner set up a token, and the work was pushed to the new branch `backend-api` as the owner's profile.
 
 ## Phase 2: Wiring the front end
-- Added `assets/ecards-api.js` and hooks in `index.html` and `admin.html` (server mode or demo mode).
+- Added `assets/ecards-api.js` and hooks in `index.html` and `admin.html` (server mode, with the old browser-storage mode kept as a fallback at the time).
 - Fixed a real bug: the admin panel delivered pasted codes locally in server mode, so they never reached the server.
 - Browser end-to-end runs with Playwright.
 
@@ -81,3 +81,32 @@ What was done, in order. Commits are on branch `backend-api`, authored by Yesune
   - a Steam $10 Wupex pre-order is tracked;
   - 27 of our cards are mapped after adding Wupex's values.
 - 107 tests passing. Commit `d436019`.
+
+## Phase 8: Production-ready pages (2026-11-02)
+- **No demo mode.** The mini app and admin panel run only against the server; without it they say the service is not available.
+- **Mini app.** Removed:
+  - the fake M-Pesa consent ("Hana Tesfaye"), "Reset demo", "Restock now (demo)" and sample orders;
+  - the `?devkey` auto-approve.
+- **Mini app sign-in.**
+  - Inside M-Pesa: `userScopes`.
+  - Outside M-Pesa, while payments are in test mode: sign-in by phone number.
+  - Otherwise: "Open eCards from the M-Pesa app".
+- **Admin panel.**
+  - Removed: sample data, reset, the storage meter, the fake Google sign-in and the simulated supplier screen.
+  - New: a **Suppliers** page on the server's data, covering:
+    - balance and sync;
+    - automatic linking, including adding Wupex's card values;
+    - link and unlink;
+    - the call log.
+  - New: **Awaiting payment** with *Record M-Pesa payment* by receipt (admins only, audited).
+  - New: **Try delivery**, **Resend codes** and an audited **Show code**.
+  - New: brand pictures uploaded to the server.
+- **Server.**
+  - Removed the payment simulator (`/v1/dev/mpesa/simulate`, `DEV_SIMULATE_KEY`).
+  - The mock supplier exists only where configured.
+  - A new install has no sample codes.
+  - New `GIFTCARD_ADAPTER=none`.
+  - `clear-test-data` script for go-live.
+  - Migration `005_brand_media.sql`.
+  - `web.html` is no longer served.
+- Browser end-to-end run of both pages: no errors, no demo text. 109 tests passing.

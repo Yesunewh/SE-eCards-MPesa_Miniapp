@@ -44,7 +44,7 @@ flowchart LR
 |---|---|---|
 | Mini app | `index.html`, `assets/ecards-api.js` | Customer UI inside M-Pesa. Single HTML file plus the API client. |
 | Admin panel | `admin.html` | Staff UI: orders, stock, catalogue, providers, support. |
-| Web store | `web.html` | Public web version. **Still demo mode** (not wired to the API). |
+| Web store | `web.html` | Public web version. **Not served**: to be built on the API. |
 | API server | `server/src/http` | Fastify app: customer, admin and webhook routes; serves the front end. |
 | Services | `server/src/services` | Business logic: catalog, orders, payments, fulfilment, stock, support… |
 | Adapters | `server/src/adapters` | Pluggable integrations: payments (mock / mpesa_et / miniapp / safaricom), gift cards (mock / wupex), notify (log). |
@@ -59,7 +59,7 @@ flowchart LR
 - **Money is only "received" when M-Pesa says so** through the C2B Confirmation callback. What the app reports is informational.
 - **Never lose or double-sell a code.** Codes are claimed with row locks; provider purchases are recorded before the call; an unknown outcome is reconciled, never re-bought blindly.
 - **Codes are encrypted at rest** (AES-256-GCM). Admins see only the last 4 characters unless they "reveal", which is audited.
-- **Adapters are swappable through configuration.** The same code runs in mock/staging mode and in production.
+- **Adapters are swappable through configuration.** The same code runs with test payments now and with M-Pesa in production.
 - **Don't disturb the host.** The deploy runs beside Odoo and other services without touching them. See [[Infrastructure and Deployment]].
 
 ## Related

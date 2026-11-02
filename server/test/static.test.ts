@@ -14,7 +14,7 @@ const get = (url: string) => app.inject({ method: 'GET', url });
 
 describe('serving the mini app and admin panel', () => {
   it('serves the pages and assets', async () => {
-    for (const u of ['/', '/index.html', '/admin.html', '/web.html', '/assets/ecards-api.js', '/assets/logos/netflix.png']) {
+    for (const u of ['/', '/index.html', '/admin.html', '/assets/ecards-api.js', '/assets/logos/netflix.png']) {
       expect((await get(u)).statusCode, u).toBe(200);
     }
     expect((await get('/')).headers['content-type']).toMatch(/text\/html/);
@@ -23,7 +23,7 @@ describe('serving the mini app and admin panel', () => {
 
   it('serves nothing outside the allow-list', async () => {
     for (const u of ['/server/.env', '/server/package.json', '/.git/config', '/assets/../server/.env', '/assets/%2e%2e/server/.env',
-                     '/assets/..%2fserver%2f.env', '/assets/README.txt/../../server/.env', '/site-builder/build_site.py']) {
+                     '/assets/..%2fserver%2f.env', '/assets/README.txt/../../server/.env', '/site-builder/build_site.py', '/web.html']) {
       expect((await get(u)).statusCode, u).toBe(404);
     }
   });

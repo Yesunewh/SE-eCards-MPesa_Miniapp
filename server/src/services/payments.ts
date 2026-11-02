@@ -194,3 +194,45 @@ export async function unmatchedPayments(ctx: Ctx) {
            payload->>'MSISDN' AS msisdn, received_at
     FROM webhook_events WHERE error = 'unknown_payment' ORDER BY received_at DESC LIMIT 200`);
 }
+
+/** Admin: orders waiting for payment (or whose payment failed / ran out of time) in the last 14 days. */
+export async function unpaidOrders(ctx: Ctx) {
+  return many(ctx.db, `
+    SELECT o.id, o.reference, o.status, o.total_minor, o.created_at, o.expires_at, c.name AS customer_name, c.msisdn,
+           (SELECT json_build_object('status', p.status, 'message', p.result_desc, 'at', p.updated_at)
+              FROM payments p WHERE p.order_id = o.id ORDER BY p.created_at DESC LIMIT 1) AS last_payment
+    FROM orders o JOIN customers c ON c.id = o.customer_id
+    WHERE o.status IN ('pending_payment','payment_failed','expired') AND o.created_at > now() - interval '14 days'
+    ORDER BY o.created_at DESC LIMIT 300`);
+}
+
+/**
+ * Admin: record an M-Pesa payment that reached our M-Pesa account but whose confirmation never reached eCards
+ * (for example a missed callback). Staff enter the M-Pesa receipt number from the M-Pesa statement and the amount.
+ * It goes through the same rules as M-Pesa's own confirmation (amount must match, one success per order) and is audited.
+ */
+export async function recordPaymentByStaff(ctx: Ctx, adminId: string, orderId: string, receipt: string, amountMinor: number) {
+  const r = receipt.trim().toUpperCase();
+  if (!/^[A-Z0-9]{8,20}$/.test(r)) throw badRequest('receipt_invalid', 'Enter the M-Pesa receipt number (letters and digits)');
+  const checkoutRequestId = await withTx(ctx.db, async tx => {
+    const o = await maybeOne(tx, `SELECT * FROM orders WHERE id = $1 FOR UPDATE`, [orderId]);
+    if (!o) throw notFound('order_not_found');
+    if (!['pending_payment', 'payment_failed', 'expired'].includes(o.status)) throw badRequest('order_not_payable', `Order is ${o.status}`);
+    if (amountMinor !== Number(o.total_minor)) throw badRequest('amount_mismatch', `The order total is Br ${(Number(o.total_minor) / 100).toFixed(2)}`);
+    const used = await maybeOne(tx, `SELECT o.reference FROM payments p JOIN orders o ON o.id = p.order_id WHERE p.receipt_number = $1 AND p.status = 'succeeded'`, [r]);
+    if (used) throw badRequest('receipt_used', `Receipt ${r} already paid order ${used.reference}`);
+    const open = await maybeOne(tx, `SELECT * FROM payments WHERE order_id = $1 AND status = ANY($2) AND checkout_request_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`, [orderId, OPEN]);
+    if (open) return open.checkout_request_id as string;
+    const c = await one(tx, `SELECT msisdn FROM customers WHERE id = $1`, [o.customer_id]);
+    const p = await one(tx, `INSERT INTO payments (order_id, method, amount_minor, msisdn, status, checkout_request_id)
+                             VALUES ($1,$2,$3,$4,'pending','staff-' || gen_random_uuid()) RETURNING checkout_request_id`,
+      [orderId, methodOf(ctx), o.total_minor, c.msisdn]);
+    return p.checkout_request_id as string;
+  });
+  const res = await applyPaymentOutcome(ctx, { checkoutRequestId, status: 'succeeded', resultCode: '0', receiptNumber: r, amountMinor, resultDesc: 'Recorded by staff' },
+    { source: 'staff', adminId });
+  await ctx.db.query(`INSERT INTO audit_log (admin_user_id, action, entity_type, entity_id, details) VALUES ($1,'payment.recorded_by_staff','order',$2,$3)`,
+    [adminId, orderId, { receipt: r, amountMinor, result: res }]);
+  if (res !== 'paid') throw badRequest('payment_not_recorded', `Not recorded: ${res}`);
+  return { ok: true, result: res };
+}

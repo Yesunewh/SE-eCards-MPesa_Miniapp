@@ -112,9 +112,9 @@ sequenceDiagram
 ## Other payment adapters in the code (not used for Ethiopia)
 | Adapter | What it is | Why kept |
 |---|---|---|
-| `mock` | Fake payments plus `/v1/dev/mpesa/simulate` | Development and staging demo |
+| `mock` | Test payments: no money moves; staff confirm by recording an M-Pesa receipt | Until the mini program is registered |
 | `miniapp` | Generic mini program API (RSA-signed `applyToken`, `payments/pay`, `notifyPayment`, `inquiryPayment`) | Used if the platform switches to the signed-API model |
-| `safaricom` | STK push (`/mpesa/stkpush/v3/processrequest`) | Possible fallback for the web store |
+| `safaricom` | STK push (`/mpesa/stkpush/v3/processrequest`) | Possible option for a future web store |
 
 ## Go-live checklist (payments)
 1. Get mini program portal access, then create an HTML5 mini program with Entrance URL `https://ecards.paperless.et/` and enable UserScopes and PaymentET.

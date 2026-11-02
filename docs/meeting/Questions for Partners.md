@@ -49,7 +49,7 @@ Back to [[00 Home]] · [[Meeting Brief]]
 - [ ] Do they need **IP allow-listing**? Our server IP is `91.107.204.59`.
 - [ ] **Rate limits** and the max quantity per `pull-codes` call. `pull-codes` took ~8 s in the sandbox: is that normal?
 - [ ] The full list of error codes (we have seen `Insufficient Stock` and `PRICE_REVIEW_REQUIRED`). Which code means **insufficient balance**?
-- [ ] Pre-orders: are the sandbox suppliers simulated? Our test Steam pre-order stayed `Pending` / `UNCONFIRMED`.
+- [ ] Pre-orders: do the sandbox's suppliers ever deliver? Our test Steam pre-order stayed `Pending` / `UNCONFIRMED`.
 - [ ] Sandbox data check: **Apple $15** has `faceValue` 16 and price $15.68 (above face value). Is that intended?
 - [ ] Credit line versus prepaid balance in production, and how invoices or settlement work.
 - [ ] How do we **top up** the balance, and is there a low-balance alert?

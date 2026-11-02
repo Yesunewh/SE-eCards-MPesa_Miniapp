@@ -6,18 +6,18 @@ date: 2026-11-02
 
 # Meeting Brief: eCards M-Pesa Mini App
 
-Back to [[00 Home]] · Questions to ask: [[Questions for Partners]] · Demo: [[Demo Guide – Simple]]
+Back to [[00 Home]] · Questions to ask: [[Questions for Partners]] · Walkthrough: [[Product Walkthrough]]
 
 ## In one line
-**eCards** sells international gift cards (Netflix, PlayStation, Steam, Apple, Google Play…) **inside the M-Pesa app**, paid with M-Pesa, delivered in seconds. **The product is built and tested in staging. Launch is gated on Safaricom and Wupex access.**
+**eCards** sells international gift cards (Netflix, PlayStation, Steam, Apple, Google Play…) **inside the M-Pesa app**, paid with M-Pesa, delivered in seconds. **The product is built and tested on our server (test payments, Wupex test account). Launch is gated on Safaricom and Wupex production access.**
 
 ## What exists today
 - **Customer mini app**: catalogue, cart, M-Pesa login and pay, instant codes, pre-orders, support chat, wishlist, 5 languages.
 - **Admin back office**: orders, stock upload, prices and rate, home screen, suppliers, payment review, support, audit log.
-- **Backend server and database**: secure, automatic delivery (stock → Wupex → pre-order), encrypted codes, 107 automated tests.
+- **Backend server and database**: secure, automatic delivery (stock → Wupex → pre-order), encrypted codes, 109 automated tests.
 - **M-Pesa Ethiopia integration** built to Safaricom's H5 docs: `userScopes` login, `payWithMpesa`, C2B Validation/Confirmation, URL registration.
 - **Wupex integration** connected to the Wupex **sandbox**: a real test order through eCards delivered its code; Wupex pre-orders work too.
-- **Running** on our VPS at `ecards.paperless.et` (test mode, no real money).
+- **Running** on our VPS at `ecards.paperless.et`: test payments until M-Pesa is connected, cards from the Wupex test account.
 
 ## What we need (decisions and access)
 | # | Need | From | Blocking |

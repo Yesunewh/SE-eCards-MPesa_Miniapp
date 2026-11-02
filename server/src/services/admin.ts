@@ -303,7 +303,7 @@ export async function syncProvider(ctx: Ctx, admin: Admin | null, id: string) {
   }
 }
 
-/** Map one of our products to a provider product (the demo's "sell" mapping). */
+/** Map one of our products to a provider product: the provider delivers it when our own codes run out. */
 export async function mapProductSource(ctx: Ctx, admin: Admin, productId: string, providerId: string, externalProductId: string, unitCostCents: number, priority = 100) {
   requireRole(admin, 'admin');
   const pp = await maybeOne(ctx.db, `SELECT id FROM provider_products WHERE provider_id = $1 AND external_id = $2`, [providerId, externalProductId]);
@@ -314,6 +314,26 @@ export async function mapProductSource(ctx: Ctx, admin: Admin, productId: string
       external_product_id = EXCLUDED.external_product_id, unit_cost_cents = EXCLUDED.unit_cost_cents, priority = EXCLUDED.priority, is_active = true`,
     [productId, providerId, pp?.id ?? null, externalProductId, unitCostCents, priority]);
   await audit(ctx.db, admin.id, 'provider.map_product', 'product', productId, { providerId, externalProductId, unitCostCents });
+}
+
+/** A provider's synced catalogue, with the cards of ours each product delivers. */
+export async function providerProducts(ctx: Ctx, providerId: string) {
+  return many(ctx.db, `
+    SELECT pp.external_id, pp.name, pp.brand_name, pp.country, pp.currency, pp.denominations_cents, pp.price_cents,
+           pp.discount_pct, pp.is_available, pp.raw->'available' AS available, pp.raw->'preorder' AS preorder, pp.synced_at,
+           COALESCE((SELECT json_agg(json_build_object('productId', p.id, 'brandId', p.brand_id, 'faceValueUsd', p.face_value_cents / 100.0,
+                                                       'unitCostCents', s.unit_cost_cents) ORDER BY p.brand_id)
+                     FROM product_sources s JOIN products p ON p.id = s.product_id
+                     WHERE s.provider_id = pp.provider_id AND s.external_product_id = pp.external_id AND s.is_active), '[]') AS linked
+    FROM provider_products pp WHERE pp.provider_id = $1
+    ORDER BY pp.is_available DESC, pp.brand_name, pp.denominations_cents[1], pp.name`, [providerId]);
+}
+
+/** Stop delivering one of our cards through a provider. */
+export async function unmapProductSource(ctx: Ctx, admin: Admin, productId: string, providerId: string) {
+  requireRole(admin, 'admin');
+  await ctx.db.query(`UPDATE product_sources SET is_active = false WHERE product_id = $1 AND provider_id = $2`, [productId, providerId]);
+  await audit(ctx.db, admin.id, 'provider.unmap_product', 'product', productId, { providerId });
 }
 
 export async function providerLog(ctx: Ctx, providerId?: string, limit = 100) {

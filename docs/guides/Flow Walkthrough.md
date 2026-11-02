@@ -1,6 +1,6 @@
 ---
 title: Flow Walkthrough
-tags: [ecards, demo, flow]
+tags: [ecards, guide, flow]
 ---
 
 # Flow Walkthrough: every step, twice

@@ -160,12 +160,13 @@ RUN_WORKER=true
 PUBLIC_BASE_URL=http://$PUBLIC_IP:$PORT
 MPESA_CALLBACK_SECRET=$(hex 24)
 
-# Staging: mock M-Pesa and mock provider (no real money, DEMO codes) until the real APIs are connected.
-# Do NOT upload real gift card codes while PAYMENTS_ADAPTER=mock.
+# Payments: test payments (no money moves) until the M-Pesa Ethiopia mini program is connected
+# (PAYMENTS_ADAPTER=mpesa_et). Meanwhile staff record M-Pesa receipts in the admin panel (Orders > Awaiting payment).
 ALLOW_MOCK_ADAPTERS=true
 PAYMENTS_ADAPTER=mock
-GIFTCARD_ADAPTER=mock
-DEV_SIMULATE_KEY=$(hex 16)
+# Gift card supplier: wupex (set WUPEX_BASE_URL, WUPEX_API_KEY, WUPEX_MERCHANT) or none (only codes uploaded in the admin)
+GIFTCARD_ADAPTER=none
+WUPEX_CURRENCY=USD
 EOF
   ok "wrote $BASE/.env (new keys generated)"
 fi
@@ -185,7 +186,7 @@ ok "dependencies installed in $REL"
 
 runapp() { AS $APP_USER bash -c "set -a; . $BASE/.env; set +a; cd '$REL' && $NODE $*"; }
 runapp dist/db/migrate.js
-if $FIRST_INSTALL; then runapp dist/db/seed.js --mock-provider --demo-stock; else runapp dist/db/seed.js; fi
+runapp dist/db/seed.js   # settings, brands, card values, home screen (only what is missing)
 
 PREV=""; [[ -L $BASE/current ]] && PREV=$(readlink -f $BASE/current)
 $SUDO ln -sfn "$REL" $BASE/current
@@ -237,4 +238,3 @@ echo "   API:        http://$(curl -fsS -4 --max-time 5 https://api.ipify.org 2>
 echo "   Catalog:    /v1/catalog      Admin: /v1/admin/login"
 echo "   Logs:       sudo journalctl -u $SERVICE -f"
 echo "   Settings:   $BASE/.env (back it up somewhere safe)"
-echo "   Dev key for /v1/dev/mpesa/simulate: sudo grep DEV_SIMULATE_KEY $BASE/.env"

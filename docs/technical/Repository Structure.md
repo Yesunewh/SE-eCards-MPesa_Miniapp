@@ -11,7 +11,7 @@ Back to [[00 Home]]
 SE-eCards-MPesa_Miniapp/
 ├── index.html              ← customer mini app (the M-Pesa H5 entrance page)
 ├── admin.html              ← staff admin panel
-├── web.html                ← public web store (still demo / localStorage)
+├── web.html                ← public web store (not served yet: to be built on the API)
 ├── assets/
 │   ├── ecards-api.js       ← API client used by index.html and admin.html
 │   └── …                   ← logos, card art, banners
@@ -27,7 +27,8 @@ SE-eCards-MPesa_Miniapp/
     │   ├── 001_init.sql          ← the whole schema
     │   ├── 002_wupex_miniapp.sql ← Wupex + mini program changes
     │   ├── 003_mpesa_et.sql      ← device binding, C2B, client result
-    │   └── 004_provider_preorders.sql ← Wupex pre-orders (partial deliveries)
+    │   ├── 004_provider_preorders.sql ← Wupex pre-orders (partial deliveries)
+    │   └── 005_brand_media.sql   ← brand pictures stored on the server
     ├── src/
     │   ├── index.ts        ← starts HTTP server (+ worker if RUN_WORKER)
     │   ├── config.ts       ← env schema (zod)
@@ -57,7 +58,8 @@ About 3,700 lines of TypeScript in `server/src`.
 | `npm start` | Run compiled `dist/index.js` |
 | `npm run typecheck` | Type-check only |
 | `npm run migrate` | Apply pending SQL migrations |
-| `npm run seed` | Settings, brands, products, home screen (`-- --demo-stock`, `-- --mock-provider`) |
+| `npm run seed` | Settings, brands, products, home screen (`-- --mock-provider` for local development) |
+| `npm run data:clear-test` | Remove test orders, customers and codes before go-live (`--yes` to apply) |
 | `npm run admin:create` | Create an admin user |
 | `npm test` | Run all tests |
 | `npm run provider:map` | Sync and auto-map Wupex products. `--apply` saves; `--add-values --apply` also adds the values Wupex sells (`provider:map:dev` for the tsx version) |

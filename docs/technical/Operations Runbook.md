@@ -56,11 +56,18 @@ sudo bash -c 'set -a; . /opt/ecards/.env; set +a; cd /opt/ecards/current && ADMI
 ```
 Roles: `owner`, `admin`, `support`, `viewer`.
 
-## Staging: approve a mock payment by hand
+## Payment confirmed in M-Pesa but the order is still unpaid
+Admin panel → **Orders** → **Awaiting payment** → the order → enter the **M-Pesa receipt number** and the amount → **Record payment**.
+The amount must equal the order total, a receipt can pay only one order, only admins and owners can do it, and it is written to the audit log. While payments are in test mode, this is also how test orders are paid.
+
+## Before go-live: remove test data
+Shows what would be removed (test orders, customers, their codes, supplier purchases, the old sample codes); then removes it. It keeps the catalogue, settings, pictures, admin accounts, the audit log, Wupex and codes you uploaded yourself. It refuses on a server taking real M-Pesa payments.
 ```bash
-sudo grep DEV_SIMULATE_KEY /opt/ecards/.env
+sudo bash -c 'set -a; . /opt/ecards/.env; set +a; cd /opt/ecards/current && /opt/ecards/node/bin/node dist/scripts/clear-test-data.js'
 ```
-Or open the app with `https://ecards.paperless.et/?devkey=<that key>` and payments approve themselves. See [[Demo Guide – Technical]].
+```bash
+sudo bash -c 'set -a; . /opt/ecards/.env; set +a; cd /opt/ecards/current && /opt/ecards/node/bin/node dist/scripts/clear-test-data.js --yes'
+```
 
 ## Database
 Open a SQL shell:
@@ -116,7 +123,7 @@ You can also use **Admin → Providers** (balance, sync, auto-map, call log).
 |---|---|
 | A paid order has no code | Admin → Orders → the order → Retry. Check `jobs` for `dead`, and the provider log. |
 | The customer paid but the order is still unpaid | Admin → Payments review (amount mismatch or unknown reference). Check `webhook_events`. |
-| The app shows demo data | The page did not find the API. Check `/health` and nginx. |
+| The app says eCards is not available | The page cannot reach the API. Check `/health`, the service and nginx. |
 | Service won't start | `journalctl -u ecards-api -n 100`. Usually a bad `.env` value (zod prints which one). |
 
 ## Remove everything (careful)

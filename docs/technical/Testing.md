@@ -7,7 +7,7 @@ tags: [ecards, technical, testing]
 
 Back to [[00 Home]]
 
-**107 automated tests in 10 files, all passing.** They run against a real PostgreSQL (no mocks of the database), so locking, constraints and migrations are exercised for real.
+**109 automated tests in 10 files, all passing.** They run against a real PostgreSQL (no mocks of the database), so locking, constraints and migrations are exercised for real.
 
 ```bash
 cd server && npm test
@@ -24,7 +24,7 @@ cd server && npm test
 | `wupex.test.ts` | 15 | Wupex adapter against a fake server that answers like the real sandbox: purchase with `referenceId`, repeats, errors, timeouts, Wupex pre-orders delivered in parts, mapping and `--add-values` |
 | `miniapp.test.ts` | 10 | Generic signed mini program API: signatures, applyToken, pay, notify |
 | `mpesa-et.test.ts` | 9 | **M-Pesa Ethiopia:** amount format, C2B parse, full userScopes → payWithMpesa → validation → confirmation → codes, cancel and retry (`…R2`), wrong amount and unknown ref, wrong secret, **device binding**, URL registration body |
-| `http.test.ts` | 18 | Routes, auth, admin roles, lockout, rate limit config, error shapes |
+| `http.test.ts` | 20 | Routes, auth, admin roles, lockout, error shapes, staff payment recording, brand pictures, supplier catalogue, no simulator |
 | `static.test.ts` | 3 | Only allow-listed files are served |
 
 ## Mutation checks
@@ -37,7 +37,7 @@ To make sure the tests really catch bugs, key safety lines were deliberately bro
 
 ## Browser end-to-end runs
 Headless Chromium (Playwright) drove the real `index.html` and `admin.html` against a running server:
-- **Mini app flow**: open, sign in, add to cart, pay (simulated), see the code, mark it used, open a ticket.
+- **Mini app and admin together (2026-11-02)**: sign in by phone, buy, the order waits for M-Pesa, staff record the receipt in Admin → Awaiting payment, the code appears in My Orders; admin reveals the code (audited), syncs the supplier, pastes stock, uploads a brand picture. No page errors, and no demo text on either page.
 - **ET flow**: a fake `my.call` (userScopes and payWithMpesa) injected in the page, then C2B confirmation sent, then the code shows. A second "device" sees the hidden-code placeholder.
 - **Admin**: log in, paste stock, see a waiting order filled, reply to a ticket.
 

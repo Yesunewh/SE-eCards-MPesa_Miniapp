@@ -1,5 +1,5 @@
 /**
- * Getting codes to paid orders, in this order (the same as placeOrder() in the demo):
+ * Getting codes to paid orders, in this order:
  *   1. our own stock (gift_codes), oldest code first
  *   2. a gift card provider (Wupex), by priority
  *   3. otherwise the line stays a pre-order ('waiting') until stock arrives

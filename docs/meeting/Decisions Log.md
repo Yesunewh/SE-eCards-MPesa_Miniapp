@@ -28,3 +28,6 @@ Back to [[00 Home]]
 | 2026-11-01 | Order reference as **bill reference**, with `R2`, `R3` for retries | Each attempt is unique; a late confirmation still maps to the order |
 | 2026-11-01 | Try **`0711885151`** as the merchant number (to confirm) | Given by the business; looks like a phone number |
 | 2026-11-01 | **Hold** creating the mini program until portal access arrives | Portal is by invitation |
+| 2026-11-02 | **No demo mode anywhere.** The pages run only against the server; test payments are confirmed by staff recording an M-Pesa receipt (a real production tool for missed confirmations), not by a simulator | The product is built as the real thing; switching to production is a settings change |
+| 2026-11-02 | Brand pictures stored on the server (database), not in a browser | Every phone and admin sees the same pictures |
+| 2026-11-02 | `web.html` (web store) not served until it is built on the server | It only worked from browser storage |

@@ -7,7 +7,7 @@ tags: [ecards, technical, database]
 
 Back to [[00 Home]] · Related: [[Orders and Fulfilment]] · [[Security]]
 
-PostgreSQL 16 with 27 tables, 1 view and 4 migrations. Plain SQL, no ORM.
+PostgreSQL 16 with 28 tables, 1 view and 5 migrations. Plain SQL, no ORM.
 
 ## Conventions
 - **Money.** Birr amounts are stored as **santim** in `BIGINT` columns named `*_minor` (Br 150.00 = `15000`). Gift card face values and provider costs are stored as **USD cents** (`*_cents`).
@@ -27,6 +27,7 @@ The migrator (`npm run migrate`) takes a Postgres **advisory lock**, applies eac
 | `002_wupex_miniapp.sql` | `customers.msisdn` and `payments.msisdn` become nullable (mini app logins may not share a phone); payment methods `mpesa_miniapp` and `mock`; `provider_orders.request_context` JSONB (Wupex marker); unique `(provider_id, external_transaction_id)`; `provider_products.price_cents` |
 | `003_mpesa_et.sql` | `customer_sessions.device_hash` + `verified`; `orders.device_hash`; `payments.client_result` JSONB; webhook source `mpesa_c2b` |
 | `004_provider_preorders.sql` | `provider_orders.status` gains `partial` (a Wupex pre-order still delivering) |
+| `005_brand_media.sql` | `brand_media`: brand pictures uploaded in the admin panel (PNG/JPEG/WebP/GIF, max 1.5 MB), served at `/media/brands/<brand>/<kind>` |
 
 ## Tables by area
 
@@ -94,7 +95,7 @@ erDiagram
 ```
 
 ## Where the database lives
-- **Production/staging (VPS).** Docker container `ecards-db` (`postgres:16-alpine`), data in the Docker volume `ecards-pgdata`. It listens only on `127.0.0.1:5433`, so it is separate from the other PostgreSQL that Odoo uses. The password is in `/root/ecards-db.pass` and inside `DATABASE_URL` in `/opt/ecards/.env`.
+- **On the VPS.** Docker container `ecards-db` (`postgres:16-alpine`), data in the Docker volume `ecards-pgdata`. It listens only on `127.0.0.1:5433`, so it is separate from the other PostgreSQL that Odoo uses. The password is in `/root/ecards-db.pass` and inside `DATABASE_URL` in `/opt/ecards/.env`.
 - **Development and tests.** A local PostgreSQL 16. Tests create and reset their own database.
 
 Backup commands are in the [[Operations Runbook]].

@@ -1,20 +1,14 @@
 /* eCards API client, shared by the mini app (index.html) and the admin panel (admin.html).
  *
- * The pages work in two modes:
- *   - server mode: this file finds the eCards API, and catalog, stock, orders, payments, codes and support
- *     messages come from the server (the real system);
- *   - demo mode: no API found (for example the static site on cPanel), so the pages keep their old
- *     browser-storage demo, unchanged.
+ * Catalogue, stock, orders, payments, codes and support messages all come from the eCards server.
+ * Without it the pages show "not available right now"; nothing is kept or invented in the browser.
  *
  * Where the API is, in order:
  *   1. ?api=https://api.example.et in the page address (remembered on this device; ?api= with no value forgets it)
- *   2. <meta name="ecards-api" content="https://…"> in the page
- *   3. the page's own server (when the API serves the pages itself, e.g. http://196.189.51.169:10011/)
+ *   2. the page's own server (https://ecards.paperless.et serves the pages and the API)
+ *   3. <meta name="ecards-api" content="https://ecards.paperless.et"> in the page, for copies hosted elsewhere
  *
- * Staging only: ?devkey=… (remembered) lets the mini app approve mock M-Pesa payments by itself.
- *
- * The functions below turn server answers into the exact shapes the screens already used
- * (cfg / stock / orders / tickets), so the screens themselves did not change.
+ * The functions below turn server answers into the shapes the screens use (cfg / stock / orders / tickets).
  */
 (function () {
   'use strict';
@@ -25,14 +19,14 @@
   };
   const qs = new URLSearchParams(location.search);
   if (qs.has('api')) LS.set('ecards-api-base', qs.get('api') || null);
-  if (qs.has('devkey')) LS.set('ecards-dev-key', qs.get('devkey') || null);
+  LS.set('ecards-dev-key', null);   // no longer used: forget it on devices that still have it
   const meta = document.querySelector('meta[name="ecards-api"]');
 
   const A = {
     on: false,            // true once the API answered
     base: '',             // '' = same server as the page
-    payments: null,       // 'mock' or 'safaricom', from /health
-    devKey: LS.get('ecards-dev-key') || '',
+    payments: null,       // the server's payment connection, from /health
+    phoneSignIn: false,   // sign-in by phone number outside the M-Pesa app: only while the server runs test payments
     token: null,          // customer or admin session token
     onUnauthorized: null  // set by the page: called when the session is no longer valid
   };
@@ -61,20 +55,22 @@
   A.req = req;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  /** Finds the API. Resolves true (server mode) or false (demo mode). Never throws. */
+  /** Finds the API. Resolves true when it answered, false when it is not reachable. Never throws. */
   A.init = async function () {
-    const configured = LS.get('ecards-api-base') || (meta && meta.content) || '';
-    if (!configured && location.protocol === 'file:') return false;
-    const base = configured.replace(/\/+$/, '');
-    try {
-      const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const tm = setTimeout(() => ctl && ctl.abort(), 3500);
-      const r = await fetch(base + '/health', { cache: 'no-store', signal: ctl ? ctl.signal : undefined });
-      clearTimeout(tm);
-      const j = await r.json();
-      if (r.ok && j && j.ok) { A.on = true; A.base = base; A.payments = j.payments; }
-    } catch (e) { /* no API: demo mode */ }
-    return A.on;
+    const saved = LS.get('ecards-api-base');
+    const tries = saved ? [saved] : [location.protocol === 'file:' ? null : '', meta && meta.content ? meta.content : null].filter(x => x !== null);
+    for (const t of tries) {
+      const base = String(t).replace(/\/+$/, '');
+      try {
+        const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const tm = setTimeout(() => ctl && ctl.abort(), 4000);
+        const r = await fetch(base + '/health', { cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+        clearTimeout(tm);
+        const j = await r.json();
+        if (r.ok && j && j.ok) { A.on = true; A.base = base; A.payments = j.payments; A.phoneSignIn = j.payments === 'mock' && !inMpesa; return true; }
+      } catch (e) { /* not here: try the next address */ }
+    }
+    return false;
   };
 
   /* ---------------------------------------------------------------- helpers */
@@ -87,20 +83,25 @@
   /**
    * @param cat  GET /v1/catalog
    * @param orig the app's built-in brands { id: { name, label, mark, cat, c1, c2, ink } }
-   * Returns { config, stock, pid } where config has the shape the app saves as ecards-et-v2-config,
-   * stock the shape of ecards-et-v2-stock, and pid maps "brand:value" to the server product id.
+   * Returns { config, stock, pid, media }: the app's settings, stock per "brand:value", the server product id
+   * per "brand:value", and brand pictures set in the admin panel.
    */
   A.fromCatalog = function (cat, orig) {
-    const values = new Set(), brands = {}, custom = [], stock = {}, pid = {};
+    const values = new Set(), brands = {}, custom = [], stock = {}, pid = {}, media = { logos: {}, cards: {}, banners: {} };
+    // pictures uploaded in the admin panel (/media/…) or full web addresses; anything else is ignored
+    const abs = u => /^\/media\//.test(u || '') ? A.base + u : /^https:\/\//.test(u || '') ? u : null;
     const live = new Set();
     cat.brands.forEach(b => {
       if (b.hidden) return;
+      if (abs(b.logoUrl)) media.logos[b.id] = abs(b.logoUrl);
+      if (abs(b.cardImageUrl)) media.cards[b.id] = abs(b.cardImageUrl);
+      if (abs(b.bannerUrl)) media.banners[b.id] = abs(b.bannerUrl);
       const vals = b.products.map(p => p.faceValueUsd);
       vals.forEach(v => values.add(v));
       b.products.forEach(p => {
         const key = `${b.id}:${p.faceValueUsd}`;
         pid[key] = p.id;
-        stock[key] = { qty: p.availability === 'out_of_stock' ? 0 : p.maxQty, eta: dayMs(p.restockEta), codes: [], price: p.priceMinor / 100 };
+        stock[key] = { qty: p.availability === 'out_of_stock' ? 0 : p.maxQty, eta: dayMs(p.restockEta), price: p.priceMinor / 100 };
       });
       if (vals.length) live.add(b.id);
       const o = orig[b.id];
@@ -131,7 +132,7 @@
         popular: cat.home.popular.filter(id => live.has(id)),
         banners: cat.home.banners.filter(x => live.has(x.brandId)).map(x => ({ bid: x.brandId, on: x.active !== false, title: x.title || undefined, accent: x.accent || undefined }))
       },
-      stock, pid
+      stock, pid, media
     };
   };
   A.catalog = () => req('GET', '/v1/catalog', undefined, { noAuth: true });
@@ -225,10 +226,10 @@
   };
 
   /**
-   * Log in. Inside M-Pesa: userScopes (the user approves sharing name and mobile). Outside M-Pesa (staging only):
-   * a mock code. Resolves { token, customer }.
+   * Log in. Inside M-Pesa: userScopes (M-Pesa asks the customer to share their name and mobile).
+   * Outside M-Pesa: who = { phone, name }, accepted only while the server runs test payments. Resolves { token, customer }.
    */
-  A.signIn = async function (demoPhone, demoName) {
+  A.signIn = async function (who) {
     if (await loadSdk()) {
       const r = await myCall('userScopes', { scopes: ['USER_ID', 'USER_NAME', 'USER_MNAME', 'USER_LNAME', 'USER_MOBILE'] });
       if (!r.ok) {
@@ -241,15 +242,15 @@
       A.token = out.token;
       return out;
     }
-    const code = await A.authCode(demoPhone, demoName);
+    const code = await A.authCode(who);
     const out = await req('POST', '/v1/auth/mpesa', { authCode: code, deviceKey: A.deviceKey() }, { noAuth: true });
     A.token = out.token;
     return out;
   };
 
   /* ---------------------------------------------------------------- customer session */
-  /** Login code from M-Pesa (mini program); outside M-Pesa a mock code, accepted only by the staging server. */
-  A.authCode = async function (demoPhone, demoName) {
+  /** Login code from M-Pesa (mini program); outside M-Pesa a phone sign-in, accepted only while the server runs test payments. */
+  A.authCode = async function (who) {
     const my = window.my;
     if (my && typeof my.getAuthCode === 'function') {
       return new Promise((res, rej) => my.getAuthCode({ scopes: ['auth_user'], success: r => res(r.authCode || r.code), fail: rej }));
@@ -259,8 +260,8 @@
       if (!r.ok || !r.authCode) { const e = new Error('M-Pesa login was cancelled'); e.code = 'login_failed'; throw e; }
       return r.authCode;
     }
-    if (A.payments !== 'mock') throw notInMpesa();
-    return `mock:${demoPhone}:${demoName}`;
+    if (!A.phoneSignIn || !who || !who.phone) throw notInMpesa();
+    return `mock:${who.phone}:${String(who.name || '').replace(/:/g, ' ')}`;
   };
 
   /** Opens the M-Pesa cashier. Resolves with the result code: 9000 paid, 8000/6004 processing, 6001 cancelled, 4000 failed. */
@@ -292,7 +293,7 @@
 
   /* ---------------------------------------------------------------- orders */
   const PAID = ['paid', 'awaiting_stock', 'completed'];
-  /** server order → app order. Partly delivered lines become a delivered line + a waiting line, as in the demo. */
+  /** server order → app order. Partly delivered lines become a delivered line + a waiting line. */
   A.toAppOrder = function (o) {
     const items = [];
     o.items.forEach(it => {
@@ -300,7 +301,7 @@
       if (it.deliveredQuantity > 0) {
         items.push(Object.assign({}, base, {
           qty: it.deliveredQuantity, status: 'delivered', deliveredAt: ms(it.deliveredAt) || ms(o.paidAt),
-          codes: it.codesHidden ? Array.from({ length: it.deliveredQuantity }, () => 'SENT BY SMS · SHOWN ON THE PHONE THAT BOUGHT IT') : it.codes.map(c => c.code),
+          codes: it.codesHidden ? Array.from({ length: it.deliveredQuantity }, () => 'SHOWN ON THE PHONE THAT BOUGHT IT') : it.codes.map(c => c.code),
           codeIds: it.codesHidden ? [] : it.codes.map(c => c.id), usedAt: it.codesHidden ? [] : it.codes.map(c => ms(c.usedAt))
         }));
       }
@@ -344,10 +345,6 @@
       if (code === '6001') { const e = new Error('payment cancelled'); e.code = 'payCancelled'; e.order = order; throw e; }
       if (code === '4000') { const e = new Error('payment failed'); e.code = 'payFailed'; e.order = order; throw e; }
       // 9000 paid, 8000/6004/6002 not sure yet: the server's answer below decides
-    }
-    if (A.payments === 'mock' && A.devKey) {   // staging: approve as if the customer typed their PIN
-      await sleep(900);
-      await req('POST', '/v1/dev/mpesa/simulate', { paymentId: pay.id }, { headers: { 'x-dev-key': A.devKey }, noAuth: true }).catch(() => {});
     }
     const until = Date.now() + 3 * 60 * 1000;
     let o = order;
@@ -428,10 +425,31 @@
     st.products.forEach(p => {
       const k = `${p.brand_id}:${Number(p.face_value_usd)}`;
       pidAll[k] = p.id;
-      stock[k] = { qty: p.codes_available, eta: dayMs(p.restock_eta), codes: [], owed: p.preorders_owed, active: p.is_active };
+      stock[k] = { qty: p.codes_available, eta: dayMs(p.restock_eta), codes: [], owed: p.preorders_owed, active: p.is_active,
+                   provider: p.provider_ready ? (p.providers || [])[0] || null : null };
     });
-    return { config: r.config, stock, pid: pidAll, orders: ords.orders.map(A.toPanelOrder), tickets: tks.tickets.map(A.toPanelTicket) };
+    return { config: r.config, stock, pid: pidAll, media: r.media, orders: ords.orders.map(A.toPanelOrder), tickets: tks.tickets.map(A.toPanelTicket) };
   };
+
+  /* ---- direct admin actions */
+  const MEDIA_KIND = { logos: 'logo', cards: 'card', banners: 'banner' };
+  A.adminSetMedia = (kind, brandId, dataUrl) => req('PUT', `/v1/admin/brands/${brandId}/media/${MEDIA_KIND[kind]}`, { dataUrl });
+  A.adminRemoveMedia = (kind, brandId) => req('DELETE', `/v1/admin/brands/${brandId}/media/${MEDIA_KIND[kind]}`);
+  /** an order with its codes in full (admins only; every reveal is written to the audit log) */
+  A.adminReveal = sid => req('GET', `/v1/admin/orders/${sid}?reveal=1`);
+  A.adminOrder = sid => req('GET', `/v1/admin/orders/${sid}`);
+  A.adminRetry = sid => req('POST', `/v1/admin/orders/${sid}/retry`);
+  A.adminResend = sid => req('POST', `/v1/admin/orders/${sid}/resend`, {});
+  A.adminUnpaid = async () => (await req('GET', '/v1/admin/orders/unpaid')).orders;
+  A.adminRecordPayment = (sid, receipt, amountMinor) => req('POST', `/v1/admin/orders/${sid}/record-payment`, { receipt, amountMinor });
+  A.adminProviders = async () => (await req('GET', '/v1/admin/providers')).providers;
+  A.adminProviderSave = (id, body) => req('PUT', `/v1/admin/providers/${id}`, body);
+  A.adminProviderSync = id => req('POST', `/v1/admin/providers/${id}/sync`);
+  A.adminProviderProducts = async id => (await req('GET', `/v1/admin/providers/${id}/products`)).products;
+  A.adminAutomap = (id, apply, addValues) => req('POST', `/v1/admin/providers/${id}/automap`, { apply: !!apply, addValues: !!addValues });
+  A.adminMap = (productId, providerId, externalProductId, unitCostCents) => req('PUT', `/v1/admin/products/${productId}/sources/${providerId}`, { externalProductId, unitCostCents });
+  A.adminUnmap = (productId, providerId) => req('DELETE', `/v1/admin/products/${productId}/sources/${providerId}`);
+  A.adminProviderLog = async () => (await req('GET', '/v1/admin/providers/log')).calls;
 
   /**
    * Turns one admin change (the panel's data before and after) into API calls.
@@ -442,15 +460,15 @@
     const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     const iso = t => t ? new Date(t).toISOString().slice(0, 10) : null;
 
-    if (parts.includes('api')) notes.push('Providers (Wupex) are set up on the server, not here.');
-
     if (parts.includes('stock')) {
       Object.keys(after.stock).forEach(k => {
         const a = after.stock[k], b = before.stock[k] || { qty: 0, eta: null, codes: [] };
         const id = pid[k]; if (!id) return;
         const fresh = (a.codes || []).slice((b.codes || []).length).filter(Boolean);
-        if (fresh.length) calls.push(() => req('POST', `/v1/admin/stock/${id}/codes`, { codes: fresh }));
-        else if (a.qty !== b.qty) notes.push('Stock is the codes you upload: paste the codes to add stock.');
+        // "CODE, PIN" or "CODE<tab>PIN" → { code, pin }; codes themselves may contain spaces
+        const parsed = fresh.map(c => { const m = String(c).split(/\s*[,\t]\s*/); return m.length === 2 && m[1] ? { code: m[0], pin: m[1] } : String(c); });
+        if (fresh.length) calls.push(() => req('POST', `/v1/admin/stock/${id}/codes`, { codes: parsed }).then(r => { if (r && r.rejected && r.rejected.length) notes.push(`${r.added} added · ${r.rejected.length} refused (already in stock or not valid)`); }));
+        else if (a.qty !== b.qty) notes.push('Stock is the codes you upload: paste the codes to add stock.');   // safety net
         if (iso(a.eta) !== iso(b.eta) && !fresh.length) calls.push(() => req('PUT', `/v1/admin/stock/${id}/eta`, { eta: iso(a.eta) }));
       });
     }
@@ -459,7 +477,6 @@
       const was = {}; before.orders.forEach(o => o.items.forEach((it, i) => { was[`${o.sid}:${it.sid}:${i}`] = it.status; }));
       const retry = new Set();
       after.orders.forEach(o => o.items.forEach((it, i) => { if (it.status === 'delivered' && was[`${o.sid}:${it.sid}:${i}`] === 'waiting') retry.add(o.sid); }));
-      if (after.orders.length < before.orders.length) notes.push('Orders are never deleted on the live system.');
       retry.forEach(sid => calls.push(() => req('POST', `/v1/admin/orders/${sid}/retry`)));
     }
 

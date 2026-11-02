@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="ecards-api" content="https://ecards.paperless.et">
 <meta name="theme-color" content="#dce4fb">
 <title>eCards Digital Cards</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -677,21 +678,20 @@ h1,h2,h3,h4{text-wrap:balance}
 <script>
 (() => {
 'use strict';
-/* ---------- server mode: when the eCards API is reachable, data comes from it (see assets/ecards-api.js) ---------- */
-const API = window.EcardsAPI || { on: false, init: () => Promise.resolve(false) };
-const SV = { config: null, stock: null, pid: {}, orders: [], tickets: [] };   // latest server data, in the app's own shapes
-const DEMO_MSISDN = '0712345482';   // staging login outside the M-Pesa app (mock M-Pesa only)
+/* ---------- every piece of data comes from the eCards server (see assets/ecards-api.js) ---------- */
+const API = window.EcardsAPI;
+const SV = { config: null, stock: null, pid: {}, media: { logos: {}, cards: {}, banners: {} }, orders: [], tickets: [] };   // latest server data, in the app's own shapes
 
 /* ================= settings ================= */
 const CUR = { sym: 'Br', code: 'ETB' };   // Ethiopian Birr
-/* Starting values. The admin panel (admin.html in the same folder) can change prices, VAT, card values,
-   the catalog, banners and stock; the app reads the saved settings at start and whenever they change. */
+/* Fallbacks only: prices, VAT, card values, the catalogue, banners and stock come from the server,
+   which the admin panel controls. */
 const DEF_RATE = 265;                     // Birr per 1 US dollar: a $50 card costs Br 13,250
 const CARD_VALUES = [50, 100, 150, 200];   // every card is sold in these US dollar values
 const DEF_VAT = 0.15;                     // Ethiopia standard VAT, included in prices
 const DEF_SELLER = 'eCards';
 let RATE = DEF_RATE, VAT = DEF_VAT, SELLER = DEF_SELLER;
-const DEMO_USER = { name: 'Hana Tesfaye', phone: '+251 7•• ••• 482' };   // demo account shown on the M-Pesa login
+const NOBODY = { name: '', phone: '' };
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ================= languages =================
@@ -710,7 +710,7 @@ const I18N = {
     back: 'Back', myOrders: 'My Orders', search: 'Search', cart: 'Cart',
     popularBrands: 'Popular Brands', viewAll: 'View all',
     rowTop: 'Top Selling Cards', rowGaming: 'Gaming Cards', rowStreaming: 'Streaming & Apps',
-    giftCards: 'Gift cards', shopNow: 'Shop now', exitToast: 'In M-Pesa, this closes the mini app',
+    giftCards: 'Gift cards', shopNow: 'Shop now',
     accountRegion: 'Account Region', cardValue: 'Card Value', moreValues: 'More values',
     instantDelivery: 'Instant Delivery', nonReturnable: 'Non Returnable', instantEmail: 'Instant delivery by email or SMS', secure: 'Secure Transaction',
     additionalInfo: 'Additional Information', howRedeem: 'How to redeem?', about: 'About', terms: 'Terms & Conditions',
@@ -724,16 +724,18 @@ const I18N = {
     aboutTail: 'Codes arrive instantly after payment and stay in My Orders.',
     termsList: ['Digital codes can’t be returned or refunded.', 'The card only works with an account registered in {region}.', 'Keep your code private. Anyone who has it can redeem it.', 'Prices include {vat}% VAT.'],
     inclVat: 'Inclusive of VAT', addToCart: 'Add To Cart',
-    shareText: '{title} for {price} on eCards', shareCopied: 'Card details copied', shareNA: 'Sharing isn’t available in this preview',
+    shareText: '{title} for {price} on eCards', shareCopied: 'Card details copied', shareNA: 'Sharing isn’t available on this device',
     addedToCart: 'Added to cart', keepShopping: 'Keep shopping', viewCart: 'View cart ({n})',
     myCart: 'My Cart', cartEmptyT: 'Your cart is empty', cartEmptyP: 'Cards you add will appear here.', browse: 'Browse cards',
     subtotal: 'Subtotal', vatIncl: 'VAT included ({vat}%)', total: 'Total', payWithMpesa: 'Pay with M-Pesa',
     decrease: 'Decrease quantity', increase: 'Increase quantity', remove: 'Remove',
     payFailed: 'Payment was not completed. No money was taken. Please try again.', payTimeout: 'M-Pesa has not confirmed yet. We will show the order as soon as it does.',
-    serverError: 'Could not reach eCards. Check your connection and try again.', demoOnly: 'Only available in the demo.',
+    serverError: 'Could not reach eCards. Check your connection and try again.',
+    unavailT: 'eCards is not available right now', unavailP: 'We could not connect to eCards. Check your connection and try again.', retry: 'Try again',
     payCancelled: 'Payment cancelled. Nothing was charged.', loginCancelled: 'Login cancelled. eCards needs your M-Pesa name and number to deliver your cards.', openInMpesa: 'Open eCards from the M-Pesa app to log in and pay.',
     confirmPayment: 'Confirm payment', merchant: 'Merchant', qtyLabel: 'Cards', payFrom: 'Pay from',
-    payNote: 'Demo payment. In the live mini app, M-Pesa’s own payment screen opens here and you approve with your PIN. No money moves in this preview.',
+    payNote: 'You approve this payment in M-Pesa with your PIN. eCards never sees your PIN.',
+    payPending: 'Waiting for M-Pesa to confirm your payment. Your order appears in My Orders as soon as it is confirmed.',
     cancel: 'Cancel', payNow: 'Pay now', waiting: 'Waiting for M-Pesa', approving: 'Approving {amount}…',
     paySuccess: 'Payment successful', orderReady: 'Your order is ready in My Orders.', done: 'Done', viewMyOrders: 'View My Orders',
     noOrdersT: 'No orders yet', noOrdersP: 'Your completed orders will appear here.',
@@ -744,11 +746,12 @@ const I18N = {
     cat_gaming: 'Gaming', cat_apps: 'Apps & stores', cat_video: 'Streaming', cat_music: 'Music', cat_telecom: 'Mobile recharge', cat_card: 'Gift cards',
     lgTitle: 'Digital gift cards, paid with M-Pesa', lgSub: 'Games, apps, music and streaming. Your code arrives in seconds.',
     loginBtn: 'Log in with M-Pesa', lgFine: 'eCards gets your name and phone number from M-Pesa. You never share your M-Pesa PIN with eCards.',
-    consentTitle: 'Log in to eCards with M-Pesa', demo: 'Demo', willSee: 'eCards will be able to see:', yourName: 'Your name', yourPhone: 'Your phone number',
-    consentNote: 'Demo login. In the live mini app, M-Pesa shows this request itself, and eCards never sees your PIN.',
+    consentTitle: 'Log in to eCards with M-Pesa', willSee: 'eCards will be able to see:', yourName: 'Your name', yourPhone: 'Your phone number',
+    consentNote: 'M-Pesa shares your name and phone number with eCards. eCards never sees your PIN.',
+    signInTitle: 'Sign in', signInP: 'Enter the M-Pesa number you pay with.', mpesaNumber: 'M-Pesa number', fullName: 'Full name', nameNeeded: 'Enter your name.', signIn: 'Sign in',
     allow: 'Allow', loggingIn: 'Logging you in…', needLogin: 'Log in with M-Pesa to buy cards',
-    loggedInAs: 'Logged in as {name}', loggedOut: 'Logged out', demoReset: 'Demo reset. Log in to start again.',
-    howWorks: 'How eCards works', logout: 'Log out', resetDemo: 'Reset demo',
+    loggedInAs: 'Logged in as {name}', loggedOut: 'Logged out',
+    howWorks: 'How eCards works', logout: 'Log out',
     language: 'Language', chooseLanguage: 'Choose language', region_ETH: 'Ethiopia',
     w_title: 'Welcome to eCards',
     w_intro: 'Buy digital gift cards for games, apps, movies and music, and pay with M-Pesa. Your code arrives in seconds.',
@@ -768,10 +771,9 @@ const I18N = {
     digitalNote: 'Instant Delivery via Email. All cards are digital-only, no physical delivery.',
     sendTo: 'Send to',
     orderReadyEmail: 'Your code is ready in My Orders and will be emailed to {email}.',
-    demoNoEmail: 'Demo: no email or SMS is sent from this preview.',
-    myCards: 'My cards', recentPurchases: 'Recent purchases', hideCode: 'Hide code', buyAgain: 'Buy again', today: 'Today', yesterday: 'Yesterday', buyCard: 'Buy a card', sampleOrders: 'Add sample orders',
+    myCards: 'My cards', recentPurchases: 'Recent purchases', hideCode: 'Hide code', buyAgain: 'Buy again', today: 'Today', yesterday: 'Yesterday', buyCard: 'Buy a card',
     markUsed: 'Mark as used', markedUsed: 'Moved to used cards', undo: 'Undo', usedTag: 'Used', inWallet: 'In wallet', all: 'All', seeAll: 'See all', history: 'Purchase history', moreBrands: '+{n} more', chooseCard: 'Choose a card', restore: 'Move back to wallet', restored: 'Moved back to your wallet', allUsedT: 'All your cards are used', allUsedP: 'Used cards stay in your purchase history.', prevCode: 'Previous code', nextCode: 'Next code', emptyFilter: 'Nothing here yet.',
-    outOfStock: 'Out of stock', backInStock: 'Back in stock', inStock: 'In stock', expectedBy: 'Expected by {date}', preorder: 'Pre-order', preorderNote: 'Pay now, get it when back in stock', oosTitle: 'Out of stock right now', oosBody: 'Pre-order it now: pay with M-Pesa and we send your code as soon as it is back in stock, expected by {date}. Pre-orders can’t be cancelled or refunded.', oosWish: 'Not in a rush? Save it to your wishlist and we will tell you when it is back.', wishlist: 'Wishlist', addWish: 'Add to wishlist', removeWish: 'Remove from wishlist', wishAdded: 'Saved to your wishlist', wishRemoved: 'Removed from your wishlist', wishEmptyT: 'Your wishlist is empty', wishEmptyP: 'Tap the heart on any card to save it here.', preorderTag: 'Pre-order · expected by {date}', waitingTitle: 'Waiting for stock', paidExpected: 'Paid · expected by {date}', waitingTag: 'Waiting', restockDemo: 'Restock now (demo)', arrived: 'Your pre-ordered cards arrived. The codes are in your wallet.', preorderDone: 'Your pre-order is confirmed. We will email {email} when it is in stock.', preLabel: 'Pre-order', rateNote: 'Exchange rate: 1 USD = {rate} Br', termsPre: 'Pre-orders can’t be cancelled or refunded. Your code is sent as soon as the card is back in stock.', cardsArriveHere: 'Your cards will appear here when they arrive.',
+    outOfStock: 'Out of stock', backInStock: 'Back in stock', inStock: 'In stock', expectedBy: 'Expected by {date}', preorder: 'Pre-order', preorderNote: 'Pay now, get it when back in stock', oosTitle: 'Out of stock right now', oosBody: 'Pre-order it now: pay with M-Pesa and we send your code as soon as it is back in stock, expected by {date}. Pre-orders can’t be cancelled or refunded.', oosWish: 'Not in a rush? Save it to your wishlist and we will tell you when it is back.', wishlist: 'Wishlist', addWish: 'Add to wishlist', removeWish: 'Remove from wishlist', wishAdded: 'Saved to your wishlist', wishRemoved: 'Removed from your wishlist', wishEmptyT: 'Your wishlist is empty', wishEmptyP: 'Tap the heart on any card to save it here.', preorderTag: 'Pre-order · expected by {date}', waitingTitle: 'Waiting for stock', paidExpected: 'Paid · expected by {date}', waitingTag: 'Waiting', arrived: 'Your pre-ordered cards arrived. The codes are in your wallet.', preorderDone: 'Your pre-order is confirmed. We will email {email} when it is in stock.', preLabel: 'Pre-order', rateNote: 'Exchange rate: 1 USD = {rate} Br', termsPre: 'Pre-orders can’t be cancelled or refunded. Your code is sent as soon as the card is back in stock.', cardsArriveHere: 'Your cards will appear here when they arrive.',
     unavailable: 'Not available right now', onlyLeft: 'Only {n} left',
     settings: 'Settings', account: 'Account', help: 'Help', notSet: 'Not set',
     support: 'Contact support', supportTitle: 'How can we help?', hoursDaily: 'We answer every day from {from} to {to}.', call: 'Call', emailUs: 'Email', telegram: 'Telegram', whatsapp: 'WhatsApp', newMessage: 'Send us a message', topicQ: 'What is it about?', topicOrder: 'An order or code', topicPayment: 'Payment', topicPre: 'A pre-order', topicOther: 'Something else', whichOrder: 'Which order?', noOrder: 'Not about an order', yourMessage: 'Your message', msgPlaceholder: 'Tell us what happened', msgShort: 'Please write a little more so we can help.', replyHere: 'We reply here in the app.', replyHereEmail: 'We reply here in the app and by email to {email}.', send: 'Send', msgSent: 'Message sent. We will reply here soon.', yourMessages: 'Your messages', noMessages: 'You have not sent us a message yet.', tkWaiting: 'Waiting for reply', tkAnswered: 'Replied', tkClosed: 'Closed', you: 'You', supportTeam: 'eCards support', writeReply: 'Write a reply', closedNote: 'This conversation is closed. Send a new message if you need more help.', newReply: 'eCards support replied to your message', orderRef: 'Order {id}',
@@ -784,7 +786,7 @@ const I18N = {
     back: 'ተመለስ', myOrders: 'የእኔ ትዕዛዞች', search: 'ፈልግ', cart: 'ጋሪ',
     popularBrands: 'ታዋቂ ብራንዶች', viewAll: 'ሁሉንም ይመልከቱ',
     rowTop: 'በብዛት የሚሸጡ ካርዶች', rowGaming: 'የጨዋታ ካርዶች', rowStreaming: 'ፊልም፣ ሙዚቃና መተግበሪያዎች',
-    giftCards: 'የስጦታ ካርዶች', shopNow: 'አሁን ይግዙ', exitToast: 'በM-Pesa ውስጥ ይህ ሚኒ መተግበሪያውን ይዘጋል',
+    giftCards: 'የስጦታ ካርዶች', shopNow: 'አሁን ይግዙ',
     accountRegion: 'የአካውንት ሀገር', cardValue: 'የካርድ ዋጋ', moreValues: 'ተጨማሪ ዋጋዎች',
     instantDelivery: 'ፈጣን አቅርቦት', nonReturnable: 'የማይመለስ', instantEmail: 'በኢሜይል ወይም በኤስኤምኤስ ወዲያውኑ ይደርሳል', secure: 'ደህንነቱ የተጠበቀ ክፍያ',
     additionalInfo: 'ተጨማሪ መረጃ', howRedeem: 'እንዴት መጠቀም ይቻላል?', about: 'ስለ ካርዱ', terms: 'ውሎችና ሁኔታዎች',
@@ -798,14 +800,12 @@ const I18N = {
     aboutTail: 'ኮዶች ከክፍያ በኋላ ወዲያውኑ ይደርሳሉ፤ «የእኔ ትዕዛዞች» ውስጥም ይቀመጣሉ።',
     termsList: ['ዲጂታል ኮዶች አይመለሱም፤ ገንዘቡም አይመለስም።', 'ካርዱ የሚሠራው በ{region} በተመዘገበ አካውንት ብቻ ነው።', 'ኮድዎን ለማንም አያጋሩ። ኮዱ ያለው ማንኛውም ሰው ሊጠቀምበት ይችላል።', 'ዋጋዎች {vat}% ተ.እ.ታ ያካትታሉ።'],
     inclVat: 'ተ.እ.ታን ጨምሮ', addToCart: 'ወደ ጋሪ ጨምር',
-    shareText: '{title} በ{price} በeCards ላይ', shareCopied: 'የካርዱ መረጃ ተቀድቷል', shareNA: 'በዚህ ቅድመ እይታ ማጋራት አይቻልም',
-    addedToCart: 'ወደ ጋሪ ተጨምሯል', keepShopping: 'ግዢ ይቀጥሉ', viewCart: 'ጋሪውን ይመልከቱ ({n})',
+    shareText: '{title} በ{price} በeCards ላይ', shareCopied: 'የካርዱ መረጃ ተቀድቷል',     addedToCart: 'ወደ ጋሪ ተጨምሯል', keepShopping: 'ግዢ ይቀጥሉ', viewCart: 'ጋሪውን ይመልከቱ ({n})',
     myCart: 'የእኔ ጋሪ', cartEmptyT: 'ጋሪዎ ባዶ ነው', cartEmptyP: 'የሚጨምሯቸው ካርዶች እዚህ ይታያሉ።', browse: 'ካርዶችን ይመልከቱ',
     subtotal: 'ንዑስ ድምር', vatIncl: 'የተካተተ ተ.እ.ታ ({vat}%)', total: 'ጠቅላላ', payWithMpesa: 'በM-Pesa ይክፈሉ',
     decrease: 'ብዛት ቀንስ', increase: 'ብዛት ጨምር', remove: 'አስወግድ',
     confirmPayment: 'ክፍያውን ያረጋግጡ', merchant: 'ተቀባይ', qtyLabel: 'የካርዶች ብዛት', payFrom: 'የሚከፈለው ከ',
-    payNote: 'ይህ የሙከራ ክፍያ ነው። በእውነተኛው ሚኒ መተግበሪያ የM-Pesa የራሱ የክፍያ ገጽ እዚህ ይከፈታል፤ በፒንዎ ያረጋግጣሉ። በዚህ ቅድመ እይታ ምንም ገንዘብ አይንቀሳቀስም።',
-    cancel: 'ይቅር', payNow: 'አሁን ይክፈሉ', waiting: 'M-Pesaን በመጠበቅ ላይ', approving: '{amount} በማረጋገጥ ላይ…',
+        cancel: 'ይቅር', payNow: 'አሁን ይክፈሉ', waiting: 'M-Pesaን በመጠበቅ ላይ', approving: '{amount} በማረጋገጥ ላይ…',
     paySuccess: 'ክፍያው ተሳክቷል', orderReady: 'ትዕዛዝዎ «የእኔ ትዕዛዞች» ውስጥ ዝግጁ ነው።', done: 'እሺ', viewMyOrders: 'ትዕዛዞቼን ይመልከቱ',
     noOrdersT: 'እስካሁን ምንም ትዕዛዝ የለም', noOrdersP: 'የተጠናቀቁ ትዕዛዞችዎ እዚህ ይታያሉ።',
     order: 'ትዕዛዝ #{id}', completed: 'ተጠናቋል', qty: 'ብዛት {n}', showCode: 'ኮዱን አሳይ', copy: 'ቅዳ',
@@ -815,12 +815,9 @@ const I18N = {
     cat_gaming: 'ጨዋታዎች', cat_apps: 'መተግበሪያዎችና መደብሮች', cat_video: 'ፊልምና ቪዲዮ', cat_music: 'ሙዚቃ', cat_telecom: 'የሞባይል ካርድ', cat_card: 'የስጦታ ካርዶች',
     lgTitle: 'ዲጂታል የስጦታ ካርዶች፣ በM-Pesa የሚከፈሉ', lgSub: 'ጨዋታዎች፣ መተግበሪያዎች፣ ሙዚቃና ፊልሞች። ኮድዎ በሰከንዶች ውስጥ ይደርሳል።',
     loginBtn: 'በM-Pesa ይግቡ', lgFine: 'eCards ስምዎንና ስልክ ቁጥርዎን ከM-Pesa ያገኛል። የM-Pesa ፒንዎን ለeCards በፍጹም አያጋሩም።',
-    consentTitle: 'በM-Pesa ወደ eCards ይግቡ', demo: 'ሙከራ', willSee: 'eCards ማየት የሚችለው፦', yourName: 'ስምዎን', yourPhone: 'ስልክ ቁጥርዎን',
-    consentNote: 'ይህ የሙከራ መግቢያ ነው። በእውነተኛው ሚኒ መተግበሪያ ይህን ጥያቄ M-Pesa ራሱ ያሳያል፤ eCards ፒንዎን በጭራሽ አያይም።',
-    allow: 'ፍቀድ', loggingIn: 'በመግባት ላይ…', needLogin: 'ካርዶችን ለመግዛት በM-Pesa ይግቡ',
-    loggedInAs: 'እንደ {name} ገብተዋል', loggedOut: 'ወጥተዋል', demoReset: 'ሙከራው እንደገና ተጀምሯል። ለመጀመር ይግቡ።',
-    howWorks: 'eCards እንዴት ይሠራል', logout: 'ውጣ', resetDemo: 'ሙከራውን እንደገና ጀምር',
-    language: 'ቋንቋ', chooseLanguage: 'ቋንቋ ይምረጡ', region_ETH: 'ኢትዮጵያ',
+    consentTitle: 'በM-Pesa ወደ eCards ይግቡ', willSee: 'eCards ማየት የሚችለው፦', yourName: 'ስምዎን', yourPhone: 'ስልክ ቁጥርዎን',
+        allow: 'ፍቀድ', loggingIn: 'በመግባት ላይ…', needLogin: 'ካርዶችን ለመግዛት በM-Pesa ይግቡ',
+    loggedInAs: 'እንደ {name} ገብተዋል', loggedOut: 'ወጥተዋል',     howWorks: 'eCards እንዴት ይሠራል', logout: 'ውጣ',     language: 'ቋንቋ', chooseLanguage: 'ቋንቋ ይምረጡ', region_ETH: 'ኢትዮጵያ',
     w_title: 'እንኳን ወደ eCards በደህና መጡ',
     w_intro: 'ለጨዋታዎች፣ ለመተግበሪያዎች፣ ለፊልምና ለሙዚቃ አገልግሎቶች ዲጂታል የስጦታ ካርዶችን ይግዙ፤ ክፍያውን በM-Pesa ይፈጽሙ። ኮድዎ በሰከንዶች ውስጥ ይደርስዎታል።',
     w_how: 'እንዴት ይሠራል?',
@@ -839,10 +836,8 @@ const I18N = {
     digitalNote: 'በኢሜይል ወዲያውኑ ይደርሳል። ሁሉም ካርዶች ዲጂታል ብቻ ናቸው፤ በአካል የሚላክ ነገር የለም።',
     sendTo: 'የሚላክበት',
     orderReadyEmail: 'ኮድዎ «የእኔ ትዕዛዞች» ውስጥ ዝግጁ ነው፤ ወደ {email} በኢሜይል ይላካል።',
-    demoNoEmail: 'ሙከራ፦ ከዚህ ቅድመ እይታ ምንም ኢሜይል ወይም ኤስኤምኤስ አይላክም።',
-    myCards: 'የእኔ ካርዶች', recentPurchases: 'የቅርብ ጊዜ ግዢዎች', hideCode: 'ኮዱን ደብቅ', buyAgain: 'እንደገና ግዛ', today: 'ዛሬ', yesterday: 'ትናንት', buyCard: 'ካርድ ይግዙ', sampleOrders: 'የናሙና ትዕዛዞችን ጨምር',
-    markUsed: 'ተጠቅሜበታለሁ', markedUsed: 'ወደ ጥቅም ላይ የዋሉ ካርዶች ተዛውሯል', undo: 'ቀልብስ', usedTag: 'ጥቅም ላይ የዋለ', inWallet: 'በቦርሳ ውስጥ', all: 'ሁሉም', seeAll: 'ሁሉንም ይመልከቱ', history: 'የግዢ ታሪክ', moreBrands: '+{n} ተጨማሪ', chooseCard: 'ካርድ ይምረጡ', restore: 'ወደ ቦርሳው መልስ', restored: 'ወደ ቦርሳዎ ተመልሷል', allUsedT: 'ሁሉንም ካርዶችዎን ተጠቅመዋል', allUsedP: 'ጥቅም ላይ የዋሉ ካርዶች በግዢ ታሪክዎ ውስጥ ይቀመጣሉ።', prevCode: 'ያለፈው ኮድ', nextCode: 'የሚቀጥለው ኮድ', emptyFilter: 'እስካሁን ምንም የለም።',
-    outOfStock: 'አልቋል', backInStock: 'እንደገና ገብቷል', inStock: 'በክምችት አለ', expectedBy: 'እስከ {date} ይጠበቃል', preorder: 'ቅድመ ትዕዛዝ', preorderNote: 'አሁን ይክፈሉ፤ ሲገባ ይደርስዎታል', oosTitle: 'ለጊዜው አልቋል', oosBody: 'አሁን ቅድመ ትዕዛዝ ያድርጉ፤ በM-Pesa ይክፈሉ፣ ካርዱ እንደገባ ኮድዎን እንልካለን። የሚጠበቀው እስከ {date} ነው። ቅድመ ትዕዛዝ አይሰረዝም፤ ገንዘብም አይመለስም።', oosWish: 'አይቸኩሉም? ወደ ምኞት ዝርዝርዎ ያስቀምጡት፤ ሲገባ እናሳውቅዎታለን።', wishlist: 'የምኞት ዝርዝር', addWish: 'ወደ ምኞት ዝርዝር ጨምር', removeWish: 'ከምኞት ዝርዝር አስወግድ', wishAdded: 'ወደ ምኞት ዝርዝርዎ ተቀምጧል', wishRemoved: 'ከምኞት ዝርዝርዎ ተወግዷል', wishEmptyT: 'የምኞት ዝርዝርዎ ባዶ ነው', wishEmptyP: 'በማንኛውም ካርድ ላይ ያለውን ልብ ይንኩ፤ እዚህ ይቀመጣል።', preorderTag: 'ቅድመ ትዕዛዝ · እስከ {date} ይጠበቃል', waitingTitle: 'ክምችት በመጠበቅ ላይ', paidExpected: 'ተከፍሏል · እስከ {date} ይጠበቃል', waitingTag: 'በመጠበቅ ላይ', restockDemo: 'አሁን አስገባ (ሙከራ)', arrived: 'ቅድመ ትዕዛዝ ያደረጓቸው ካርዶች ደርሰዋል። ኮዶቹ በቦርሳዎ ውስጥ ናቸው።', preorderDone: 'ቅድመ ትዕዛዝዎ ተረጋግጧል። ካርዱ ሲገባ ወደ {email} ኢሜይል እንልካለን።', preLabel: 'ቅድመ ትዕዛዝ', rateNote: 'የምንዛሪ ተመን፦ 1 USD = {rate} Br', termsPre: 'ቅድመ ትዕዛዞች አይሰረዙም፤ ገንዘብም አይመለስም። ካርዱ እንደገባ ኮድዎ ይላካል።', cardsArriveHere: 'ካርዶችዎ ሲደርሱ እዚህ ይታያሉ።',
+        myCards: 'የእኔ ካርዶች', recentPurchases: 'የቅርብ ጊዜ ግዢዎች', hideCode: 'ኮዱን ደብቅ', buyAgain: 'እንደገና ግዛ', today: 'ዛሬ', yesterday: 'ትናንት', buyCard: 'ካርድ ይግዙ',     markUsed: 'ተጠቅሜበታለሁ', markedUsed: 'ወደ ጥቅም ላይ የዋሉ ካርዶች ተዛውሯል', undo: 'ቀልብስ', usedTag: 'ጥቅም ላይ የዋለ', inWallet: 'በቦርሳ ውስጥ', all: 'ሁሉም', seeAll: 'ሁሉንም ይመልከቱ', history: 'የግዢ ታሪክ', moreBrands: '+{n} ተጨማሪ', chooseCard: 'ካርድ ይምረጡ', restore: 'ወደ ቦርሳው መልስ', restored: 'ወደ ቦርሳዎ ተመልሷል', allUsedT: 'ሁሉንም ካርዶችዎን ተጠቅመዋል', allUsedP: 'ጥቅም ላይ የዋሉ ካርዶች በግዢ ታሪክዎ ውስጥ ይቀመጣሉ።', prevCode: 'ያለፈው ኮድ', nextCode: 'የሚቀጥለው ኮድ', emptyFilter: 'እስካሁን ምንም የለም።',
+    outOfStock: 'አልቋል', backInStock: 'እንደገና ገብቷል', inStock: 'በክምችት አለ', expectedBy: 'እስከ {date} ይጠበቃል', preorder: 'ቅድመ ትዕዛዝ', preorderNote: 'አሁን ይክፈሉ፤ ሲገባ ይደርስዎታል', oosTitle: 'ለጊዜው አልቋል', oosBody: 'አሁን ቅድመ ትዕዛዝ ያድርጉ፤ በM-Pesa ይክፈሉ፣ ካርዱ እንደገባ ኮድዎን እንልካለን። የሚጠበቀው እስከ {date} ነው። ቅድመ ትዕዛዝ አይሰረዝም፤ ገንዘብም አይመለስም።', oosWish: 'አይቸኩሉም? ወደ ምኞት ዝርዝርዎ ያስቀምጡት፤ ሲገባ እናሳውቅዎታለን።', wishlist: 'የምኞት ዝርዝር', addWish: 'ወደ ምኞት ዝርዝር ጨምር', removeWish: 'ከምኞት ዝርዝር አስወግድ', wishAdded: 'ወደ ምኞት ዝርዝርዎ ተቀምጧል', wishRemoved: 'ከምኞት ዝርዝርዎ ተወግዷል', wishEmptyT: 'የምኞት ዝርዝርዎ ባዶ ነው', wishEmptyP: 'በማንኛውም ካርድ ላይ ያለውን ልብ ይንኩ፤ እዚህ ይቀመጣል።', preorderTag: 'ቅድመ ትዕዛዝ · እስከ {date} ይጠበቃል', waitingTitle: 'ክምችት በመጠበቅ ላይ', paidExpected: 'ተከፍሏል · እስከ {date} ይጠበቃል', waitingTag: 'በመጠበቅ ላይ', arrived: 'ቅድመ ትዕዛዝ ያደረጓቸው ካርዶች ደርሰዋል። ኮዶቹ በቦርሳዎ ውስጥ ናቸው።', preorderDone: 'ቅድመ ትዕዛዝዎ ተረጋግጧል። ካርዱ ሲገባ ወደ {email} ኢሜይል እንልካለን።', preLabel: 'ቅድመ ትዕዛዝ', rateNote: 'የምንዛሪ ተመን፦ 1 USD = {rate} Br', termsPre: 'ቅድመ ትዕዛዞች አይሰረዙም፤ ገንዘብም አይመለስም። ካርዱ እንደገባ ኮድዎ ይላካል።', cardsArriveHere: 'ካርዶችዎ ሲደርሱ እዚህ ይታያሉ።',
     unavailable: 'አሁን አይገኝም', onlyLeft: '{n} ብቻ ቀርተዋል',
     settings: 'ቅንብሮች', account: 'አካውንት', help: 'እገዛ', notSet: 'አልተዘጋጀም',
     support: 'ድጋፍ ያግኙ', supportTitle: 'እንዴት ልንረዳዎ እንችላለን?', hoursDaily: 'በየቀኑ ከ{from} እስከ {to} እንመልሳለን።', call: 'ይደውሉ', emailUs: 'ኢሜይል', telegram: 'ቴሌግራም', whatsapp: 'ዋትስአፕ', newMessage: 'መልዕክት ይላኩልን', topicQ: 'ስለ ምንድን ነው?', topicOrder: 'ትዕዛዝ ወይም ኮድ', topicPayment: 'ክፍያ', topicPre: 'ቅድመ ትዕዛዝ', topicOther: 'ሌላ ጉዳይ', whichOrder: 'የትኛው ትዕዛዝ?', noOrder: 'ስለ ትዕዛዝ አይደለም', yourMessage: 'መልዕክትዎ', msgPlaceholder: 'ምን እንደተፈጠረ ይንገሩን', msgShort: 'እንድንረዳዎ እባክዎ ትንሽ ተጨማሪ ይጻፉ።', replyHere: 'እዚሁ በመተግበሪያው ውስጥ እንመልሳለን።', replyHereEmail: 'እዚሁ በመተግበሪያው እና በ{email} ኢሜይል እንመልሳለን።', send: 'ላክ', msgSent: 'መልዕክቱ ተልኳል። በቅርቡ እዚሁ እንመልሳለን።', yourMessages: 'መልዕክቶችዎ', noMessages: 'እስካሁን መልዕክት አልላኩልንም።', tkWaiting: 'መልስ በመጠበቅ ላይ', tkAnswered: 'መልስ ተሰጥቷል', tkClosed: 'ተዘግቷል', you: 'እርስዎ', supportTeam: 'የeCards ድጋፍ', writeReply: 'መልስ ይጻፉ', closedNote: 'ይህ ውይይት ተዘግቷል። ተጨማሪ እገዛ ከፈለጉ አዲስ መልዕክት ይላኩ።', newReply: 'የeCards ድጋፍ ለመልዕክትዎ መልስ ሰጥቷል', orderRef: 'ትዕዛዝ {id}',
@@ -855,7 +850,7 @@ const I18N = {
     back: 'Duubatti', myOrders: 'Ajajawwan koo', search: 'Barbaadi', cart: 'Qodaa bittaa',
     popularBrands: 'Biraandota beekamoo', viewAll: 'Hunda ilaali',
     rowTop: 'Kaardiiwwan baay’ee gurguraman', rowGaming: 'Kaardiiwwan taphaa', rowStreaming: 'Fiilmii, muuziqaa fi appiiwwan',
-    giftCards: 'Kaardiiwwan kennaa', shopNow: 'Amma bitadhu', exitToast: 'M-Pesa keessatti, kun appii xiqqaa cufa',
+    giftCards: 'Kaardiiwwan kennaa', shopNow: 'Amma bitadhu',
     accountRegion: 'Biyya akkaawuntii', cardValue: 'Gatii kaardii', moreValues: 'Gatiiwwan dabalataa',
     instantDelivery: 'Battaluma ga’a', nonReturnable: 'Hin deebi’u', instantEmail: 'Imeelii ykn SMS’n battaluma ga’a', secure: 'Kaffaltii nageenya qabu',
     additionalInfo: 'Odeeffannoo dabalataa', howRedeem: 'Akkamitti itti fayyadamta?', about: 'Waa’ee kaardichaa', terms: 'Haalawwanii fi dambiiwwan',
@@ -869,14 +864,12 @@ const I18N = {
     aboutTail: 'Koodiiwwan kaffaltii booda battaluma ga’u, “Ajajawwan koo” keessattis ni turu.',
     termsList: ['Koodiiwwan dijitaalaa hin deebi’an, maallaqnis hin deebi’u.', 'Kaardichi akkaawuntii {region} keessatti galmaa’e qofaan hojjeta.', 'Koodii kee nama biraaf hin qoodin. Namni koodii qabu kamiyyuu itti fayyadamuu danda’a.', 'Gatiiwwan VAT %{vat} of keessaa qabu.'],
     inclVat: 'VAT dabalatee', addToCart: 'Qodaa bittaatti dabali',
-    shareText: '{title} gatii {price}n eCards irratti', shareCopied: 'Odeeffannoon kaardii garagalfameera', shareNA: 'Asitti qooduun hin danda’amu',
-    addedToCart: 'Qodaa bittaatti dabalameera', keepShopping: 'Bittaa itti fufi', viewCart: 'Qodaa bittaa ilaali ({n})',
+    shareText: '{title} gatii {price}n eCards irratti', shareCopied: 'Odeeffannoon kaardii garagalfameera',     addedToCart: 'Qodaa bittaatti dabalameera', keepShopping: 'Bittaa itti fufi', viewCart: 'Qodaa bittaa ilaali ({n})',
     myCart: 'Qodaa bittaa koo', cartEmptyT: 'Qodaan bittaa kee duwwaa dha', cartEmptyP: 'Kaardiiwwan ati dabaltu asitti mul’atu.', browse: 'Kaardiiwwan ilaali',
     subtotal: 'Ida’ama xiqqaa', vatIncl: 'VAT hammatame ({vat}%)', total: 'Waliigala', payWithMpesa: 'M-Pesa’n kaffali',
     decrease: 'Baay’ina hir’isi', increase: 'Baay’ina dabali', remove: 'Haqi',
     confirmPayment: 'Kaffaltii mirkaneessi', merchant: 'Fudhataa', qtyLabel: 'Baay’ina kaardii', payFrom: 'Madda kaffaltii',
-    payNote: 'Kun kaffaltii yaaliiti. Appii xiqqaa dhugaa keessatti fuulli kaffaltii M-Pesa mataa isaa asitti banama, PIN keetiinis mirkaneessita. Yaalii kana keessatti maallaqni tokkollee hin socho’u.',
-    cancel: 'Dhiisi', payNow: 'Amma kaffali', waiting: 'M-Pesa eegaa jira', approving: '{amount} mirkaneessaa jira…',
+        cancel: 'Dhiisi', payNow: 'Amma kaffali', waiting: 'M-Pesa eegaa jira', approving: '{amount} mirkaneessaa jira…',
     paySuccess: 'Kaffaltiin milkaa’eera', orderReady: 'Ajajni kee “Ajajawwan koo” keessatti qophaa’eera.', done: 'Tole', viewMyOrders: 'Ajajawwan koo ilaali',
     noOrdersT: 'Hanga ammaatti ajajni hin jiru', noOrdersP: 'Ajajawwan kee xumuraman asitti mul’atu.',
     order: 'Ajaja #{id}', completed: 'Xumurameera', qty: 'Baay’ina {n}', showCode: 'Koodii agarsiisi', copy: 'Garagalchi',
@@ -886,12 +879,9 @@ const I18N = {
     cat_gaming: 'Taphoota', cat_apps: 'Appiiwwanii fi suuqiiwwan', cat_video: 'Fiilmii fi viidiyoo', cat_music: 'Muuziqaa', cat_telecom: 'Kaardii bilbilaa', cat_card: 'Kaardiiwwan kennaa',
     lgTitle: 'Kaardiiwwan kennaa dijitaalaa, M-Pesa’n kaffalaman', lgSub: 'Taphoota, appiiwwan, muuziqaa fi fiilmii. Koodiin kee sekondii muraasa keessatti si ga’a.',
     loginBtn: 'M-Pesa’n seeni', lgFine: 'eCards maqaa fi lakkoofsa bilbilaa kee M-Pesa irraa argata. PIN M-Pesa kee eCards’f gonkumaa hin qooddu.',
-    consentTitle: 'M-Pesa’n eCards seeni', demo: 'Yaalii', willSee: 'eCards kanneen arguu danda’a:', yourName: 'Maqaa kee', yourPhone: 'Lakkoofsa bilbilaa kee',
-    consentNote: 'Kun seensa yaaliiti. Appii xiqqaa dhugaa keessatti gaaffii kana M-Pesa mataan isaa agarsiisa; eCards PIN kee gonkumaa hin argu.',
-    allow: 'Hayyami', loggingIn: 'Seenaa jira…', needLogin: 'Kaardii bituuf M-Pesa’n seeni',
-    loggedInAs: 'Akka {name} seenteetta', loggedOut: 'Ba’ameera', demoReset: 'Yaaliin haaromfameera. Jalqabuuf seeni.',
-    howWorks: 'eCards akkamitti hojjeta', logout: 'Ba’i', resetDemo: 'Yaalii haaromsi',
-    language: 'Afaan', chooseLanguage: 'Afaan filadhu', region_ETH: 'Itoophiyaa',
+    consentTitle: 'M-Pesa’n eCards seeni', willSee: 'eCards kanneen arguu danda’a:', yourName: 'Maqaa kee', yourPhone: 'Lakkoofsa bilbilaa kee',
+        allow: 'Hayyami', loggingIn: 'Seenaa jira…', needLogin: 'Kaardii bituuf M-Pesa’n seeni',
+    loggedInAs: 'Akka {name} seenteetta', loggedOut: 'Ba’ameera',     howWorks: 'eCards akkamitti hojjeta', logout: 'Ba’i',     language: 'Afaan', chooseLanguage: 'Afaan filadhu', region_ETH: 'Itoophiyaa',
     w_title: 'Baga gara eCards nagaan dhufte',
     w_intro: 'Taphootaaf, appiiwwaniif, fiilmii fi muuziqaaf kaardii kennaa dijitaalaa bitadhu, M-Pesa’n kaffali. Koodiin kee sekondii muraasa keessatti si ga’a.',
     w_how: 'Akkamitti hojjeta?',
@@ -910,10 +900,8 @@ const I18N = {
     digitalNote: 'Imeeliidhaan battaluma ga’a. Kaardiiwwan hundi dijitaalaa qofa; wanti qaamaan ergamu hin jiru.',
     sendTo: 'Kan itti ergamu',
     orderReadyEmail: 'Koodiin kee “Ajajawwan koo” keessatti qophaa’eera, {email}tti imeeliin ni ergama.',
-    demoNoEmail: 'Yaalii: yaalii kana irraa imeeliin ykn SMS’n hin ergamu.',
-    myCards: 'Kaardiiwwan koo', recentPurchases: 'Bittaa dhihoo', hideCode: 'Koodii dhoksi', buyAgain: 'Ammas bitadhu', today: 'Har’a', yesterday: 'Kaleessa', buyCard: 'Kaardii bitadhu', sampleOrders: 'Ajajawwan fakkeenyaa dabali',
-    markUsed: 'Itti fayyadameera', markedUsed: 'Gara kaardiiwwan itti fayyadamamanitti ce’eera', undo: 'Deebisi', usedTag: 'Fayyadamameera', inWallet: 'Boorsaa keessa', all: 'Hunda', seeAll: 'Hunda ilaali', history: 'Seenaa bittaa', moreBrands: '+{n} dabalataa', chooseCard: 'Kaardii filadhu', restore: 'Gara boorsaatti deebisi', restored: 'Gara boorsaa keetti deebi’eera', allUsedT: 'Kaardiiwwan kee hunda itti fayyadamteetta', allUsedP: 'Kaardiiwwan itti fayyadamaman seenaa bittaa kee keessatti turu.', prevCode: 'Koodii duraa', nextCode: 'Koodii itti aanu', emptyFilter: 'Ammaaf homtuu hin jiru.',
-    outOfStock: 'Dhumeera', backInStock: 'Deebi’ee jira', inStock: 'Ni argama', expectedBy: '{date} dura ni eegama', preorder: 'Dursa ajaji', preorderNote: 'Amma kaffali, yeroo deebi’u si ga’a', oosTitle: 'Yeroof dhumeera', oosBody: 'Amma dursa ajaji: M-Pesa’n kaffali, kaardichi akkuma deebi’een koodii kee siif ergina; {date} dura ni eegama. Dursa ajajni hin haqamu, maallaqnis hin deebi’u.', oosWish: 'Hin ariifattuu? Tarree hawwii keetti olkaa’i; yeroo deebi’u siif himna.', wishlist: 'Tarree hawwii', addWish: 'Tarree hawwiitti dabali', removeWish: 'Tarree hawwii irraa haqi', wishAdded: 'Tarree hawwii keetti olkaa’ameera', wishRemoved: 'Tarree hawwii kee irraa haqameera', wishEmptyT: 'Tarreen hawwii kee duwwaa dha', wishEmptyP: 'Asitti olkaa’uuf onnee kaardii kamiyyuu irra jiru tuqi.', preorderTag: 'Dursa ajaja · {date} dura ni eegama', waitingTitle: 'Kuusaa eegaa jira', paidExpected: 'Kaffalameera · {date} dura ni eegama', waitingTag: 'Eegaa jira', restockDemo: 'Amma galchi (yaalii)', arrived: 'Kaardiiwwan ati dursa ajajatte ga’aniiru. Koodiiwwan boorsaa kee keessa jiru.', preorderDone: 'Dursa ajajni kee mirkanaa’eera. Yeroo kaardichi deebi’u {email}tti imeelii ergina.', preLabel: 'Dursa ajaja', rateNote: 'Gatii jijjiirraa: 1 USD = {rate} Br', termsPre: 'Dursa ajajni hin haqamu, maallaqnis hin deebi’u. Kaardichi akkuma deebi’een koodiin kee siif ergama.', cardsArriveHere: 'Kaardiiwwan kee yeroo ga’an asitti mul’atu.',
+        myCards: 'Kaardiiwwan koo', recentPurchases: 'Bittaa dhihoo', hideCode: 'Koodii dhoksi', buyAgain: 'Ammas bitadhu', today: 'Har’a', yesterday: 'Kaleessa', buyCard: 'Kaardii bitadhu',     markUsed: 'Itti fayyadameera', markedUsed: 'Gara kaardiiwwan itti fayyadamamanitti ce’eera', undo: 'Deebisi', usedTag: 'Fayyadamameera', inWallet: 'Boorsaa keessa', all: 'Hunda', seeAll: 'Hunda ilaali', history: 'Seenaa bittaa', moreBrands: '+{n} dabalataa', chooseCard: 'Kaardii filadhu', restore: 'Gara boorsaatti deebisi', restored: 'Gara boorsaa keetti deebi’eera', allUsedT: 'Kaardiiwwan kee hunda itti fayyadamteetta', allUsedP: 'Kaardiiwwan itti fayyadamaman seenaa bittaa kee keessatti turu.', prevCode: 'Koodii duraa', nextCode: 'Koodii itti aanu', emptyFilter: 'Ammaaf homtuu hin jiru.',
+    outOfStock: 'Dhumeera', backInStock: 'Deebi’ee jira', inStock: 'Ni argama', expectedBy: '{date} dura ni eegama', preorder: 'Dursa ajaji', preorderNote: 'Amma kaffali, yeroo deebi’u si ga’a', oosTitle: 'Yeroof dhumeera', oosBody: 'Amma dursa ajaji: M-Pesa’n kaffali, kaardichi akkuma deebi’een koodii kee siif ergina; {date} dura ni eegama. Dursa ajajni hin haqamu, maallaqnis hin deebi’u.', oosWish: 'Hin ariifattuu? Tarree hawwii keetti olkaa’i; yeroo deebi’u siif himna.', wishlist: 'Tarree hawwii', addWish: 'Tarree hawwiitti dabali', removeWish: 'Tarree hawwii irraa haqi', wishAdded: 'Tarree hawwii keetti olkaa’ameera', wishRemoved: 'Tarree hawwii kee irraa haqameera', wishEmptyT: 'Tarreen hawwii kee duwwaa dha', wishEmptyP: 'Asitti olkaa’uuf onnee kaardii kamiyyuu irra jiru tuqi.', preorderTag: 'Dursa ajaja · {date} dura ni eegama', waitingTitle: 'Kuusaa eegaa jira', paidExpected: 'Kaffalameera · {date} dura ni eegama', waitingTag: 'Eegaa jira', arrived: 'Kaardiiwwan ati dursa ajajatte ga’aniiru. Koodiiwwan boorsaa kee keessa jiru.', preorderDone: 'Dursa ajajni kee mirkanaa’eera. Yeroo kaardichi deebi’u {email}tti imeelii ergina.', preLabel: 'Dursa ajaja', rateNote: 'Gatii jijjiirraa: 1 USD = {rate} Br', termsPre: 'Dursa ajajni hin haqamu, maallaqnis hin deebi’u. Kaardichi akkuma deebi’een koodiin kee siif ergama.', cardsArriveHere: 'Kaardiiwwan kee yeroo ga’an asitti mul’atu.',
     unavailable: 'Amma hin argamu', onlyLeft: '{n} qofatu hafe',
     settings: 'Qindaa’ina', account: 'Akkaawuntii', help: 'Gargaarsa', notSet: 'Hin qindoofne',
     support: 'Deeggarsa qunnamaa', supportTitle: 'Akkamitti si gargaaruu dandeenya?', hoursDaily: 'Guyyaa hunda {from} irraa hanga {to}tti deebii kennina.', call: 'Bilbili', emailUs: 'Imeelii', telegram: 'Telegram', whatsapp: 'WhatsApp', newMessage: 'Ergaa nuuf ergi', topicQ: 'Waa’ee maalii?', topicOrder: 'Ajaja ykn koodii', topicPayment: 'Kaffaltii', topicPre: 'Dursa ajajaa', topicOther: 'Kan biraa', whichOrder: 'Ajaja kamii?', noOrder: 'Waa’ee ajajaa miti', yourMessage: 'Ergaa kee', msgPlaceholder: 'Maaltu akka ta’e nutti himi', msgShort: 'Akka si gargaarruuf maaloo xiqqoo dabalii barreessi.', replyHere: 'Asuma appii keessatti deebii siif kennina.', replyHereEmail: 'Asuma appii keessattii fi imeelii {email}tiin deebii siif kennina.', send: 'Ergi', msgSent: 'Ergaan ergameera. Dhiyootti asumatti deebii siif kennina.', yourMessages: 'Ergaawwan kee', noMessages: 'Hanga ammaatti ergaa nuuf hin erginee.', tkWaiting: 'Deebii eegaa jira', tkAnswered: 'Deebii argateera', tkClosed: 'Cufameera', you: 'Ati', supportTeam: 'Deeggarsa eCards', writeReply: 'Deebii barreessi', closedNote: 'Marii kun cufameera. Gargaarsa dabalataa yoo barbaadde ergaa haaraa ergi.', newReply: 'Deeggarsi eCards ergaa keetiif deebii kenneera', orderRef: 'Ajaja {id}',
@@ -926,7 +914,7 @@ const I18N = {
     back: 'Dib u noqo', myOrders: 'Dalabaadkayga', search: 'Raadi', cart: 'Dambiil',
     popularBrands: 'Summadaha caanka ah', viewAll: 'Dhammaan eeg',
     rowTop: 'Kaararka ugu iibka badan', rowGaming: 'Kaararka ciyaaraha', rowStreaming: 'Filim, muusig iyo abka',
-    giftCards: 'Kaararka hadiyadda', shopNow: 'Hadda iibso', exitToast: 'Gudaha M-Pesa, tani waxay xiraysaa abka yar',
+    giftCards: 'Kaararka hadiyadda', shopNow: 'Hadda iibso',
     accountRegion: 'Dalka akoonka', cardValue: 'Qiimaha kaarka', moreValues: 'Qiimayaal kale',
     instantDelivery: 'Gaarsiin degdeg ah', nonReturnable: 'Lama celin karo', instantEmail: 'Isla markiiba iimayl ama SMS ahaan', secure: 'Lacag-bixin ammaan ah',
     additionalInfo: 'Macluumaad dheeraad ah', howRedeem: 'Sidee loo isticmaalaa?', about: 'Ku saabsan', terms: 'Shuruudaha iyo xaaladaha',
@@ -940,14 +928,12 @@ const I18N = {
     aboutTail: 'Koodadku waxay imanayaan isla markiiba lacag bixinta kadib, waxayna ku jiraan “Dalabaadkayga”.',
     termsList: ['Koodadka dhijitaalka ah lama celin karo, lacagtana dib looma celiyo.', 'Kaarku wuxuu ku shaqeeyaa oo keliya akoon laga diiwaangeliyay {region}.', 'Koodkaaga cidna ha la wadaagin. Qof kasta oo haysta wuu isticmaali karaa.', 'Qiimayaashu waxay ku jiraan {vat}% VAT.'],
     inclVat: 'VAT-ka ku jira', addToCart: 'Ku dar dambiisha',
-    shareText: '{title} oo ah {price} eCards', shareCopied: 'Faahfaahinta kaarka waa la koobiyeeyay', shareNA: 'Wadaagistu halkan ma shaqeyso',
-    addedToCart: 'Waa lagu daray dambiisha', keepShopping: 'Sii wad iibsiga', viewCart: 'Eeg dambiisha ({n})',
+    shareText: '{title} oo ah {price} eCards', shareCopied: 'Faahfaahinta kaarka waa la koobiyeeyay',     addedToCart: 'Waa lagu daray dambiisha', keepShopping: 'Sii wad iibsiga', viewCart: 'Eeg dambiisha ({n})',
     myCart: 'Dambiishayda', cartEmptyT: 'Dambiishaadu waa madhan tahay', cartEmptyP: 'Kaararka aad ku darto halkan ayay ka muuqan doonaan.', browse: 'Eeg kaararka',
     subtotal: 'Wadarta hoose', vatIncl: 'VAT ku jira ({vat}%)', total: 'Wadarta', payWithMpesa: 'Ku bixi M-Pesa',
     decrease: 'Yaree tirada', increase: 'Kordhi tirada', remove: 'Ka saar',
     confirmPayment: 'Xaqiiji lacag bixinta', merchant: 'Ganacsadaha', qtyLabel: 'Tirada kaararka', payFrom: 'Laga bixinayo',
-    payNote: 'Tani waa lacag bixin tijaabo ah. Abka yar ee dhabta ah, shaashadda lacag bixinta ee M-Pesa ayaa halkan ka furmaysa, waxaadna ku xaqiijinaysaa PIN-kaaga. Tijaabadan lacag ma dhaqaaqdo.',
-    cancel: 'Jooji', payNow: 'Hadda bixi', waiting: 'Sugaya M-Pesa', approving: 'Waxaa la xaqiijinayaa {amount}…',
+        cancel: 'Jooji', payNow: 'Hadda bixi', waiting: 'Sugaya M-Pesa', approving: 'Waxaa la xaqiijinayaa {amount}…',
     paySuccess: 'Lacag bixintu way guulaysatay', orderReady: 'Dalabkaagu wuu diyaar yahay, ka eeg “Dalabaadkayga”.', done: 'Hagaag', viewMyOrders: 'Eeg dalabaadkayga',
     noOrdersT: 'Weli dalab ma jiro', noOrdersP: 'Dalabaadkaaga la dhammeeyay halkan ayay ka muuqan doonaan.',
     order: 'Dalab #{id}', completed: 'La dhammeeyay', qty: 'Tirada {n}', showCode: 'Muuji koodka', copy: 'Koobiyee',
@@ -957,12 +943,9 @@ const I18N = {
     cat_gaming: 'Ciyaaro', cat_apps: 'Abka iyo bakhaarada', cat_video: 'Filim iyo fiidiyow', cat_music: 'Muusig', cat_telecom: 'Kaarka hadalka', cat_card: 'Kaararka hadiyadda',
     lgTitle: 'Kaararka hadiyadda dhijitaalka ah, lagu bixiyo M-Pesa', lgSub: 'Ciyaaro, abka, muusig iyo filim. Koodkaagu wuxuu imanayaa ilbiriqsiyo gudahood.',
     loginBtn: 'Ku gal M-Pesa', lgFine: 'eCards wuxuu magacaaga iyo lambarka taleefankaaga ka helaa M-Pesa. Weligaa PIN-ka M-Pesa lama wadaagtid eCards.',
-    consentTitle: 'Ku gal eCards adigoo isticmaalaya M-Pesa', demo: 'Tijaabo', willSee: 'eCards wuxuu arki karaa:', yourName: 'Magacaaga', yourPhone: 'Lambarka taleefankaaga',
-    consentNote: 'Tani waa gelitaan tijaabo ah. Abka yar ee dhabta ah, M-Pesa laftiisa ayaa codsigan muujinaya, eCards-na weligiis ma arko PIN-kaaga.',
-    allow: 'Oggolow', loggingIn: 'Waa lagu gelinayaa…', needLogin: 'Ku gal M-Pesa si aad kaararka u iibsato',
-    loggedInAs: 'Waxaad u gashay sida {name}', loggedOut: 'Waad ka baxday', demoReset: 'Tijaabada dib ayaa loo bilaabay. Gal si aad u bilowdo.',
-    howWorks: 'Sida eCards u shaqeeyo', logout: 'Ka bax', resetDemo: 'Dib u bilow tijaabada',
-    language: 'Luqadda', chooseLanguage: 'Dooro luqadda', region_ETH: 'Itoobiya',
+    consentTitle: 'Ku gal eCards adigoo isticmaalaya M-Pesa', willSee: 'eCards wuxuu arki karaa:', yourName: 'Magacaaga', yourPhone: 'Lambarka taleefankaaga',
+        allow: 'Oggolow', loggingIn: 'Waa lagu gelinayaa…', needLogin: 'Ku gal M-Pesa si aad kaararka u iibsato',
+    loggedInAs: 'Waxaad u gashay sida {name}', loggedOut: 'Waad ka baxday',     howWorks: 'Sida eCards u shaqeeyo', logout: 'Ka bax',     language: 'Luqadda', chooseLanguage: 'Dooro luqadda', region_ETH: 'Itoobiya',
     w_title: 'Ku soo dhowow eCards',
     w_intro: 'Iibso kaararka hadiyadda dhijitaalka ah ee ciyaaraha, abka, filimada iyo muusigga, kuna bixi M-Pesa. Koodkaagu wuxuu imanayaa ilbiriqsiyo gudahood.',
     w_how: 'Sida ay u shaqeyso',
@@ -981,10 +964,8 @@ const I18N = {
     digitalNote: 'Gaarsiin degdeg ah oo iimayl ah. Dhammaan kaararku waa dhijitaal oo keliya, wax muuqda lama soo diro.',
     sendTo: 'Loo dirayo',
     orderReadyEmail: 'Koodkaagu wuu diyaar yahay, ka eeg “Dalabaadkayga”, waxaana iimayl loogu diri doonaa {email}.',
-    demoNoEmail: 'Tijaabo: tijaabadan iimayl ama SMS lagama diro.',
-    myCards: 'Kaararkayga', recentPurchases: 'Iibsiyadii u dambeeyay', hideCode: 'Qari koodka', buyAgain: 'Mar kale iibso', today: 'Maanta', yesterday: 'Shalay', buyCard: 'Iibso kaar', sampleOrders: 'Ku dar dalabyo tusaale ah',
-    markUsed: 'Waan isticmaalay', markedUsed: 'Waxaa loo wareejiyay kaararka la isticmaalay', undo: 'Ka noqo', usedTag: 'La isticmaalay', inWallet: 'Boorsada', all: 'Dhammaan', seeAll: 'Dhammaan eeg', history: 'Taariikhda iibka', moreBrands: '+{n} kale', chooseCard: 'Dooro kaar', restore: 'Ku celi boorsada', restored: 'Dib loogu celiyay boorsadaada', allUsedT: 'Dhammaan kaararkaaga waa la isticmaalay', allUsedP: 'Kaararka la isticmaalay waxay ku jiraan taariikhda iibkaaga.', prevCode: 'Koodkii hore', nextCode: 'Koodka xiga', emptyFilter: 'Weli waxba ma jiraan.',
-    outOfStock: 'Wuu dhammaaday', backInStock: 'Wuu soo laabtay', inStock: 'Waa diyaar', expectedBy: 'Waxaa la filayaa {date}', preorder: 'Horay u dalbo', preorderNote: 'Hadda bixi, hel marka uu soo laabto', oosTitle: 'Hadda wuu dhammaaday', oosBody: 'Hadda horay u dalbo: ku bixi M-Pesa, waxaanan koodkaaga kuugu soo diraynaa isla marka uu soo laabto, waxaana la filayaa {date}. Horay-u-dalbashada lama joojin karo, lacagtana dib looma celiyo.', oosWish: 'Ma degdegaysid? Ku keydso liiska rabitaankaaga, waanu ku ogeysiin doonaa marka uu soo laabto.', wishlist: 'Liiska rabitaanka', addWish: 'Ku dar liiska rabitaanka', removeWish: 'Ka saar liiska rabitaanka', wishAdded: 'Waa lagu keydiyay liiska rabitaankaaga', wishRemoved: 'Waa laga saaray liiska rabitaankaaga', wishEmptyT: 'Liiska rabitaankaagu waa madhan yahay', wishEmptyP: 'Taabo wadnaha kaar kasta si aad halkan ugu keydiso.', preorderTag: 'Horay-u-dalbasho · waxaa la filayaa {date}', waitingTitle: 'Sugaya kaydka', paidExpected: 'La bixiyay · waxaa la filayaa {date}', waitingTag: 'Sugaya', restockDemo: 'Hadda keen (tijaabo)', arrived: 'Kaararkii aad horay u dalbatay way yimaadeen. Koodadku waxay ku jiraan boorsadaada.', preorderDone: 'Horay-u-dalbashadaada waa la xaqiijiyay. Waxaan iimayl u diri doonaa {email} marka uu yimaado.', preLabel: 'Dalab hore', rateNote: 'Sarifka: 1 USD = {rate} Br', termsPre: 'Horay-u-dalbashada lama joojin karo, lacagtana dib looma celiyo. Koodkaaga waxaa laguugu soo diraa isla marka kaarku soo laabto.', cardsArriveHere: 'Kaararkaagu halkan ayay ka muuqan doonaan marka ay yimaadaan.',
+        myCards: 'Kaararkayga', recentPurchases: 'Iibsiyadii u dambeeyay', hideCode: 'Qari koodka', buyAgain: 'Mar kale iibso', today: 'Maanta', yesterday: 'Shalay', buyCard: 'Iibso kaar',     markUsed: 'Waan isticmaalay', markedUsed: 'Waxaa loo wareejiyay kaararka la isticmaalay', undo: 'Ka noqo', usedTag: 'La isticmaalay', inWallet: 'Boorsada', all: 'Dhammaan', seeAll: 'Dhammaan eeg', history: 'Taariikhda iibka', moreBrands: '+{n} kale', chooseCard: 'Dooro kaar', restore: 'Ku celi boorsada', restored: 'Dib loogu celiyay boorsadaada', allUsedT: 'Dhammaan kaararkaaga waa la isticmaalay', allUsedP: 'Kaararka la isticmaalay waxay ku jiraan taariikhda iibkaaga.', prevCode: 'Koodkii hore', nextCode: 'Koodka xiga', emptyFilter: 'Weli waxba ma jiraan.',
+    outOfStock: 'Wuu dhammaaday', backInStock: 'Wuu soo laabtay', inStock: 'Waa diyaar', expectedBy: 'Waxaa la filayaa {date}', preorder: 'Horay u dalbo', preorderNote: 'Hadda bixi, hel marka uu soo laabto', oosTitle: 'Hadda wuu dhammaaday', oosBody: 'Hadda horay u dalbo: ku bixi M-Pesa, waxaanan koodkaaga kuugu soo diraynaa isla marka uu soo laabto, waxaana la filayaa {date}. Horay-u-dalbashada lama joojin karo, lacagtana dib looma celiyo.', oosWish: 'Ma degdegaysid? Ku keydso liiska rabitaankaaga, waanu ku ogeysiin doonaa marka uu soo laabto.', wishlist: 'Liiska rabitaanka', addWish: 'Ku dar liiska rabitaanka', removeWish: 'Ka saar liiska rabitaanka', wishAdded: 'Waa lagu keydiyay liiska rabitaankaaga', wishRemoved: 'Waa laga saaray liiska rabitaankaaga', wishEmptyT: 'Liiska rabitaankaagu waa madhan yahay', wishEmptyP: 'Taabo wadnaha kaar kasta si aad halkan ugu keydiso.', preorderTag: 'Horay-u-dalbasho · waxaa la filayaa {date}', waitingTitle: 'Sugaya kaydka', paidExpected: 'La bixiyay · waxaa la filayaa {date}', waitingTag: 'Sugaya', arrived: 'Kaararkii aad horay u dalbatay way yimaadeen. Koodadku waxay ku jiraan boorsadaada.', preorderDone: 'Horay-u-dalbashadaada waa la xaqiijiyay. Waxaan iimayl u diri doonaa {email} marka uu yimaado.', preLabel: 'Dalab hore', rateNote: 'Sarifka: 1 USD = {rate} Br', termsPre: 'Horay-u-dalbashada lama joojin karo, lacagtana dib looma celiyo. Koodkaaga waxaa laguugu soo diraa isla marka kaarku soo laabto.', cardsArriveHere: 'Kaararkaagu halkan ayay ka muuqan doonaan marka ay yimaadaan.',
     unavailable: 'Hadda lama heli karo', onlyLeft: '{n} kaliya ayaa haray',
     settings: 'Dejinta', account: 'Akoon', help: 'Caawimaad', notSet: 'Lama dejin',
     support: 'La xiriir taageerada', supportTitle: 'Sideen kuu caawin karnaa?', hoursDaily: 'Maalin kasta waxaan ka jawaabnaa {from} ilaa {to}.', call: 'Wac', emailUs: 'Iimayl', telegram: 'Telegram', whatsapp: 'WhatsApp', newMessage: 'Noo soo dir fariin', topicQ: 'Maxay ku saabsan tahay?', topicOrder: 'Dalab ama kood', topicPayment: 'Lacag bixin', topicPre: 'Horay-u-dalbasho', topicOther: 'Wax kale', whichOrder: 'Dalabkee?', noOrder: 'Kuma saabsana dalab', yourMessage: 'Fariintaada', msgPlaceholder: 'Noo sheeg waxa dhacay', msgShort: 'Fadlan wax yar ku dar si aan kuu caawino.', replyHere: 'Halkan app-ka ayaan kaaga jawaabeynaa.', replyHereEmail: 'Halkan app-ka iyo iimaylka {email} ayaan kaaga jawaabeynaa.', send: 'Dir', msgSent: 'Fariinta waa la diray. Dhowaan halkan ayaan kaaga jawaabeynaa.', yourMessages: 'Fariimahaaga', noMessages: 'Weli fariin nooma soo dirin.', tkWaiting: 'Jawaab sugaya', tkAnswered: 'Laga jawaabay', tkClosed: 'La xiray', you: 'Adiga', supportTeam: 'Taageerada eCards', writeReply: 'Qor jawaab', closedNote: 'Wadahadalkan waa la xiray. Fariin cusub soo dir haddii aad caawimaad dheeraad ah u baahato.', newReply: 'Taageerada eCards ayaa ka jawaabtay fariintaada', orderRef: 'Dalab {id}',
@@ -997,7 +978,7 @@ const I18N = {
     back: 'ተመለስ', myOrders: 'ትእዛዛተይ', search: 'ድለ', cart: 'ዘንቢል',
     popularBrands: 'ፍሉጣት ብራንድታት', viewAll: 'ኩሉ ርአ',
     rowTop: 'ብብዝሒ ዝሽየጡ ካርድታት', rowGaming: 'ናይ ጸወታ ካርድታት', rowStreaming: 'ፊልም፣ ሙዚቃን ኣፕታትን',
-    giftCards: 'ናይ ህያብ ካርድታት', shopNow: 'ሕጂ ዕደግ', exitToast: 'ኣብ M-Pesa፣ እዚ ነታ ንእሽቶ ኣፕ ይዓጽዋ',
+    giftCards: 'ናይ ህያብ ካርድታት', shopNow: 'ሕጂ ዕደግ',
     accountRegion: 'ሃገር ኣካውንት', cardValue: 'ዋጋ ካርድ', moreValues: 'ተወሰኽቲ ዋጋታት',
     instantDelivery: 'ቅልጡፍ ኣቕርቦት', nonReturnable: 'ዘይምለስ', instantEmail: 'ብኢመይል ወይ ብኤስኤምኤስ ብቕልጡፍ ይበጽሕ', secure: 'ውሑስ ክፍሊት',
     additionalInfo: 'ተወሳኺ ሓበሬታ', howRedeem: 'ብኸመይ ትጥቀመሉ?', about: 'ብዛዕባ ካርድ', terms: 'ውዕላትን ኩነታትን',
@@ -1011,14 +992,12 @@ const I18N = {
     aboutTail: 'ኮዳት ድሕሪ ክፍሊት ብኡንብኡ ይበጽሑ፣ ኣብ «ትእዛዛተይ» ድማ ይጸንሑ።',
     termsList: ['ዲጂታላዊ ኮዳት ኣይምለሱን፣ ገንዘብ እውን ኣይምለስን።', 'እቲ ካርድ ኣብ {region} ብዝተመዝገበ ኣካውንት ጥራይ ይሰርሕ።', 'ኮድካ ንማንም ኣይተካፍል። ኮድ ዝሓዘ ዝኾነ ሰብ ክጥቀመሉ ይኽእል።', 'ዋጋታት {vat}% VAT ዘጠቓለሉ እዮም።'],
     inclVat: 'VAT ሓዊሱ', addToCart: 'ናብ ዘንቢል ወስኽ',
-    shareText: '{title} ብ{price} ኣብ eCards', shareCopied: 'ሓበሬታ ካርድ ተቐዲሑ', shareNA: 'ኣብዚ ምክፋል ኣይከኣልን',
-    addedToCart: 'ናብ ዘንቢል ተወሲኹ', keepShopping: 'ምዕዳግ ቀጽል', viewCart: 'ዘንቢል ርአ ({n})',
+    shareText: '{title} ብ{price} ኣብ eCards', shareCopied: 'ሓበሬታ ካርድ ተቐዲሑ',     addedToCart: 'ናብ ዘንቢል ተወሲኹ', keepShopping: 'ምዕዳግ ቀጽል', viewCart: 'ዘንቢል ርአ ({n})',
     myCart: 'ዘንቢለይ', cartEmptyT: 'ዘንቢልካ ባዶ እዩ', cartEmptyP: 'እትውስኾም ካርድታት ኣብዚ ክርኣዩ እዮም።', browse: 'ካርድታት ርአ',
     subtotal: 'ንኡስ ድምር', vatIncl: 'ዝተሓወሰ VAT ({vat}%)', total: 'ጠቕላላ', payWithMpesa: 'ብM-Pesa ክፈል',
     decrease: 'ብዝሒ ኣጉድል', increase: 'ብዝሒ ወስኽ', remove: 'ኣውጽእ',
     confirmPayment: 'ክፍሊት ኣረጋግጽ', merchant: 'ተቐባሊ', qtyLabel: 'ብዝሒ ካርድታት', payFrom: 'ዝኽፈል ካብ',
-    payNote: 'እዚ ፈተነ ክፍሊት እዩ። ኣብታ ሓቀኛ ንእሽቶ ኣፕ፣ ናይ M-Pesa ናይ ባዕሉ ገጽ ክፍሊት ኣብዚ ይኽፈት፣ ብPINካ ድማ ተረጋግጽ። ኣብዚ ፈተነ ዝኾነ ገንዘብ ኣይንቀሳቐስን።',
-    cancel: 'ሰርዝ', payNow: 'ሕጂ ክፈል', waiting: 'ንM-Pesa ይጽበ ኣሎ', approving: '{amount} የረጋግጽ ኣሎ…',
+        cancel: 'ሰርዝ', payNow: 'ሕጂ ክፈል', waiting: 'ንM-Pesa ይጽበ ኣሎ', approving: '{amount} የረጋግጽ ኣሎ…',
     paySuccess: 'ክፍሊት ተዓዊቱ', orderReady: 'ትእዛዝካ ኣብ «ትእዛዛተይ» ድሉው እዩ።', done: 'ሕራይ', viewMyOrders: 'ትእዛዛተይ ርአ',
     noOrdersT: 'ክሳዕ ሕጂ ትእዛዝ የለን', noOrdersP: 'ዝተዛዘሙ ትእዛዛትካ ኣብዚ ክርኣዩ እዮም።',
     order: 'ትእዛዝ #{id}', completed: 'ተዛዚሙ', qty: 'ብዝሒ {n}', showCode: 'ኮድ ኣርኢ', copy: 'ቕዳሕ',
@@ -1028,12 +1007,9 @@ const I18N = {
     cat_gaming: 'ጸወታታት', cat_apps: 'ኣፕታትን ድኳናትን', cat_video: 'ፊልምን ቪድዮን', cat_music: 'ሙዚቃ', cat_telecom: 'ካርድ ተሌፎን', cat_card: 'ናይ ህያብ ካርድታት',
     lgTitle: 'ዲጂታላዊ ናይ ህያብ ካርድታት፣ ብM-Pesa ዝኽፈሉ', lgSub: 'ጸወታታት፣ ኣፕታት፣ ሙዚቃን ፊልምን። ኮድካ ኣብ ውሽጢ ሒደት ካልኢታት ይበጽሓካ።',
     loginBtn: 'ብM-Pesa እቶ', lgFine: 'eCards ስምካን ቁጽሪ ተሌፎንካን ካብ M-Pesa ይረክብ። ናይ M-Pesa PINካ ንeCards ፈጺምካ ኣይተካፍሎን።',
-    consentTitle: 'ብM-Pesa ናብ eCards እቶ', demo: 'ፈተነ', willSee: 'eCards ክርእዮ ዝኽእል፦', yourName: 'ስምካ', yourPhone: 'ቁጽሪ ተሌፎንካ',
-    consentNote: 'እዚ ፈተነ ምእታው እዩ። ኣብታ ሓቀኛ ንእሽቶ ኣፕ፣ M-Pesa ባዕሉ እዚ ሕቶ የርኢ፣ eCards ድማ PINካ ፈጺሙ ኣይርእን።',
-    allow: 'ፍቐድ', loggingIn: 'ይኣቱ ኣሎ…', needLogin: 'ካርድታት ንምዕዳግ ብM-Pesa እቶ',
-    loggedInAs: 'ከም {name} ኣቲኻ ኣለኻ', loggedOut: 'ወጺኻ ኣለኻ', demoReset: 'ፈተነ ዳግም ተጀሚሩ። ንምጅማር እቶ።',
-    howWorks: 'eCards ብኸመይ ይሰርሕ', logout: 'ውጻእ', resetDemo: 'ፈተነ ዳግም ጀምር',
-    language: 'ቋንቋ', chooseLanguage: 'ቋንቋ ምረጽ', region_ETH: 'ኢትዮጵያ',
+    consentTitle: 'ብM-Pesa ናብ eCards እቶ', willSee: 'eCards ክርእዮ ዝኽእል፦', yourName: 'ስምካ', yourPhone: 'ቁጽሪ ተሌፎንካ',
+        allow: 'ፍቐድ', loggingIn: 'ይኣቱ ኣሎ…', needLogin: 'ካርድታት ንምዕዳግ ብM-Pesa እቶ',
+    loggedInAs: 'ከም {name} ኣቲኻ ኣለኻ', loggedOut: 'ወጺኻ ኣለኻ',     howWorks: 'eCards ብኸመይ ይሰርሕ', logout: 'ውጻእ',     language: 'ቋንቋ', chooseLanguage: 'ቋንቋ ምረጽ', region_ETH: 'ኢትዮጵያ',
     w_title: 'እንቋዕ ናብ eCards ብደሓን መጻእኩም',
     w_intro: 'ንጸወታታት፣ ኣፕታት፣ ፊልምን ሙዚቃን ዲጂታላዊ ናይ ህያብ ካርድታት ዕደግ፣ ብM-Pesa ድማ ክፈል። ኮድካ ኣብ ውሽጢ ሒደት ካልኢታት ይበጽሓካ።',
     w_how: 'ብኸመይ ይሰርሕ?',
@@ -1052,10 +1028,8 @@ const I18N = {
     digitalNote: 'ብኢመይል ብቕልጡፍ ይበጽሕ። ኩሎም ካርድታት ዲጂታላዊ ጥራይ እዮም፣ ብኣካል ዝስደድ የለን።',
     sendTo: 'ዝስደደሉ',
     orderReadyEmail: 'ኮድካ ኣብ «ትእዛዛተይ» ድሉው እዩ፣ ናብ {email} ድማ ብኢመይል ክስደድ እዩ።',
-    demoNoEmail: 'ፈተነ፦ ካብዚ ፈተነ ዝኾነ ኢመይል ወይ ኤስኤምኤስ ኣይስደድን።',
-    myCards: 'ካርድታተይ', recentPurchases: 'ናይ ቀረባ ዕድጊታት', hideCode: 'ኮድ ሕባእ', buyAgain: 'ደጊምካ ዕደግ', today: 'ሎሚ', yesterday: 'ትማሊ', buyCard: 'ካርድ ዕደግ', sampleOrders: 'ናይ ኣብነት ትእዛዛት ወስኽ',
-    markUsed: 'ተጠቒመሉ ኣለኹ', markedUsed: 'ናብ ዝተጠቕመሎም ካርድታት ተሰጊሩ', undo: 'ምለስ', usedTag: 'ዝተጠቕመ', inWallet: 'ኣብ ቦርሳ', all: 'ኩሉ', seeAll: 'ኩሉ ርአ', history: 'ታሪኽ ዕድጊ', moreBrands: '+{n} ተወሰኽቲ', chooseCard: 'ካርድ ምረጽ', restore: 'ናብ ቦርሳ መልስ', restored: 'ናብ ቦርሳኻ ተመሊሱ', allUsedT: 'ኩሎም ካርድታትካ ተጠቒምካሎም', allUsedP: 'ዝተጠቕመሎም ካርድታት ኣብ ታሪኽ ዕድጊኻ ይጸንሑ።', prevCode: 'ዝሓለፈ ኮድ', nextCode: 'ዝቕጽል ኮድ', emptyFilter: 'ክሳዕ ሕጂ ዝኾነ የለን።',
-    outOfStock: 'ተወዲኡ', backInStock: 'ተመሊሱ ኣሎ', inStock: 'ኣሎ', expectedBy: 'ክሳዕ {date} ይጽበ', preorder: 'ቅድሚ ግዜ እዘዝ', preorderNote: 'ሕጂ ክፈል፣ ምስ ኣተወ ይበጽሓካ', oosTitle: 'ሕጂ ተወዲኡ', oosBody: 'ሕጂ ቅድሚ ግዜ እዘዝ፦ ብM-Pesa ክፈል፣ እቲ ካርድ ምስ ኣተወ ድማ ኮድካ ንሰደልካ፣ ክሳዕ {date} ይጽበ። ቅድሚ ግዜ ትእዛዝ ኣይስረዝን፣ ገንዘብ እውን ኣይምለስን።', oosWish: 'ኣይትቀላጠፍን ዲኻ? ናብ ዝርዝር ድሌትካ ዕቀቦ፣ ምስ ተመልሰ ክንሕብረካ ኢና።', wishlist: 'ዝርዝር ድሌት', addWish: 'ናብ ዝርዝር ድሌት ወስኽ', removeWish: 'ካብ ዝርዝር ድሌት ኣውጽእ', wishAdded: 'ናብ ዝርዝር ድሌትካ ተዓቂቡ', wishRemoved: 'ካብ ዝርዝር ድሌትካ ወጺኡ', wishEmptyT: 'ዝርዝር ድሌትካ ባዶ እዩ', wishEmptyP: 'ኣብዚ ንምዕቃብ ኣብ ዝኾነ ካርድ ዘሎ ልቢ ጠውቕ።', preorderTag: 'ቅድሚ ግዜ ትእዛዝ · ክሳዕ {date} ይጽበ', waitingTitle: 'ንክምችት ይጽበ ኣሎ', paidExpected: 'ተኸፊሉ · ክሳዕ {date} ይጽበ', waitingTag: 'ይጽበ', restockDemo: 'ሕጂ ኣእቱ (ፈተነ)', arrived: 'ቅድሚ ግዜ ዝኣዘዝካዮም ካርድታት በጺሖም። ኮዳት ኣብ ቦርሳኻ ኣለዉ።', preorderDone: 'ቅድሚ ግዜ ትእዛዝካ ተረጋጊጹ። ምስ ኣተወ ናብ {email} ኢመይል ክንሰድድ ኢና።', preLabel: 'ቅድሚ ትእዛዝ', rateNote: 'ዋጋ ምቕያር፦ 1 USD = {rate} Br', termsPre: 'ቅድሚ ግዜ ትእዛዛት ኣይስረዙን፣ ገንዘብ እውን ኣይምለስን። እቲ ካርድ ምስ ኣተወ ኮድካ ይለኣኸልካ።', cardsArriveHere: 'ካርድታትካ ምስ በጽሑ ኣብዚ ክርኣዩ እዮም።',
+        myCards: 'ካርድታተይ', recentPurchases: 'ናይ ቀረባ ዕድጊታት', hideCode: 'ኮድ ሕባእ', buyAgain: 'ደጊምካ ዕደግ', today: 'ሎሚ', yesterday: 'ትማሊ', buyCard: 'ካርድ ዕደግ',     markUsed: 'ተጠቒመሉ ኣለኹ', markedUsed: 'ናብ ዝተጠቕመሎም ካርድታት ተሰጊሩ', undo: 'ምለስ', usedTag: 'ዝተጠቕመ', inWallet: 'ኣብ ቦርሳ', all: 'ኩሉ', seeAll: 'ኩሉ ርአ', history: 'ታሪኽ ዕድጊ', moreBrands: '+{n} ተወሰኽቲ', chooseCard: 'ካርድ ምረጽ', restore: 'ናብ ቦርሳ መልስ', restored: 'ናብ ቦርሳኻ ተመሊሱ', allUsedT: 'ኩሎም ካርድታትካ ተጠቒምካሎም', allUsedP: 'ዝተጠቕመሎም ካርድታት ኣብ ታሪኽ ዕድጊኻ ይጸንሑ።', prevCode: 'ዝሓለፈ ኮድ', nextCode: 'ዝቕጽል ኮድ', emptyFilter: 'ክሳዕ ሕጂ ዝኾነ የለን።',
+    outOfStock: 'ተወዲኡ', backInStock: 'ተመሊሱ ኣሎ', inStock: 'ኣሎ', expectedBy: 'ክሳዕ {date} ይጽበ', preorder: 'ቅድሚ ግዜ እዘዝ', preorderNote: 'ሕጂ ክፈል፣ ምስ ኣተወ ይበጽሓካ', oosTitle: 'ሕጂ ተወዲኡ', oosBody: 'ሕጂ ቅድሚ ግዜ እዘዝ፦ ብM-Pesa ክፈል፣ እቲ ካርድ ምስ ኣተወ ድማ ኮድካ ንሰደልካ፣ ክሳዕ {date} ይጽበ። ቅድሚ ግዜ ትእዛዝ ኣይስረዝን፣ ገንዘብ እውን ኣይምለስን።', oosWish: 'ኣይትቀላጠፍን ዲኻ? ናብ ዝርዝር ድሌትካ ዕቀቦ፣ ምስ ተመልሰ ክንሕብረካ ኢና።', wishlist: 'ዝርዝር ድሌት', addWish: 'ናብ ዝርዝር ድሌት ወስኽ', removeWish: 'ካብ ዝርዝር ድሌት ኣውጽእ', wishAdded: 'ናብ ዝርዝር ድሌትካ ተዓቂቡ', wishRemoved: 'ካብ ዝርዝር ድሌትካ ወጺኡ', wishEmptyT: 'ዝርዝር ድሌትካ ባዶ እዩ', wishEmptyP: 'ኣብዚ ንምዕቃብ ኣብ ዝኾነ ካርድ ዘሎ ልቢ ጠውቕ።', preorderTag: 'ቅድሚ ግዜ ትእዛዝ · ክሳዕ {date} ይጽበ', waitingTitle: 'ንክምችት ይጽበ ኣሎ', paidExpected: 'ተኸፊሉ · ክሳዕ {date} ይጽበ', waitingTag: 'ይጽበ', arrived: 'ቅድሚ ግዜ ዝኣዘዝካዮም ካርድታት በጺሖም። ኮዳት ኣብ ቦርሳኻ ኣለዉ።', preorderDone: 'ቅድሚ ግዜ ትእዛዝካ ተረጋጊጹ። ምስ ኣተወ ናብ {email} ኢመይል ክንሰድድ ኢና።', preLabel: 'ቅድሚ ትእዛዝ', rateNote: 'ዋጋ ምቕያር፦ 1 USD = {rate} Br', termsPre: 'ቅድሚ ግዜ ትእዛዛት ኣይስረዙን፣ ገንዘብ እውን ኣይምለስን። እቲ ካርድ ምስ ኣተወ ኮድካ ይለኣኸልካ።', cardsArriveHere: 'ካርድታትካ ምስ በጽሑ ኣብዚ ክርኣዩ እዮም።',
     unavailable: 'ሕጂ ኣይርከብን', onlyLeft: '{n} ጥራይ ተሪፎም',
     settings: 'ቅጥዕታት', account: 'ኣካውንት', help: 'ሓገዝ', notSet: 'ኣይተዳለወን',
     support: 'ደገፍ ርኸብ', supportTitle: 'ብኸመይ ክንሕግዘካ ንኽእል?', hoursDaily: 'መዓልታዊ ካብ {from} ክሳዕ {to} ንምልስ።', call: 'ደውል', emailUs: 'ኢመይል', telegram: 'ቴሌግራም', whatsapp: 'ዋትስኣፕ', newMessage: 'መልእኽቲ ስደደልና', topicQ: 'ብዛዕባ እንታይ እዩ?', topicOrder: 'ትእዛዝ ወይ ኮድ', topicPayment: 'ክፍሊት', topicPre: 'ቅድሚ ግዜ ትእዛዝ', topicOther: 'ካልእ ጉዳይ', whichOrder: 'ኣየናይ ትእዛዝ?', noOrder: 'ብዛዕባ ትእዛዝ ኣይኮነን', yourMessage: 'መልእኽትኻ', msgPlaceholder: 'እንታይ ከም ዘጋጠመ ንገረና', msgShort: 'ክንሕግዘካ በጃኻ ቁሩብ ወሲኽካ ጽሓፍ።', replyHere: 'ኣብዚ ኣብ ኤፕ ንምልሰልካ።', replyHereEmail: 'ኣብዚ ኣብ ኤፕን ብኢመይል {email}ን ንምልሰልካ።', send: 'ስደድ', msgSent: 'መልእኽቲ ተላኢኹ። ብቕልጡፍ ኣብዚ ክንምልሰልካ ኢና።', yourMessages: 'መልእኽትታትካ', noMessages: 'ክሳዕ ሕጂ መልእኽቲ ኣይሰደድካልናን።', tkWaiting: 'መልሲ ይጽበ', tkAnswered: 'ተመሊሱሉ', tkClosed: 'ተዓጽዩ', you: 'ንስኻ', supportTeam: 'ደገፍ eCards', writeReply: 'መልሲ ጽሓፍ', closedNote: 'እዚ ዝርርብ ተዓጽዩ። ተወሳኺ ሓገዝ እንተደሊኻ ሓድሽ መልእኽቲ ስደድ።', newReply: 'ደገፍ eCards ንመልእኽትኻ መሊሱ', orderRef: 'ትእዛዝ {id}',
@@ -1121,7 +1095,7 @@ const ASSET_URLS = {
   banners: { }
 };
 const ASSET_EXT = { logos: ['png', 'svg', 'webp'], cards: ['png', 'jpg', 'webp'], banners: ['jpg', 'png', 'webp'] };
-const HAVE = { logos: {}, cards: {}, banners: {} };    // what the screens use: admin uploads first, then files in the assets folder
+const HAVE = { logos: {}, cards: {}, banners: {} };    // what the screens use: pictures set in the admin panel first, then files in the assets folder
 const FOUND = { logos: {}, cards: {}, banners: {} };   // files found in the assets folder
 
 /* ================= helpers ================= */
@@ -1129,7 +1103,7 @@ const app = document.getElementById('app');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const h = html => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
 const fmt = (n, d = 2) => CUR.sym + ' ' + Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
-const priceOf = v => v * RATE;
+const priceOf = v => Math.round(v * RATE);   // whole Birr, as the server prices it
 const fmtDate = ts => new Date(ts).toLocaleString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
@@ -1145,10 +1119,9 @@ const store = {
   set(k, v) { const t = JSON.stringify(v); if (LS) { try { localStorage.setItem(k, t); MEM.delete(k); return; } catch (e) { /* full or blocked */ } } MEM.set(k, t); },
   del(k) { MEM.delete(k); if (LS) { try { localStorage.removeItem(k); } catch (e) { /* storage unavailable */ } } }
 };
-const K_CART = 'ecards-et-v2-cart', K_ORDERS = 'ecards-et-v2-orders';
-const K_USED = 'ecards-et-v2-used', K_WISH = 'ecards-et-v2-wish';
-const K_CONFIG = 'ecards-et-v2-config', K_STOCK = 'ecards-et-v2-stock';   // written by the admin panel too
-const K_SESSION = 'ecards-et-demo-session', K_WELCOME = 'ecards-et-demo-welcome-seen', K_LANG = 'ecards-et-demo-ui-lang';
+/* this device only: the cart, codes marked as used, the wishlist (also on the server), the session and preferences */
+const K_CART = 'ecards-cart', K_USED = 'ecards-used', K_WISH = 'ecards-wish';
+const K_SESSION = 'ecards-session', K_WELCOME = 'ecards-welcome-seen', K_LANG = 'ecards-lang';
 
 /* current language: saved choice, else the phone's language if supported, else English */
 let lang = (() => {
@@ -1275,11 +1248,9 @@ let session = store.get(K_SESSION, null);
 let usedSet = new Set(store.get(K_USED, []) || []);   // keys of codes the person marked as used
 const saveUsed = () => store.set(K_USED, [...usedSet]);
 
-/* ---------- shared with the admin panel: settings, stock and every customer's orders ----------
-   Keep defaultConfig, defaultStockEntry and fulfilWaiting the same as in admin.html. */
+/* ---------- settings, stock and this customer's orders: all from the server ---------- */
 const DAY = 86400000;
 const DAY0 = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
-const STOCK_SEED = { 'netflix:100': 2, 'playstation:50': 1, 'spotify:150': 3, 'steam:100': 2, 'apple:200': 4, 'pubg:*': 2, 'googleplay:150': 5 };   // starts out of stock: days until the restock
 /* brands: the admin can rename them, recolour them and add new ones */
 const CATS = ['gaming', 'apps', 'video', 'music', 'telecom', 'card'];
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -1324,13 +1295,13 @@ function defaultConfig() {
     rate: DEF_RATE, vat: DEF_VAT, seller: DEF_SELLER, values: CARD_VALUES.slice(), lowAt: 5, autoFulfil: true,
     brands: Object.fromEntries(BRANDS.filter(b => !b.hidden && !b.custom).map(b => [b.id, { on: true, values: CARD_VALUES.slice() }])),
     custom: [],
-    support: { phone: '', email: 'support@example.com', telegram: '', whatsapp: '', from: '08:00', to: '22:00' },
+    support: { phone: '', email: '', telegram: '', whatsapp: '', from: '08:00', to: '22:00' },
     popular: POPULAR0.slice(),
     banners: [...SLIDES0.map(x => x.bid), 'steam', 'pubg', 'cod'].map(bid => ({ bid, on: true }))
   };
 }
 function loadConfig() {
-  const d = defaultConfig(), sv = API.on && SV.config ? SV.config : store.get(K_CONFIG, null);
+  const d = defaultConfig(), sv = SV.config;
   if (!sv || typeof sv !== 'object') { applyBrands(d); return d; }
   const c = { ...d, ...sv };
   c.rate = +c.rate > 0 ? +c.rate : d.rate;
@@ -1347,26 +1318,7 @@ function loadConfig() {
   return c;
 }
 function hashStr(str) { let x = 2166136261; for (let i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
-function defaultStockEntry(bid, v) {
-  if (!ORIG[bid] || !CARD_VALUES.includes(+v)) return { qty: 0, eta: null, codes: [] };   // brands and values added later start empty
-  const d = STOCK_SEED[`${bid}:${v}`] ?? STOCK_SEED[`${bid}:*`];
-  if (d != null) return { qty: 0, eta: DAY0 + d * DAY, codes: [] };
-  const r = mulberry32(hashStr(`${bid}:${v}`))();
-  return { qty: r < .15 ? 2 + Math.floor(r * 20) : 8 + Math.floor(r * 40), eta: null, codes: [] };
-}
-function loadStock(c) {
-  const sv = store.get(K_STOCK, null), st = sv && typeof sv === 'object' ? sv : {};
-  let changed = !sv;
-  BRANDS.filter(b => !b.hidden).forEach(b => c.values.forEach(v => {
-    const k = `${b.id}:${v}`;
-    if (!st[k] || typeof st[k].qty !== 'number') { st[k] = defaultStockEntry(b.id, v); changed = true; }
-    if (!Array.isArray(st[k].codes)) st[k].codes = [];
-  }));
-  if (changed) store.set(K_STOCK, st);
-  return st;
-}
-let cfg = null, stock = {}, allOrders = [], orders = [];   // orders: only this customer's
-const mine = o => !o.phone || (session && o.phone === session.phone);
+let cfg = null, stock = {}, orders = [];   // orders: this customer's, from the server
 function applyCfg() {
   RATE = cfg.rate; VAT = cfg.vat; SELLER = cfg.seller || DEF_SELLER;
   BRANDS.forEach(b => {
@@ -1383,106 +1335,35 @@ function applyCfg() {
   SLIDES = sl.length ? sl : [slideOf({ bid: SLIDES0[0].bid })];
 }
 
-/* ---------- pictures uploaded in the admin panel: they replace files from the assets folder ---------- */
-const K_MEDIA = 'ecards-et-v2-media';
-const IMG_URL = /^data:image\/(png|jpeg|webp|gif|svg\+xml)[;,]/;
+/* ---------- brand pictures: set in the admin panel (server), else files in the assets folder ---------- */
 function loadMedia() {
-  const m = store.get(K_MEDIA, null) || {};
-  ['logos', 'cards', 'banners'].forEach(k => {
-    const up = Object.fromEntries(Object.entries(m[k] || {}).filter(([, v]) => typeof v === 'string' && IMG_URL.test(v)));
-    HAVE[k] = { ...FOUND[k], ...up };
-  });
+  ['logos', 'cards', 'banners'].forEach(k => { HAVE[k] = { ...FOUND[k], ...(SV.media[k] || {}) }; });
 }
 
-/* ---------- gift card API providers (shared by the app and the admin; the same in both files) ----------
-   DEMO: no provider is contacted. Calls are simulated and written to the API log so the flow can be followed.
-   In the live system these calls run on the eCards server, never in the browser, and keys stay on the server. */
-const K_API = 'ecards-et-v2-api';
-function loadApi() {
-  const a = store.get(K_API, null) || {};
-  return {
-    providers: Array.isArray(a.providers) ? a.providers.filter(p => p && p.id) : [],
-    products: Array.isArray(a.products) ? a.products.filter(p => p && p.key) : [],
-    sell: a.sell && typeof a.sell === 'object' ? a.sell : {},
-    log: Array.isArray(a.log) ? a.log : []
-  };
-}
-const saveApi = A => store.set(K_API, A);
-const provOf = (A, id) => A.providers.find(p => p.id === id);
-const provReady = p => !!p && p.on !== false && p.status === 'ok';
-function apiFor(A, bid, v) {   // the provider product that delivers this brand and value, when it can sell right now
-  const s = A.sell[`${bid}:${v}`]; if (!s) return null;
-  const p = provOf(A, s.pid); if (!provReady(p)) return null;
-  return { s, p };
-}
-const apiReady = (A, bid, v, qty = 1) => { const x = apiFor(A, bid, v); return !!x && x.p.balance >= x.s.cost * qty; };
-function apiLog(A, e) { A.log.unshift({ at: Date.now(), ...e }); if (A.log.length > 250) A.log.length = 250; }
-const apiMs = () => 140 + Math.floor(Math.random() * 520);
-const apiPath = (p, k, vars = {}) => String((p.paths && p.paths[k]) || k).replace(/\{(\w+)\}/g, (m, n) => vars[n] ?? m);
-/* buy cards for one order line: order, then fetch the codes. Returns { codes, via } or null (line stays a pre-order) */
-function apiBuy(A, line, ref, src) {
-  const x = apiFor(A, line.bid, line.amount); if (!x) return null;
-  const { s, p } = x, cost = +(s.cost * line.qty).toFixed(2);
-  if (p.balance < cost) {
-    apiLog(A, { pid: p.id, src, m: 'POST', p: apiPath(p, 'order'), s: 400, ms: apiMs(), err: true, note: `${ref} · not enough balance: needs $${cost.toFixed(2)}, has $${p.balance.toFixed(2)} · kept as a pre-order` });
-    return null;
-  }
-  const txn = String(100000 + Math.floor(Math.random() * 899999));
-  p.balance = +(p.balance - cost).toFixed(2);
-  apiLog(A, { pid: p.id, src, m: 'POST', p: apiPath(p, 'order'), s: 200, ms: apiMs(), note: `customIdentifier ${ref} · product ${s.product} · ${line.qty} × $${line.amount} · SUCCESSFUL · transaction ${txn} · cost $${cost.toFixed(2)}` });
-  apiLog(A, { pid: p.id, src, m: 'GET', p: apiPath(p, 'codes', { id: txn }), s: 200, ms: apiMs(), note: `${line.qty} code${line.qty === 1 ? '' : 's'} received · codes are never written to the log` });
-  return { codes: Array.from({ length: line.qty }, makeCode), via: { pid: p.id, provider: p.name, txn, cost } };
-}
-let api = { providers: [], products: [], sell: {}, log: [] };
 function loadShared() {
-  if (API.on) {   // server mode: settings, stock and this customer's orders come from the server
-    cfg = loadConfig(); applyCfg();
-    api = { providers: [], products: [], sell: {}, log: [] };
-    stock = Object.assign({}, SV.stock || {});
-    BRANDS.filter(b => !b.hidden).forEach(b => cfg.values.forEach(v => { const k = `${b.id}:${v}`; if (!stock[k]) stock[k] = { qty: 0, eta: null, codes: [] }; }));
-    allOrders = SV.orders.slice(); orders = allOrders.slice();
-    return;
-  }
   cfg = loadConfig(); applyCfg();
-  api = loadApi();
-  stock = loadStock(cfg);
-  allOrders = (store.get(K_ORDERS, []) || []).filter(o => o && Array.isArray(o.items));
-  if (noRefunds(allOrders)) store.set(K_ORDERS, allOrders);
-  orders = allOrders.filter(mine);
+  stock = Object.assign({}, SV.stock || {});
+  BRANDS.filter(b => !b.hidden).forEach(b => cfg.values.forEach(v => { const k = `${b.id}:${v}`; if (!stock[k]) stock[k] = { qty: 0, eta: null }; }));
+  orders = SV.orders.slice();
 }
-/* there are no refunds: demo data saved by an older version may still hold refunded lines */
-function noRefunds(list) {
-  let changed = false;
-  list.forEach(o => o.items.forEach(it => {
-    if (it.status !== 'refunded') return;
-    changed = true; delete it.refundedAt;
-    if (o.sample) { it.status = 'delivered'; it.codes = Array.from({ length: it.qty }, makeCode); it.deliveredAt = o.at; }
-    else { it.status = 'waiting'; it.codes = []; it.eta = it.eta || DAY0 + 3 * DAY; }
-  }));
-  return changed;
-}
-const saveOrders = () => { store.set(K_ORDERS, allOrders); orders = allOrders.filter(mine); };
-const saveStock = () => store.set(K_STOCK, stock);
 loadShared();
 loadMedia();
 cart = cart.filter(it => BR[it.bid] && !BR[it.bid].hidden && !BR[it.bid].off && BR[it.bid].amounts.includes(it.amount));   // drop anything the admin stopped selling
 
 /* ---------- support messages: written here, answered in the admin panel ---------- */
-const K_TICKETS = 'ecards-et-v2-tickets';
 const TOPIC_KEY = { order: 'topicOrder', payment: 'topicPayment', pre: 'topicPre', other: 'topicOther' };
 const TK_ST = { open: 'tkWaiting', answered: 'tkAnswered', closed: 'tkClosed' };
 let tickets = [];
-const loadTickets = () => { if (API.on) { tickets = SV.tickets.slice(); return; } tickets = (store.get(K_TICKETS, []) || []).filter(x => x && Array.isArray(x.msgs) && x.msgs.length); };
+const loadTickets = () => { tickets = SV.tickets.slice(); };
 const mineT = x => session && x.phone === session.phone;
 const myTickets = () => tickets.filter(mineT).sort((a, b) => b.msgs[b.msgs.length - 1].at - a.msgs[a.msgs.length - 1].at);
 const tkUnread = x => x.msgs.some(m => m.from === 'support' && m.at > (x.custSeen || 0));
 const unreadCount = () => myTickets().filter(tkUnread).length;
-function mutateTickets(fn) { loadTickets(); fn(tickets); store.set(K_TICKETS, tickets); }   // read the latest first: the admin may have replied
 loadTickets();
 
 /* ---------- stock ---------- */
 const skey = (bid, v) => `${bid}:${v}`;
-const stockOf = (bid, v) => { const x = stock[skey(bid, v)]; return (x ? Math.max(0, x.qty) : 0) + (apiReady(api, bid, v) ? 999 : 0); };   // a connected provider means always in stock
+const stockOf = (bid, v) => { const x = stock[skey(bid, v)]; return x ? Math.max(0, x.qty) : 0; };   // the server counts our codes and a ready gift card supplier
 const isOut = (bid, amount) => stockOf(bid, amount) <= 0;
 const etaOf = (bid, amount) => { const x = stock[skey(bid, amount)]; return Math.max(x && x.eta ? x.eta : DAY0 + 3 * DAY, DAY0 + DAY); };
 const isLow = (bid, amount) => !isOut(bid, amount) && stockOf(bid, amount) <= cfg.lowAt;
@@ -1490,19 +1371,6 @@ const capOf = it => isOut(it.bid, it.amount) ? 10 : Math.min(10, stockOf(it.bid,
 const unitOf = it => it.unit != null ? it.unit : priceOf(it.amount);   // price paid per card (kept on the order)
 const vatPct = () => +(VAT * 100).toFixed(2);
 const dmy = ts => new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-function takeCodes(x, n) { const out = x.codes.splice(0, n); while (out.length < n) out.push(makeCode()); return out; }
-/* oldest pre-orders first; a line is delivered only when its whole quantity is in stock */
-function fulfilWaiting(onlyKey) {
-  let n = 0;
-  allOrders.slice().sort((a, b) => a.at - b.at).forEach(o => o.items.forEach(it => {
-    if (it.status !== 'waiting') return;
-    const k = skey(it.bid, it.amount); if (onlyKey && k !== onlyKey) return;
-    const x = stock[k]; if (!x || x.qty < it.qty) return;
-    x.qty -= it.qty; it.codes = takeCodes(x, it.qty); it.status = 'delivered'; it.deliveredAt = Date.now(); n++;
-  }));
-  return n;
-}
-
 /* ---------- wishlist: saved brand + value, free, no payment ---------- */
 let wish = (store.get(K_WISH, []) || []).filter(x => x && BR[x.bid]);   // [{ bid, amount, at, wasOut }]
 const saveWish = () => store.set(K_WISH, wish);
@@ -1511,7 +1379,7 @@ function toggleWish(bid, amount) {
   if (inWish(bid, amount)) { wish = wish.filter(x => !(x.bid === bid && x.amount === amount)); toast(t('wishRemoved')); }
   else { wish.unshift({ bid, amount, at: Date.now(), wasOut: isOut(bid, amount) }); toast(t('wishAdded')); }
   saveWish(); emit();
-  if (API.on && session && session.token) {
+  if (session && session.token) {
     const p = SV.pid[`${bid}:${amount}`];
     if (p) (inWish(bid, amount) ? API.wishAdd(p) : API.wishRemove(p)).catch(() => {});
   }
@@ -1522,18 +1390,6 @@ function orderLines(statuses) {
   return orders.flatMap(o => (o.items || []).map((it, ii) => ({ key: `${o.id}-${ii}`, o, it, b: BR[it.bid] || BR.ecards })).filter(l => statuses.includes(l.it.status)));
 }
 const waitingLines = () => orderLines(['waiting']);
-function restockDemo() {   // demo: stock arrives, waiting pre-orders get their codes
-  if (API.on) { toast(t('demoOnly')); return; }
-  loadShared();
-  const had = waitingLines().length, need = {};
-  allOrders.forEach(o => o.items.forEach(it => { if (it.status === 'waiting') { const k = skey(it.bid, it.amount); need[k] = (need[k] || 0) + it.qty; } }));
-  wish.forEach(x => { if (isOut(x.bid, x.amount)) { const k = skey(x.bid, x.amount); need[k] = need[k] || 0; } });
-  Object.keys(need).forEach(k => { const x = stock[k] || (stock[k] = { qty: 0, eta: null, codes: [] }); x.qty = Math.max(0, x.qty) + need[k] + 10; x.eta = null; });
-  fulfilWaiting();
-  saveStock(); saveOrders();
-  emit();
-  toast(had ? t('arrived') : t('backInStock'));
-}
 const initials = n => String(n || '').split(/\s+/).filter(Boolean).map(p => p[0]).join('').slice(0, 2).toUpperCase();
 const cartCount = () => cart.reduce((s, it) => s + it.qty, 0);
 const cartTotal = () => cart.reduce((s, it) => s + priceOf(it.amount) * it.qty, 0);
@@ -1547,43 +1403,6 @@ function addToCart(bid, region, amount) {
   else cart.push({ bid, region, amount, qty: 1 });
   saveCart();
   return true;
-}
-function makeCode() {
-  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const g = () => Array.from({ length: 4 }, () => A[Math.floor(Math.random() * A.length)]).join('');
-  return `DEMO-${g()}-${g()}-${g()}`;
-}
-function placeOrder() {
-  loadShared();   // latest stock and orders, in case they changed in the admin panel
-  const items = [], now = Date.now(), oid = 'EC' + String(Math.floor(10000000 + Math.random() * 89999999));
-  let apiUsed = false;
-  cart.forEach(it => {   // own stock first, then the gift card provider; anything left becomes a pre-order
-    const k = skey(it.bid, it.amount), x = stock[k] || (stock[k] = { qty: 0, eta: null, codes: [] });
-    const unit = priceOf(it.amount), n = Math.max(0, Math.min(it.qty, x.qty));
-    if (n) { x.qty -= n; items.push({ ...it, qty: n, unit, codes: takeCodes(x, n), status: 'delivered', deliveredAt: now }); }
-    let rest = it.qty - n;
-    if (rest && apiFor(api, it.bid, it.amount)) {   // demo: in the live system the server places this order after M-Pesa confirms the payment
-      apiUsed = true;
-      const got = apiBuy(api, { ...it, qty: rest }, `${oid}-${items.length + 1}`, 'app');
-      if (got) { items.push({ ...it, qty: rest, unit, codes: got.codes, status: 'delivered', deliveredAt: now, via: got.via }); rest = 0; }
-    }
-    if (rest) items.push({ ...it, qty: rest, unit, codes: [], status: 'waiting', eta: etaOf(it.bid, it.amount) });
-  });
-  if (apiUsed) saveApi(api);
-  const order = {
-    id: oid,
-    at: now,
-    name: (session && session.name) || '', phone: (session && session.phone) || '',
-    deliverBy: recvBy(),
-    email: recvBy() === 'email' ? recvTo() : '',
-    smsTo: recvBy() === 'phone' ? recvTo() : '',
-    total: items.reduce((x, it) => x + it.unit * it.qty, 0),
-    items
-  };
-  allOrders.unshift(order);
-  saveStock(); saveOrders();
-  cart = [];
-  saveCart();
 }
 /* ---------- who receives the codes: an email address or a phone number by SMS ---------- */
 const recvBy = () => session && session.recvBy === 'phone' ? 'phone' : 'email';
@@ -1621,11 +1440,11 @@ function checkRecv(st) {   // the value to save, or null with st.err set
   return v;
 }
 function saveRecv(by, v) {
-  if (!session) session = { name: DEMO_USER.name, phone: DEMO_USER.phone, at: Date.now() };
+  if (!session) return;
   session.recvBy = by;
   if (by === 'phone') session.recvPhone = v; else session.email = v;
   store.set(K_SESSION, session);
-  if (API.on && session.token) API.saveDelivery(by, v).catch(e => toast(errText(e)));
+  if (session.token) API.saveDelivery(by, v).catch(e => toast(errText(e)));
 }
 function wireRecv(root, st, redraw) {
   root.addEventListener('input', e => {
@@ -1824,15 +1643,13 @@ function openPay() {
         <h3>${esc(t('paySuccess'))}</h3>
         ${instN ? `<p class="note c">${esc(by === 'phone' ? t('orderReadySms', { phone: to }) : t('orderReadyEmail', { email: to }))}</p>` : ''}
         ${preN ? `<p class="note c">${esc(by === 'phone' ? t('preorderDoneSms', { phone: to }) : t('preorderDone', { email: to }))}</p>` : ''}
-        <p class="note c" style="font-size:13px">${esc(t('demoNoEmail'))}</p>
         <div class="sheet-btns"><button class="btn ghost" data-act="home">${esc(t('done'))}</button><button class="btn" data-act="myorders">${esc(t('viewMyOrders'))}</button></div>
       </div>
     </div>`, { label: t('confirmPayment') });
   const pay = w.querySelector('.pay');
   w.querySelector('[data-pay]').addEventListener('click', () => {
     pay.dataset.state = 'wait'; w.dataset.lock = '1';
-    if (API.on) { serverCheckout(pay, w); return; }
-    setTimeout(() => { placeOrder(); pay.dataset.state = 'done'; delete w.dataset.lock; }, 1900);
+    serverCheckout(pay, w);
   });
 }
 function openLangSheet() {
@@ -1865,7 +1682,6 @@ let homeTimer = null, homeResize = null;
 function Home() {
   const el = h(`<div class="screen home">
     <header class="topbar">
-      <button class="circ" data-act="exit" aria-label="${esc(t('back'))}">${ic('chevL')}</button>
       <div class="grow"></div>
       <button class="pill" data-act="orders">${esc(t('myOrders'))}</button>
       ${cartBtn()}
@@ -2162,19 +1978,6 @@ function walletItems() {
 }
 const sentTo = o => o.smsTo ? `${ic('phone')}<span>${esc(t('delivery'))}: <b>${esc(t('bySms'))} · ${esc(o.smsTo)}</b></span>`
   : o.email ? `${ic('mail')}<span>${esc(t('delivery'))}: <b>${esc(o.email)}</b></span>` : '';
-/* demo helper: a few clearly marked sample orders so the wallet can be shown without buying first */
-function addSampleOrders() {
-  if (API.on) { toast(t('demoOnly')); return; }
-  const now = Date.now(), H = 3600000, D = 24 * H, email = (session && session.email) || '';
-  const line = (bid, amount, qty = 1) => ({ bid, region: 'ETH', amount, qty, unit: priceOf(amount), codes: Array.from({ length: qty }, makeCode), status: 'delivered' });
-  const sample = [[H, [line('netflix', 100)]], [D + 3 * H, [line('spotify', 50), line('playstation', 100)]], [3 * D, [line('apple', 50)]], [9 * D, [line('pubg', 50), line('steam', 50)]]]
-    .map(([ago, items]) => ({ id: 'EC' + String(Math.floor(10000000 + Math.random() * 89999999)), at: now - ago, name: (session && session.name) || '', phone: (session && session.phone) || '', email, sample: true, total: items.reduce((x, it) => x + it.unit * it.qty, 0), items }));
-  loadShared();
-  allOrders = allOrders.concat(sample).sort((x, y) => y.at - x.at);
-  saveOrders();
-  emit();
-}
-
 const MASK = '•••• •••• •••• ••••', TAB = 48, MAXSTACK = 5, RECENT_N = 5;
 const bname = b => b.label || b.name;
 const findItem = key => walletItems().find(w => w.key === key);
@@ -2199,7 +2002,7 @@ const purchaseRow = w => {
 function setUsed(w, used) {
   if (used) usedSet.add(w.key); else usedSet.delete(w.key);
   saveUsed(); emit();
-  if (API.on && w.it.codeIds) {
+  if (w.it.codeIds) {
     const id = w.it.codeIds[w.it.codes.indexOf(w.code)];
     if (id) API.markUsed(id, used).catch(() => {});
   }
@@ -2262,7 +2065,7 @@ function Orders() {
   function render() {
     cardEls = new Map(); stackEl = null;
     const all = walletItems(), groups = walletGroups(), waits = waitingLines();
-    const waitHTML = waits.length ? `<h3 class="w-sec"><span>${esc(t('waitingTitle'))}</span><span class="w-count">${waits.length}</span><button class="w-seeall" data-restock>${esc(t('restockDemo'))}</button></h3>
+    const waitHTML = waits.length ? `<h3 class="w-sec"><span>${esc(t('waitingTitle'))}</span><span class="w-count">${waits.length}</span></h3>
       <div class="w-list">${waits.map(l => `<div class="wait-row">
         <span class="w-ic" style="${wStyle(l.b)}">${wMark(l.b)}<span class="wait-badge">${ic('hourglass')}</span></span>
         <span class="w-txt"><b>${esc(bname(l.b))} · ${usd(l.it.amount)}${l.it.qty > 1 ? ` ×${l.it.qty}` : ''}</b><small>${esc(t('paidExpected', { date: dmy(l.it.eta) }))}</small></span>
@@ -2280,7 +2083,7 @@ function Orders() {
           <div class="w-empty"><p>${esc(t('noOrdersP'))}</p></div>
           <h3 class="w-sec"><span>${esc(t('recentPurchases'))}</span><button class="w-seeall" data-history>${esc(t('seeAll'))}</button></h3>`
         : `<section class="wallet"><div class="w-panel">${head(0)}<div class="w-ghosts" aria-hidden="true"><i></i><i></i><i></i></div></div></section>
-          <div class="w-empty"><h2>${esc(t('noOrdersT'))}</h2><p>${esc(t('noOrdersP'))}</p><button class="btn ghost sm" data-sample>${esc(t('sampleOrders'))}</button></div>`;
+          <div class="w-empty"><h2>${esc(t('noOrdersT'))}</h2><p>${esc(t('noOrdersP'))}</p><button class="btn ghost sm" data-act="home">${esc(t('browse'))}</button></div>`;
       return;
     }
     const listHTML = `<h3 class="w-sec"><span>${esc(t('recentPurchases'))}</span><span class="w-count">${all.length}</span><button class="w-seeall" data-history>${esc(t('seeAll'))}</button></h3>
@@ -2398,9 +2201,7 @@ function Orders() {
   }
 
   body.addEventListener('click', e => {
-    if (e.target.closest('[data-sample]')) { addSampleOrders(); return; }
     if (e.target.closest('[data-history]')) { push('history'); return; }
-    if (e.target.closest('[data-restock]')) { restockDemo(); return; }
     if (e.target.closest('[data-more]')) { openPicker(); return; }
     if (e.target.closest('[data-prev]')) { step(-1); return; }
     if (e.target.closest('[data-next]')) { step(1); return; }
@@ -2479,9 +2280,7 @@ function Wishlist() {
       body.innerHTML = `<div class="wish-empty"><span class="wish-empty-ic">${ic('heart')}</span><h2>${esc(t('wishEmptyT'))}</h2><p>${esc(t('wishEmptyP'))}</p><button class="btn ghost sm" data-act="home">${esc(t('browse'))}</button></div>`;
       return;
     }
-    const anyOut = wish.some(x => isOut(x.bid, x.amount));
-    body.innerHTML = (anyOut ? `<div class="wish-top"><button class="w-seeall" data-restock>${esc(t('restockDemo'))}</button></div>` : '')
-      + `<div class="wish-list">${wish.map((x, i) => {
+    body.innerHTML = `<div class="wish-list">${wish.map((x, i) => {
         const b = BR[x.bid], out = isOut(x.bid, x.amount), back = !out && x.wasOut;
         const status = out ? `<span class="ws oos">${ic('hourglass')}<span>${esc(t('outOfStock'))} · ${esc(t('expectedBy', { date: dmy(etaOf(x.bid, x.amount)) }))}</span></span>`
           : back ? `<span class="ws back">${ic('check')}<span>${esc(t('backInStock'))}</span></span>`
@@ -2498,7 +2297,6 @@ function Wishlist() {
       }).join('')}</div>`;
   }
   body.addEventListener('click', e => {
-    if (e.target.closest('[data-restock]')) { restockDemo(); return; }
     const add = e.target.closest('[data-wadd]');
     if (add) { const x = wish[+add.dataset.wadd]; if (x) { addToCart(x.bid, 'ETH', x.amount); openAdded({ bid: x.bid, region: 'ETH', amount: x.amount }); } return; }
     const rm = e.target.closest('[data-wrm]');
@@ -2544,7 +2342,7 @@ function Brands() {
   return el;
 }
 
-/* settings: language, delivery email, help, log out and the demo reset, opened from the gear at the bottom of home */
+/* settings: language, delivery, help and log out, opened from the gear at the bottom of home */
 function Settings() {
   const el = h(`<div class="screen settings soft">
     <header class="topbar static"><button class="circ" data-act="back" aria-label="${esc(t('back'))}">${ic('chevL')}</button><div class="tb-title">${esc(t('settings'))}</div></header>
@@ -2553,15 +2351,13 @@ function Settings() {
   const body = el.querySelector('.set-body');
   const row = (act, icon, label, val, cls = '') => `<button class="set-row${cls}" data-act="${act}"><span class="set-ic">${ic(icon)}</span><span class="lbl">${esc(label)}</span>${val != null ? `<span class="val">${val}</span>` : ''}${cls ? '' : ic('chevR', 'chev')}</button>`;
   function render() {
-    const u = session || DEMO_USER, to = recvTo(), dsub = to ? `${t(recvBy() === 'phone' ? 'bySms' : 'byEmail')} · ${to}` : t('notSet');
+    const u = session || NOBODY, to = recvTo(), dsub = to ? `${t(recvBy() === 'phone' ? 'bySms' : 'byEmail')} · ${to}` : t('notSet');
     body.innerHTML = `<section class="set-acct"><span class="avatar">${esc(initials(u.name))}</span><span class="acct-txt"><b>${esc(u.name)}</b><small>${esc(u.phone)}</small></span></section>
       <h3 class="set-h">${esc(t('account'))}</h3>
       <div class="set-list">${row('lang', 'globe', t('language'), `<span lang="${lang}">${esc(langInfo(lang).native)}</span>`)}<button class="set-row" data-act="delivery"><span class="set-ic">${ic(recvBy() === 'phone' ? 'phone' : 'mail')}</span><span class="lbl">${esc(t('delivery'))}<small class="sub">${esc(dsub)}</small></span>${ic('chevR', 'chev')}</button></div>
       <h3 class="set-h">${esc(t('help'))}</h3>
       <div class="set-list"><button class="set-row" data-act="support"><span class="set-ic">${ic('agent')}</span><span class="lbl">${esc(t('support'))}<small class="sub">${esc(cfg.support.from)}–${esc(cfg.support.to)}</small></span>${unreadCount() ? '<i class="rdot" aria-hidden="true"></i>' : ''}${ic('chevR', 'chev')}</button>${row('howto', 'info', t('howWorks'))}</div>
-      <div class="set-list">${row('logout', 'logout', t('logout'), null, ' danger')}</div>
-      <h3 class="set-h">${esc(t('demo'))}</h3>
-      <div class="set-list">${row('reset', 'reset', t('resetDemo'), null, ' muted')}</div>`;
+      <div class="set-list">${row('logout', 'logout', t('logout'), null, ' danger')}</div>`;
   }
   solidOnScroll(el, 8);
   sub(el, render); render();
@@ -2643,23 +2439,16 @@ function openTicketForm() {
     e.preventDefault();
     const text = ta.value.trim();
     if (text.length < 10) { ta.classList.add('err'); ta.setAttribute('aria-invalid', 'true'); note.classList.add('err'); note.setAttribute('role', 'alert'); note.textContent = t('msgShort'); ta.focus(); return; }
-    const sel = w.querySelector('#tk-order'), now = Date.now(), u = session || DEMO_USER;
-    const tk = { id: 'T' + String(Math.floor(100000 + Math.random() * 899999)), at: now, name: u.name, phone: u.phone, email: (session && session.email) || '', topic, orderId: sel && sel.value ? sel.value : null, status: 'open', custSeen: now, msgs: [{ from: 'customer', text, at: now }] };
-    if (API.on) {
-      const btn = w.querySelector('[data-tk-send]'); btn.disabled = true;
-      const sid = tk.orderId ? (SV.orders.find(o => o.id === tk.orderId) || {}).sid : null;
-      API.ticketCreate(topic, text, sid).then(refreshMine).then(() => { closeSheet(); loadTickets(); emit(); toast(t('msgSent')); })
-        .catch(e => { btn.disabled = false; toast(errText(e)); });
-      return;
-    }
-    mutateTickets(list => list.unshift(tk));
-    closeSheet(); emit(); toast(t('msgSent'));
+    const sel = w.querySelector('#tk-order'), orderId = sel && sel.value ? sel.value : null;
+    const btn = w.querySelector('[data-tk-send]'); btn.disabled = true;
+    const sid = orderId ? (SV.orders.find(o => o.id === orderId) || {}).sid : null;
+    API.ticketCreate(topic, text, sid).then(refreshMine).then(() => { closeSheet(); loadTickets(); emit(); toast(t('msgSent')); })
+      .catch(e => { btn.disabled = false; toast(errText(e)); });
   });
 }
 function openTicketSheet(id) {
   const x = myTickets().find(y => y.id === id); if (!x) return;
-  if (API.on) { const y = SV.tickets.find(z => z.id === id); if (y) y.custSeen = Date.now(); loadTickets(); API.ticketSeen(id).catch(() => {}); }
-  else mutateTickets(list => { const y = list.find(z => z.id === id); if (y) y.custSeen = Date.now(); });
+  { const y = SV.tickets.find(z => z.id === id); if (y) y.custSeen = Date.now(); loadTickets(); API.ticketSeen(id).catch(() => {}); }
   emit();
   const w = openSheet(`<div class="grab"></div>
     <div class="tk-head"><h3 class="ls-title">${esc(t(TOPIC_KEY[x.topic] || 'topicOther'))}</h3><span class="tk-st ${esc(x.status)}">${esc(t(TK_ST[x.status] || 'tkWaiting'))}</span></div>
@@ -2672,12 +2461,7 @@ function openTicketSheet(id) {
     e.preventDefault();
     const ta = f.querySelector('textarea'), text = ta.value.trim();
     if (text.length < 2) { ta.classList.add('err'); ta.focus(); return; }
-    if (API.on) {
-      API.ticketReply(id, text).then(refreshMine).then(() => { closeSheet(); loadTickets(); emit(); toast(t('msgSent')); }).catch(e => toast(errText(e)));
-      return;
-    }
-    mutateTickets(list => { const y = list.find(z => z.id === id); if (!y) return; const now = Date.now(); y.msgs.push({ from: 'customer', text, at: now }); y.status = 'open'; y.custSeen = now; });
-    closeSheet(); emit(); toast(t('msgSent'));
+    API.ticketReply(id, text).then(refreshMine).then(() => { closeSheet(); loadTickets(); emit(); toast(t('msgSent')); }).catch(e => toast(errText(e)));
   });
   const m = w.querySelector('.tk-msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' });
 }
@@ -2688,7 +2472,7 @@ function applyLang(code) {
   if (!I18N[code] || code === lang) return;
   lang = code;
   store.set(K_LANG, code);
-  if (API.on && session && session.token) API.saveLang(code).catch(() => {});
+  if (session && session.token) API.saveLang(code).catch(() => {});
   document.documentElement.lang = code;
   rebuildScreens();
   if (loginEl && loginEl.isConnected) { const nu = Login(); loginEl.replaceWith(nu); loginEl = nu; }
@@ -2704,17 +2488,16 @@ function rebuildScreens() {   // rebuild the open screens, keeping each one's sc
   });
 }
 
-/* ================= live updates from the admin panel =================
-   The storage event fires when another tab or window (admin.html) saves settings, stock or orders. */
+/* ================= live updates from the server (see serverPoll) ================= */
 let syncPending = false;
-function syncFromAdmin() {
+function applyServerUpdate() {
   const before = new Map(waitingLines().map(l => [l.key, l]));
   loadShared();
   wish = wish.filter(x => BR[x.bid]);
   const nCart = cart.length;
   cart = cart.filter(it => BR[it.bid] && !BR[it.bid].off && BR[it.bid].amounts.includes(it.amount));
   if (cart.length !== nCart) store.set(K_CART, cart);
-  // tell the customer when one of their pre-orders was delivered from the admin panel
+  // tell the customer when one of their pre-orders was delivered
   let arrived = 0;
   orderLines(['delivered']).forEach(l => { if (before.has(l.key)) arrived++; });
   const ae = document.activeElement;
@@ -2723,18 +2506,9 @@ function syncFromAdmin() {
   } else { rebuildScreens(); updateCartBadges(); }
   if (arrived) toast(t('arrived'));
 }
-window.addEventListener('storage', e => {
-  if (API.on && [K_CONFIG, K_STOCK, K_ORDERS, K_TICKETS, K_API, K_USED, K_SESSION].includes(e.key)) return;
-  if (e.key === null || e.key === K_MEDIA) loadMedia();
-  if (e.key === null || e.key === K_WISH) wish = (store.get(K_WISH, []) || []).filter(x => x && BR[x.bid]);
-  if (e.key === null || e.key === K_USED) usedSet = new Set(store.get(K_USED, []) || []);
-  if (e.key === null || e.key === K_CART) cart = (store.get(K_CART, []) || []).filter(it => it && BR[it.bid] && FLAG[it.region]);
-  if (e.key === null || [K_CONFIG, K_STOCK, K_ORDERS, K_MEDIA, K_WISH, K_USED, K_CART, K_API].includes(e.key)) syncFromAdmin();
-  if (e.key === null || e.key === K_TICKETS) {
-    const before = unreadCount();
-    loadTickets(); emit();
-    if (unreadCount() > before) toast(t('newReply'));
-  }
+window.addEventListener('storage', e => {   // the same customer in another tab of this browser
+  if (e.key === K_CART) { cart = (store.get(K_CART, []) || []).filter(it => it && BR[it.bid] && FLAG[it.region]); emit(); }
+  if (e.key === K_USED) { usedSet = new Set(store.get(K_USED, []) || []); emit(); }
 });
 
 /* ================= login with M-Pesa ================= */
@@ -2758,38 +2532,42 @@ function Login() {
   el.querySelector('[data-login]').addEventListener('click', openConsent);
   return el;
 }
+/* Inside M-Pesa: M-Pesa itself asks the customer to share their name and number (userScopes).
+   Outside M-Pesa: only a server running test payments accepts a sign-in by phone number; otherwise "open in M-Pesa". */
 function openConsent() {
+  if (API.inMpesa) {
+    const w = openSheet(`<div class="grab"></div><div class="consent" data-state="wait"><div class="st st-wait"><div class="spin"></div><h3>${esc(t('loggingIn'))}</h3></div></div>`, { label: t('loginBtn') });
+    w.dataset.lock = '1';
+    serverLogin(w, () => { delete w.dataset.lock; closeSheet(true); });
+    return;
+  }
+  if (!API.phoneSignIn) {
+    openSheet(`<div class="grab"></div><h3 class="ls-title">${esc(t('loginBtn'))}</h3><p class="note">${esc(t('openInMpesa'))}</p>
+      <div class="sheet-btns"><button class="btn" data-close>${esc(t('close'))}</button></div>`, { label: t('loginBtn') });
+    return;
+  }
   const w = openSheet(`<div class="grab"></div>
     <div class="consent" data-state="ask">
-      <div class="st st-ask">
-        <div class="cs-head">
-          <span class="cs-app">${ecBadge()}eCards</span>
-          <span class="cs-swap">${ic('swap')}</span>
-          <span class="cs-app"><span class="cs-mp">${ic('wallet')}</span>M-Pesa</span>
-        </div>
-        <h3>${esc(t('consentTitle'))}</h3>
-        <div class="cs-acct"><span class="avatar">${esc(initials(DEMO_USER.name))}</span><span class="who"><b>${esc(DEMO_USER.name)}</b><small>${esc(DEMO_USER.phone)}</small></span><span class="cs-tag">${esc(t('demo'))}</span></div>
-        <p class="cs-lead">${esc(t('willSee'))}</p>
-        <ul class="cs-list"><li>${ic('check')}${esc(t('yourName'))}</li><li>${ic('check')}${esc(t('yourPhone'))}</li></ul>
-        <p class="note">${esc(t('consentNote'))}</p>
-        <div class="sheet-btns"><button class="btn ghost" data-cancel>${esc(t('cancel'))}</button><button class="btn" data-allow>${esc(t('allow'))}</button></div>
-      </div>
+      <form class="st st-ask" novalidate>
+        <h3>${esc(t('signInTitle'))}</h3>
+        <p class="note">${esc(t('signInP'))}</p>
+        <label class="recv-field"><span class="recv-ic">${ic('phone')}</span><span class="recv-cc">+251</span><input name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="7X XXX XXXX" aria-label="${esc(t('mpesaNumber'))}"></label>
+        <label class="recv-field"><span class="recv-ic">${ic('wallet')}</span><input name="name" type="text" autocomplete="name" placeholder="${esc(t('fullName'))}" aria-label="${esc(t('fullName'))}" maxlength="80"></label>
+        <p class="recv-msg" aria-live="polite"></p>
+        <div class="sheet-btns"><button type="button" class="btn ghost" data-close>${esc(t('cancel'))}</button><button type="submit" class="btn">${esc(t('signIn'))}</button></div>
+      </form>
       <div class="st st-wait"><div class="spin"></div><h3>${esc(t('loggingIn'))}</h3></div>
-    </div>`, { label: t('loginBtn') });
-  const cs = w.querySelector('.consent');
-  w.querySelector('[data-cancel]').addEventListener('click', () => { closeSheet(); toast(t('needLogin')); });
-  w.querySelector('[data-allow]').addEventListener('click', () => {
+    </div>`, { label: t('signInTitle') });
+  const cs = w.querySelector('.consent'), f = w.querySelector('form'), msg = w.querySelector('.recv-msg');
+  f.addEventListener('submit', e => {
+    e.preventDefault();
+    const phone = normPhone(f.phone.value), name = f.name.value.trim();
+    if (!phone) { msg.textContent = t('phoneInvalid'); msg.classList.add('err'); f.phone.focus(); return; }
+    if (name.length < 2) { msg.textContent = t('nameNeeded'); msg.classList.add('err'); f.name.focus(); return; }
     cs.dataset.state = 'wait'; w.dataset.lock = '1';
-    if (API.on) { serverLogin(cs, w); return; }
-    setTimeout(() => {
-      session = { name: DEMO_USER.name, phone: DEMO_USER.phone, at: Date.now() };
-      store.set(K_SESSION, session);
-      loadShared();
-      delete w.dataset.lock;
-      closeSheet(true);
-      enterHome(loginEl);
-    }, 1300);
+    serverLogin(w, () => { delete w.dataset.lock; cs.dataset.state = 'ask'; }, { phone: '0' + phone.replace(/\D/g, '').slice(-9), name });
   });
+  setTimeout(() => f.phone.focus({ preventScroll: true }), 250);
 }
 function fadeOut(el) {
   if (!el || !el.isConnected) return;
@@ -2814,7 +2592,8 @@ function enterHome(fromEl) {
 }
 function logout(msgKey) {
   closeSheet(true);
-  if (API.on) { if (session && session.token) API.logout(); API.token = null; SV.orders = []; SV.tickets = []; }
+  if (session && session.token) API.logout();
+  API.token = null; SV.orders = []; SV.tickets = [];
   session = null; store.set(K_SESSION, null);
   const old = stack.splice(0);
   const lg = Login(); loginEl = lg;
@@ -2824,19 +2603,6 @@ function logout(msgKey) {
   else lg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: 'ease' }).onfinish = clear;
   toast(t(msgKey || 'loggedOut'));
 }
-function resetDemo() {   // this customer's orders, cart and wishlist back to the start; the admin's brands, prices and stock stay
-  if (API.on) { cart = []; store.set(K_CART, cart); logout(); return; }   // server mode: real orders are never deleted from the app
-  loadShared();
-  allOrders = allOrders.filter(o => !mine(o)); saveOrders();
-  cart = []; usedSet.clear(); saveUsed();
-  wish = []; saveWish();
-  mutateTickets(list => { for (let i = list.length - 1; i >= 0; i--) if (mineT(list[i])) list.splice(i, 1); });
-  store.set(K_CART, cart);
-  store.set(K_WELCOME, false);
-  emit();
-  logout('demoReset');
-}
-
 /* ================= first-time welcome ================= */
 function openWelcome() {
   const w = openSheet(`<div class="wl">
@@ -2888,7 +2654,6 @@ app.addEventListener('click', e => {
   const a = e.target.closest('[data-act]'); if (!a) return;
   switch (a.dataset.act) {
     case 'back': goBack(); break;
-    case 'exit': toast(t('exitToast')); break;
     case 'orders': push('orders'); break;
     case 'search': push('search'); break;
     case 'all': push('brands'); break;
@@ -2897,7 +2662,6 @@ app.addEventListener('click', e => {
     case 'myorders': resetHome(); push('orders'); break;
     case 'howto': openWelcome(); break;
     case 'logout': logout(); break;
-    case 'reset': resetDemo(); break;
     case 'lang': openLangSheet(); break;
     case 'settings': push('settings'); break;
     case 'support': push('support'); break;
@@ -2907,11 +2671,11 @@ app.addEventListener('click', e => {
   }
 });
 
-/* ================= server mode ================= */
+/* ================= server ================= */
 const errText = e => e && e.code === 'network' ? t('serverError') : e && e.code && I18N.en[e.code] ? t(e.code) : (e && e.message) || t('serverError');
 async function refreshCatalog() {
   const r = API.fromCatalog(await API.catalog(), ORIG);
-  SV.config = r.config; SV.stock = r.stock; SV.pid = r.pid;
+  SV.config = r.config; SV.stock = r.stock; SV.pid = r.pid; SV.media = r.media;
 }
 /** this customer's orders (with codes), wishlist and support messages */
 async function refreshMine() {
@@ -2924,8 +2688,8 @@ async function refreshMine() {
   saveUsed();
   if (wl) { wish = wl.filter(x => BR[x.bid]); saveWish(); }
 }
-function serverLogin(cs, w) {
-  API.signIn(DEMO_MSISDN, DEMO_USER.name).then(async r => {
+function serverLogin(w, onFail, who) {
+  API.signIn(who).then(async r => {
     session = API.toSession(r.customer, r.token, session);
     store.set(K_SESSION, session);
     await refreshMine();
@@ -2933,9 +2697,9 @@ function serverLogin(cs, w) {
     delete w.dataset.lock;
     closeSheet(true);
     enterHome(loginEl);
-  }).catch(e => { delete w.dataset.lock; cs.dataset.state = 'ask'; toast(errText(e)); });
+  }).catch(e => { onFail(); toast(errText(e)); });
 }
-/** Pay button in server mode: order on the server, M-Pesa payment request, wait for the result. */
+/** Pay button: order on the server, M-Pesa payment request, wait for M-Pesa's confirmation. */
 function serverCheckout(pay, w) {
   const lines = cart.map(it => ({ productId: SV.pid[`${it.bid}:${it.amount}`], quantity: it.qty }));
   const fail = e => { delete w.dataset.lock; pay.dataset.state = 'confirm'; toast(errText(e)); };
@@ -2945,9 +2709,16 @@ function serverCheckout(pay, w) {
     await Promise.all([refreshCatalog(), refreshMine()]).catch(() => {});
     loadShared();
     pay.dataset.state = 'done'; delete w.dataset.lock; emit();
-  }).catch(e => { fail(e); if (e.code === 'payTimeout') refreshMine().then(() => { loadShared(); emit(); }).catch(() => {}); });
+  }).catch(e => {
+    if (e.code === 'payTimeout') {   // not confirmed yet: the order shows up by itself once M-Pesa confirms
+      cart = []; saveCart(); delete w.dataset.lock; closeSheet(true); toast(t('payPending'));
+      refreshMine().then(() => { loadShared(); emit(); }).catch(() => {});
+      return;
+    }
+    fail(e);
+  });
 }
-/** first load from the server; a saved demo session (no token) is not valid against the real server */
+/** first load from the server; a saved session without a token is not valid */
 async function serverStart() {
   API.onUnauthorized = () => { if (session) logout('loggedOut'); };
   if (session && !session.token) { session = null; store.set(K_SESSION, null); }
@@ -2965,7 +2736,7 @@ async function serverPoll() {
   try {
     const unread = unreadCount();
     await Promise.all([refreshCatalog(), refreshMine()]);
-    syncFromAdmin();
+    applyServerUpdate();
     loadTickets(); emit();
     if (unreadCount() > unread) toast(t('newReply'));
   } catch (e) { /* offline for a moment: try again next time */ }
@@ -2973,9 +2744,22 @@ async function serverPoll() {
 
 /* ================= boot ================= */
 app.classList.add('booting');
-Promise.all([probeAssets(), API.init().then(on => on ? serverStart().catch(() => {}) : null)]).then(() => {
+function Unavailable() {
+  const el = h(`<div class="screen login">
+    <div class="lg-body">
+      ${ecBadge()}
+      <h1 class="lg-h">${esc(t('unavailT'))}</h1>
+      <p class="lg-p">${esc(t('unavailP'))}</p>
+      <button class="btn lg-btn" data-retry>${esc(t('retry'))}</button>
+    </div>
+  </div>`);
+  el.querySelector('[data-retry]').addEventListener('click', () => location.reload());
+  return el;
+}
+Promise.all([probeAssets(), API.init().then(on => on ? serverStart().then(() => true) : false).catch(() => false)]).then(([, up]) => {
   loadMedia();
   app.classList.remove('booting');
+  if (!up) { app.appendChild(Unavailable()); return; }
   const splash = Splash();
   app.appendChild(splash);
   let booted = false;

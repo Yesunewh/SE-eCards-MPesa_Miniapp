@@ -63,7 +63,9 @@ export async function stockOverview(ctx: Ctx) {
     SELECT p.id, p.brand_id, p.face_value_cents / 100 AS face_value_usd, p.is_active, p.restock_eta,
            ps.codes_available, ps.preorders_owed,
            (SELECT count(*)::int FROM gift_codes g WHERE g.product_id = p.id AND g.status = 'sold') AS codes_sold,
-           (SELECT array_agg(src.provider_id ORDER BY src.priority) FROM product_sources src WHERE src.product_id = p.id AND src.is_active) AS providers
+           (SELECT array_agg(src.provider_id ORDER BY src.priority) FROM product_sources src WHERE src.product_id = p.id AND src.is_active) AS providers,
+           EXISTS (SELECT 1 FROM product_sources src JOIN providers pr ON pr.id = src.provider_id
+                   WHERE src.product_id = p.id AND src.is_active AND pr.is_active AND pr.status = 'ok') AS provider_ready
     FROM products p JOIN product_stock ps ON ps.product_id = p.id JOIN brands b ON b.id = p.brand_id
     ORDER BY b.sort_order, p.brand_id, p.face_value_cents`);
 }

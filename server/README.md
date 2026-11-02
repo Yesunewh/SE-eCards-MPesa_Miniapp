@@ -1,19 +1,21 @@
 # eCards backend
 
-Server for the eCards M-Pesa mini app (`../index.html`), the admin panel (`../admin.html`) and the web store (`../web.html`).
-It replaces the browser storage the demo uses (`ecards-et-v2-*` keys) with a real database, takes payment through M-Pesa,
-and delivers gift card codes from our own stock or from a gift card provider (Wupex).
+Server for the eCards M-Pesa mini app (`../index.html`) and the admin panel (`../admin.html`): a real database,
+payment through M-Pesa, and gift card codes delivered from our own stock or bought from a gift card supplier (Wupex).
+The pages hold no data of their own: everything comes from this server.
 
-**Stack:** Node.js 20+ · TypeScript · Fastify · PostgreSQL 14+ · plain SQL migrations · Vitest (69 tests against a real database)
+**Stack:** Node.js 20+ · TypeScript · Fastify · PostgreSQL 14+ · plain SQL migrations · Vitest (109 tests against a real database)
 
 | Status | |
 |---|---|
-| Database schema, migrations, seed (matches the demo catalog) | done |
-| Catalog, orders, pre-orders, stock, wishlist, support, admin | done |
-| M-Pesa payments: request, callback, status check, expiry | done; **mock** adapter works, Safaricom adapter written but **unverified** |
-| Gift card provider fulfilment, retries, no double-buying | done; **Wupex adapter tested against the Wupex sandbox** (real orders, pre-orders) |
+| Database schema, migrations, starting catalogue | done |
+| Catalog, orders, pre-orders, stock, wishlist, support, admin, brand pictures | done |
+| M-Pesa Ethiopia H5 (`userScopes`, `payWithMpesa`, C2B callbacks) | built to Safaricom's docs; **switched on once the mini program exists** |
+| Staff recording of M-Pesa payments by receipt (missed confirmations) | done, audited |
+| Gift card supplier fulfilment, retries, no double-buying | done; **Wupex tested against the Wupex sandbox** (real orders, pre-orders) |
 | Codes by SMS / email | queued and rendered; **needs an SMS gateway / SMTP adapter** |
-| Front-end wired to this API | not yet: the HTML apps still use browser storage |
+| Mini app and admin panel | wired to this API only |
+| `../web.html` (public web store) | not served: still to be built on this API |
 
 ---
 
@@ -31,14 +33,14 @@ Generate the two keys (each 32 random bytes):
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-Create the schema, load the catalog, add demo stock and the mock provider:
+Create the schema and load the starting catalogue (add `-- --mock-provider` for a local stand-in supplier that generates codes):
 
 ```bash
 npm run migrate
 ```
 
 ```bash
-npm run seed -- --mock-provider --demo-stock
+npm run seed
 ```
 
 Create an admin and start the server:
@@ -57,7 +59,7 @@ Tests (need a PostgreSQL database called `ecards_test`, or set `TEST_DATABASE_UR
 npm test
 ```
 
-### Try a purchase with curl (mock M-Pesa)
+### Try a purchase with curl (test payments)
 
 ```bash
 TOKEN=$(curl -s -X POST localhost:8080/v1/auth/mpesa -H 'content-type: application/json' \
@@ -69,27 +71,26 @@ curl -s -X POST localhost:8080/v1/orders -H "authorization: Bearer $TOKEN" -H 'c
   -d '{"items":[{"brandId":"netflix","faceValueUsd":50,"quantity":1}]}'
 ```
 
-Then `POST /v1/orders/<id>/pay`, and approve it as if the customer typed their PIN with
-`POST /v1/dev/mpesa/simulate {"paymentId":"<payment id>"}`. `GET /v1/orders/<id>` now shows the codes.
+Then `POST /v1/orders/<id>/pay`. With test payments nothing confirms it by itself: an admin records the M-Pesa receipt
+(`POST /v1/admin/orders/<id>/record-payment {"receipt":"…","amountMinor":<total>}`, or Orders › Awaiting payment in the
+admin panel). `GET /v1/orders/<id>` then shows the codes.
 
 ---
 
 ## How the front end is wired to the API
 
-`../index.html` (mini app) and `../admin.html` (admin panel) load `../assets/ecards-api.js` and then decide:
+`../index.html` (mini app) and `../admin.html` (admin panel) load `../assets/ecards-api.js`, which finds the API from
+`?api=https://…` in the address (remembered), else the page's own server, else `<meta name="ecards-api">`
+(`https://ecards.paperless.et`). Without an answer the pages say the service is not available: nothing runs from
+browser storage. The API serves the pages itself when `STATIC_DIR` is set.
 
-- **Server mode**: `GET /health` answers, so every piece of data comes from the API.
-  The API is found from `?api=https://…` in the address (remembered), from a `<meta name="ecards-api">` tag, or from the
-  page's own server. The API serves the pages itself when `STATIC_DIR` is set, so `http://<server>:10011/` just works.
-- **Demo mode**: no API answers (for example the copy on cPanel), and the old browser-storage demo runs unchanged.
-
-The screens were not rewritten. `ecards-api.js` converts server answers into the exact objects the screens already used
-(`cfg`, `stock`, `orders`, `tickets`), and the pages call the API at the few places where data changes:
+`ecards-api.js` converts server answers into the objects the screens use (`cfg`, `stock`, `orders`, `tickets`), and the
+pages call the API where data changes:
 
 | In the mini app | API call |
 |---|---|
 | Start, then every 20 s | `GET /v1/catalog` (prices, brands, stock, banners); when signed in also `GET /v1/orders?full=1`, `/v1/wishlist`, `/v1/support/tickets` |
-| Log in with M-Pesa | M-Pesa SDK `getAuthCode` (mock code outside M-Pesa) → `POST /v1/auth/mpesa` → session token |
+| Log in with M-Pesa | inside M-Pesa: `my.call('userScopes')` → `POST /v1/auth/mpesa`; outside M-Pesa only while the server runs test payments: sign-in by phone number; otherwise "Open eCards from the M-Pesa app" |
 | Pay | `POST /v1/orders` (with an idempotency key) → `POST /v1/orders/:id/pay` → poll `GET /v1/orders/:id` until paid or declined |
 | Mark a code as used | `POST /v1/codes/:id/used` |
 | Wishlist heart | `PUT` / `DELETE /v1/wishlist/:productId` |
@@ -97,18 +98,16 @@ The screens were not rewritten. `ecards-api.js` converts server answers into the
 | Support: new message, reply, read | `POST /v1/support/tickets`, `…/:id/messages`, `…/:id/seen` |
 
 The admin panel signs in with `POST /v1/admin/login` and loads catalog, settings, stock, orders and tickets
-(`GET /v1/admin/…`) every 15 s. Every change in the panel already went through one function, `act()`. In server mode
-`act()` runs the change on a copy, compares before and after (`EcardsAPI.adminDiff`), and sends only the difference:
+(`GET /v1/admin/…`) every 15 s. Catalogue, stock, banner and settings changes go through `act()`, which runs the change
+on a copy, compares before and after (`EcardsAPI.adminDiff`), and sends only the difference:
 pasted codes → `POST /v1/admin/stock/:id/codes`, expected date → `PUT …/eta`, rate/VAT/support → `PATCH /v1/admin/settings`,
 brand edits and values → `PUT /v1/admin/brands/:id` / `PATCH /v1/admin/products/:id`, banners and popular → `PUT /v1/admin/home`,
 support replies → `POST /v1/admin/tickets/:id/reply`, close/reopen → `POST …/status`. Then it reloads from the server.
-In server mode stock is the codes you upload (no stock count without codes), pre-orders are delivered by the server,
-codes are shown masked, and providers (Wupex) are set up through the API, not the panel.
-
-Staging only: with mock M-Pesa, add `?devkey=<DEV_SIMULATE_KEY>` once to the mini app address so the Pay button
-approves itself. Without it, payments wait for a real M-Pesa answer.
-
-`../web.html` (the public web store) still runs as the demo; it can use the same `ecards-api.js` in a later step.
+Direct actions call the API at once: brand pictures (`PUT/DELETE /v1/admin/brands/:id/media/:kind`, stored in the
+database), code reveal (`GET /v1/admin/orders/:id?reveal=1`, audited), try delivery (`…/retry`), resend codes (`…/resend`),
+awaiting payment (`GET /v1/admin/orders/unpaid`) and recording an M-Pesa payment by receipt (`…/record-payment`), and the
+Suppliers page (`/v1/admin/providers…`: sync, automatic linking, link/unlink, call log).
+Stock is the codes you upload, pre-orders are delivered by the server, and codes are shown masked.
 
 ---
 
@@ -139,7 +138,7 @@ pending_payment ──M-Pesa success──▶ paid ──fulfil──▶ complet
 
 Each order line (`order_items`) is `pending` → `waiting` (paid, cards still owed) → `delivered`.
 Lines can be partly delivered (`delivered_quantity`); the rest waits as a pre-order with an `eta`.
-As in the demo, there are no refunds in the flow; payments needing a human (wrong amount, paid twice) are flagged.
+There are no refunds in the flow; payments needing a human (wrong amount, paid twice) are flagged.
 
 ### Fulfilment rules (`src/services/fulfilment.ts`)
 
@@ -155,7 +154,7 @@ As in the demo, there are no refunds in the flow; payments needing a human (wron
 ### Payments (`src/services/payments.ts`)
 
 - Prices are always computed on the server from `app_settings.usd_etb_rate` (or a per-product override),
-  rounded to whole Birr (M-Pesa charges whole Birr). VAT is included in the price, as in the demo.
+  rounded to whole Birr (M-Pesa charges whole Birr). VAT is included in the price.
 - Tapping "Pay" twice sends one M-Pesa request (one open payment per order, enforced by a unique index).
 - Every callback is stored in `webhook_events` before processing; processing is idempotent.
 - A success always wins: a late success revives an expired order. A success with the wrong amount, or a second
@@ -182,11 +181,6 @@ card values and provider costs as **USD cents**. Rates and VAT are snapshotted o
 | Customer extras | `wishlist_items`, `support_tickets`, `support_messages` | |
 | Operations | `audit_log`, `jobs`, `schema_migrations` | Admin changes, code reveals and payment anomalies are audited |
 
-Demo → database mapping: `ecards-et-v2-config` → `app_settings` + `brands` + `products` + `home_*`;
-`-stock` → `gift_codes` / `products.restock_eta`; `-orders` → `orders` + `order_items` + `payments`;
-`-api` → `providers` + `product_sources` + `provider_api_calls`; `-tickets` → `support_*`; `-wish` → `wishlist_items`;
-`-used` → `gift_codes.customer_used_at`. The cart stays on the phone until checkout.
-
 New schema changes go in a new file (`002_….sql`); `npm run migrate` (and server start-up) applies anything not yet applied.
 
 ---
@@ -194,7 +188,7 @@ New schema changes go in a new file (`002_….sql`); `npm run migrate` (and serv
 ## API
 
 All responses are JSON. Errors look like `{ "error": "emailInvalid", "message": "…" }`; the `error` codes reuse the
-demo's translation keys where one exists (`emailNeeded`, `phoneInvalid` …) so the app can show them in all 5 languages.
+app's translation keys where one exists (`emailNeeded`, `phoneInvalid` …) so the app can show them in all 5 languages.
 Customer and admin calls take `Authorization: Bearer <token>`.
 
 **Public**
@@ -205,7 +199,6 @@ Customer and admin calls take `Authorization: Bearer <token>`.
 | `GET /v1/catalog` | settings, brands with products (price, VAT, availability, max qty, restock date), home banners/popular/rows |
 | `POST /v1/auth/mpesa` `{authCode}` | mini app login → `{token, customer}` |
 | `POST /v1/webhooks/mpesa/:secret` | M-Pesa result callback |
-| `POST /v1/dev/mpesa/simulate` `{paymentId, ok}` | development only, mock payments |
 
 **Customer**
 
@@ -290,7 +283,7 @@ Following developer.safaricom.et → Mini App → H5 Mini-app:
 Add an SMS gateway and/or SMTP adapter in `src/adapters/notify/`. SMS texts are English only for now; Amharic, Oromo, Somali and
 Tigrinya should be written by native speakers.
 
-### Deploying to the VPS (staging on port 10011)
+### Deploying to the VPS (ecards.paperless.et → port 10011 behind nginx)
 `deploy/install.sh` installs the API next to whatever already runs on the server, without touching it:
 its own user, its own Node.js in `/opt/ecards`, its own database inside the existing PostgreSQL (it refuses to reuse
 an existing role or database), and one systemd service capped at 512 MB RAM and half a CPU at low priority.
@@ -304,7 +297,7 @@ bash deploy/pack.sh
 ```
 
 ```bash
-scp release/ecards-server.tar.gz hmg@196.189.51.169:~
+scp release/ecards-server.tar.gz <user>@<server>:~
 ```
 
 On the server:
@@ -321,9 +314,10 @@ bash deploy/install.sh ecards-server.tar.gz --check
 bash deploy/install.sh ecards-server.tar.gz
 ```
 
-Then open `http://196.189.51.169:10011/health`. It runs in staging mode: mock M-Pesa and mock provider, no real money,
-DEMO codes. `POST /v1/dev/mpesa/simulate` needs the `x-dev-key` header (`sudo grep DEV_SIMULATE_KEY /opt/ecards/.env`).
-**Do not upload real gift card codes while `PAYMENTS_ADAPTER=mock`.** To update, copy a new tarball and run the last command again.
+Then open `/health`. A new install starts with test payments (no money moves; staff record M-Pesa receipts in the
+admin panel) and no supplier (`GIFTCARD_ADAPTER=none`) until the Wupex keys are added. To update, copy a new tarball
+and run the last command again. Before go-live, `node dist/scripts/clear-test-data.js` (then `--yes`) removes test
+orders, customers and their codes, keeping the catalogue, settings, pictures, admins and supplier.
 `deploy/uninstall.sh` removes everything (add `--drop-database` to delete only the database this install created).
 
 ### Hosting
@@ -332,6 +326,3 @@ The server needs Node.js 20+ and PostgreSQL 14+: either cPanel's "Setup Node.js 
 offers both, or a small VPS. Use HTTPS, and back up `CODE_ENCRYPTION_KEY` separately from the database: without it,
 the codes in stock cannot be read. The FTP deploy workflow excludes `server/`, so this code is never published to the web root.
 
-### Front-end
-The HTML apps still read and write browser storage. Wiring them to this API is the next step: `GET /v1/catalog` replaces
-`loadConfig`/`loadStock`, `placeOrder()` becomes `POST /v1/orders` + `/pay`, and so on.

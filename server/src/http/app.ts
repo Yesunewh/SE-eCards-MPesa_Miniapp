@@ -11,6 +11,7 @@ import { adminFromToken, type Admin } from '../services/admin.js';
 import { customerRoutes } from './routes/customer.js';
 import { adminRoutes } from './routes/admin.js';
 import { webhookRoutes } from './routes/webhooks.js';
+import { getBrandMedia, MEDIA_KINDS, type MediaKind } from '../services/media.js';
 
 declare module 'fastify' {
   interface FastifyRequest { customer?: Customer; admin?: Admin; token?: string }
@@ -79,12 +80,22 @@ export async function buildApp(ctx: Ctx): Promise<FastifyInstance> {
     return { ok: true, payments: ctx.payments.name, time: new Date().toISOString() };
   });
 
+  // brand pictures set in the admin panel (versioned URLs, so they can be cached for long)
+  app.get('/media/brands/:brandId/:kind', async (req, reply) => {
+    const { brandId, kind } = req.params as { brandId: string; kind: string };
+    if (!/^[a-z0-9-]{2,40}$/.test(brandId) || !(MEDIA_KINDS as readonly string[]).includes(kind)) return reply.status(404).send({ error: 'not_found' });
+    const m = await getBrandMedia(ctx, brandId, kind as MediaKind);
+    if (!m) return reply.status(404).send({ error: 'not_found' });
+    return reply.header('content-type', m.content_type).header('cache-control', 'public, max-age=31536000, immutable')
+      .header('x-content-type-options', 'nosniff').header('content-security-policy', "default-src 'none'").send(m.data);
+  });
+
   await app.register(async a => customerRoutes(a, ctx), { prefix: '/v1' });
   await app.register(async a => webhookRoutes(a, ctx), { prefix: '/v1' });
   await app.register(async a => adminRoutes(a, ctx), { prefix: '/v1/admin' });
 
-  // The mini app, admin panel and web store, served from the same address as the API (no CORS needed).
-  // Only index/admin/web.html and files under assets/ are served; everything else is 404.
+  // The mini app and the admin panel, served from the same address as the API (no CORS needed).
+  // Only index.html, admin.html and files under assets/ are served; everything else is 404.
   if (ctx.cfg.STATIC_DIR) {
     const root = path.resolve(ctx.cfg.STATIC_DIR);
     const TYPES: Record<string, string> = {
@@ -105,7 +116,7 @@ export async function buildApp(ctx: Ctx): Promise<FastifyInstance> {
       } catch { return reply.status(404).send({ error: 'not_found' }); }
     };
     app.get('/', (_req, reply) => serve('index.html', reply));
-    for (const page of ['index.html', 'admin.html', 'web.html']) app.get(`/${page}`, (_req, reply) => serve(page, reply));
+    for (const page of ['index.html', 'admin.html']) app.get(`/${page}`, (_req, reply) => serve(page, reply));
     app.get('/assets/*', (req, reply) => {
       const rel = decodeURIComponent((req.params as any)['*'] ?? '');
       if (rel.includes('..') || rel.includes('\\') || rel.includes('\0')) return reply.status(404).send({ error: 'not_found' });

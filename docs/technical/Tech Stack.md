@@ -14,13 +14,13 @@ Back to [[00 Home]] · See also [[System Overview]]
 | Language | **TypeScript 5.9**, ESM (`NodeNext`) | Type safety; compiled to `dist/` |
 | Web framework | **Fastify 5** | Fast, schema-friendly, good plugin model |
 | Plugins | `@fastify/cors` 11, `@fastify/rate-limit` 10 | CORS for split hosting; per-route rate limits |
-| Static files | Custom allow-listed handler (no `@fastify/static`) | Serves only `index.html`, `admin.html`, `web.html`, `/assets/*`; removed a dependency with advisories |
+| Static files | Custom allow-listed handler (no `@fastify/static`) | Serves only `index.html`, `admin.html`, `/assets/*` (and brand pictures from the database at `/media/…`); removed a dependency with advisories |
 | Validation | **zod 4** | Validates every request body and the environment config |
 | Database driver | **pg 8** | Plain SQL, no ORM |
 | Database | **PostgreSQL 16** | Transactions, row locking (`SKIP LOCKED`), JSONB, `pgcrypto` |
 | Job queue | Postgres `jobs` table | No Redis needed; atomic with the data |
 | Crypto | Node `crypto` | AES-256-GCM, HMAC-SHA256, scrypt, SHA-256, RSA signing (miniapp adapter) |
-| Tests | **vitest 5** | 107 tests against a real Postgres |
+| Tests | **vitest 5** | 109 tests against a real Postgres |
 | Dev runner | **tsx** | `npm run dev` with watch mode |
 
 Runtime dependencies are only five packages: fastify, @fastify/cors, @fastify/rate-limit, pg, zod. A small dependency set means a small attack surface. `npm audit` was clean at the last check.
@@ -29,7 +29,7 @@ Runtime dependencies are only five packages: fastify, @fastify/cors, @fastify/ra
 | Piece | Choice |
 |---|---|
 | Mini app | One self-contained `index.html` (vanilla JS, CSS, no build step) |
-| API client | `assets/ecards-api.js` (vanilla JS). Works in "server mode" or falls back to "demo mode" (localStorage). |
+| API client | `assets/ecards-api.js` (vanilla JS). The pages run only against the server; without it they show "not available". |
 | M-Pesa bridge | `hylid-bridge` 2.10.0 from `cdn.marmot-cloud.com`. Loaded only inside the M-Pesa app (user agent contains `MiniProgram`). Gives the global `my.call(...)`. |
 | Admin | One self-contained `admin.html` |
 | Languages | English, Amharic, Afaan Oromo, Somali, Tigrinya (`en`, `am`, `om`, `so`, `ti`) |

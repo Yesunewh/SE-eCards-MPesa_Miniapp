@@ -15,7 +15,8 @@ The API base is `https://ecards.paperless.et`. All JSON. Customer and admin call
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | `{ok:true}` with DB check. Used by the installer and the front end's API detection. |
-| GET | `/`, `/index.html`, `/admin.html`, `/web.html`, `/assets/*` | Static front end (allow-list only) |
+| GET | `/`, `/index.html`, `/admin.html`, `/assets/*` | Static front end (allow-list only) |
+| GET | `/media/brands/:brand/:kind` | Brand pictures uploaded in the admin panel (logo, card, banner) |
 | GET | `/v1/catalog` | Brands, products, prices in santim, stock flags, home layout, settings (cached 30 s) |
 
 ## Customer login
@@ -69,7 +70,6 @@ The `:secret` in the path is `MPESA_CALLBACK_SECRET`. A wrong secret gets a 404.
 | POST | `/v1/webhooks/mpesa-c2b/:secret/confirmation` | M-Pesa says "money received". The order becomes **paid** and fulfilment is queued. Always acknowledged. Unknown or mismatched payments are flagged for staff. |
 | POST | `/v1/webhooks/mpesa/:secret` | STK push callback (Daraja-style adapter, not used) |
 | POST | `/v1/webhooks/mpesa-miniapp/:secret` | Generic mini program `notifyPayment` (not used in Ethiopia) |
-| POST | `/v1/dev/mpesa/simulate` | **Staging only.** Exists only with mock payments and needs the `x-dev-key` header. |
 
 Every callback is stored in `webhook_events` (raw body, processed time, error) before it is processed, which makes callbacks replayable and auditable.
 
@@ -78,11 +78,11 @@ Every callback is stored in `webhook_events` (raw body, processed time, error) b
 |---|---|
 | Session | `POST /login`, `POST /logout`, `GET /me` |
 | Dashboard | `GET /dashboard` |
-| Orders | `GET /orders` (`?full=1`), `GET /orders/:id` (`?reveal=1` decrypts codes and is **audited**), `POST /orders/:id/retry`, `POST /orders/:id/resend` |
+| Orders | `GET /orders` (`?full=1`), `GET /orders/:id` (`?reveal=1` decrypts codes and is **audited**), `POST /orders/:id/retry`, `POST /orders/:id/resend`, `GET /orders/unpaid`, `POST /orders/:id/record-payment` `{receipt, amountMinor}` (admins; amount must match; one receipt pays one order; **audited**) |
 | Payments | `GET /payments/review`: payments needing attention plus unmatched C2B confirmations |
 | Stock | `GET /stock`, `POST /stock/:productId/codes` (paste codes), `PUT /stock/:productId/eta`, `POST /stock/codes/:id/void` |
-| Catalogue | `GET/PATCH /settings`, `PUT /brands/:brandId`, `PATCH /products/:id`, `PUT /home` |
-| Providers | `GET /providers`, `PUT /providers/:providerId`, `POST /providers/:providerId/sync`, `POST /providers/:providerId/automap`, `PUT /products/:id/sources/:providerId`, `GET /providers/log` |
+| Catalogue | `GET/PATCH /settings`, `PUT /brands/:brandId`, `PUT/DELETE /brands/:brandId/media/:kind` (pictures), `PATCH /products/:id`, `PUT /home` |
+| Suppliers | `GET /providers`, `PUT /providers/:providerId`, `POST /providers/:providerId/sync`, `GET /providers/:providerId/products`, `POST /providers/:providerId/automap` `{apply, addValues}`, `PUT/DELETE /products/:id/sources/:providerId`, `GET /providers/log` |
 | Support | `GET /tickets`, `POST /tickets/:id/reply`, `POST /tickets/:id/status` |
 | Audit | `GET /audit` |
 

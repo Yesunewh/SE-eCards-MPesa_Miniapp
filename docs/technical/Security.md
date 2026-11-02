@@ -47,8 +47,9 @@ Tested in `mpesa-et.test.ts`: *"identity sent by the app cannot reveal codes on 
 - Per-route rate limits (see [[Backend API#Rate limits]]).
 - The static file handler serves an **allow-list only**, so there's no directory traversal and no serving of server files.
 - CORS is restricted to `CORS_ORIGINS`.
-- Staging tools (`/v1/dev/mpesa/simulate`) exist only with mock adapters and require `x-dev-key`.
-- In production, mock adapters are refused unless `ALLOW_MOCK_ADAPTERS=true` (staging).
+- **There is no payment simulator.** A payment is paid only by M-Pesa's confirmation, or by an admin recording an M-Pesa receipt. That needs the right amount, a receipt not used before, and the admin or owner role, and it is audited.
+- In production, test payments and the mock supplier are refused unless `ALLOW_MOCK_ADAPTERS=true` (used only until M-Pesa is connected). The mock supplier is loaded only where it is configured.
+- Brand pictures: only real PNG/JPEG/WebP/GIF bytes (checked, not trusted from the upload), max 1.5 MB, no SVG (it can carry scripts), served with `nosniff` and a strict content policy.
 - Five runtime dependencies. Packages with advisories were upgraded or removed: zod 3 → 4, vitest → 5, `@fastify/static` removed.
 
 ## Server

@@ -5,7 +5,7 @@ import { normMsisdn } from '../../lib/util.js';
 /**
  * No real money. Login codes look like "mock:0712345678:Hana Tesfaye".
  * A payment stays pending until someone posts a callback built with mockCallback()
- * (the dev endpoint POST /v1/dev/mpesa/simulate does exactly that).
+ * (tests do exactly that; on a server, staff record a payment by its M-Pesa receipt in the admin panel).
  */
 export class MockPayments implements PaymentsAdapter {
   readonly name = 'mock' as const;
@@ -18,7 +18,7 @@ export class MockPayments implements PaymentsAdapter {
     const [kind, phone, ...rest] = authCode.split(':');
     const msisdn = normMsisdn(phone);
     if (kind !== 'mock' || !msisdn) throw new Error('invalid auth code');
-    return { userId: `mock-${msisdn}`, msisdn, name: rest.join(':') || 'Demo Customer' };
+    return { userId: `mock-${msisdn}`, msisdn, name: rest.join(':') || 'M-Pesa customer' };
   }
 
   async initiate(input: InitiateInput): Promise<InitiateResult> {

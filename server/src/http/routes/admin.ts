@@ -4,10 +4,11 @@ import type { Ctx } from '../../context.js';
 import { adminAuth, parse } from '../app.js';
 import * as A from '../../services/admin.js';
 import { getSettings } from '../../services/catalog.js';
-import { paymentsNeedingReview, unmatchedPayments } from '../../services/payments.js';
+import { paymentsNeedingReview, recordPaymentByStaff, unmatchedPayments, unpaidOrders } from '../../services/payments.js';
 import { setRestockEta, stockOverview, uploadCodes, voidCode } from '../../services/stock.js';
 import { listTicketsForStaff, staffReply } from '../../services/support.js';
-import { applyMappings, suggestMappings } from '../../services/providerMapping.js';
+import { addProviderValues, applyMappings, suggestMappings } from '../../services/providerMapping.js';
+import { MEDIA_KINDS, removeBrandMedia, setBrandMedia } from '../../services/media.js';
 
 const uuid = z.string().uuid();
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -33,6 +34,11 @@ export async function adminRoutes(app: FastifyInstance, ctx: Ctx) {
         limit: z.coerce.number().int().optional(), offset: z.coerce.number().int().optional() }), req.query);
       if ((req.query as any)?.full === '1') return { orders: await A.ordersForPanel(ctx, q.limit) };
       return { orders: await A.searchOrders(ctx, q) };
+    });
+    a.get('/orders/unpaid', async () => ({ orders: await unpaidOrders(ctx) }));
+    a.post('/orders/:id/record-payment', { preHandler: role('admin') }, async req => {
+      const b = parse(z.object({ receipt: z.string().min(1).max(30), amountMinor: z.number().int().positive() }), req.body);
+      return recordPaymentByStaff(ctx, req.admin!.id, id(req), b.receipt, b.amountMinor);
     });
     a.get('/orders/:id', async req => {
       const reveal = (req.query as any)?.reveal === '1';
@@ -93,6 +99,15 @@ export async function adminRoutes(app: FastifyInstance, ctx: Ctx) {
       const { valuesUsd, ...patch } = b;
       return A.upsertBrand(ctx, req.admin!, brandId, patch, valuesUsd);
     });
+    a.put('/brands/:brandId/media/:kind', { bodyLimit: 3 * 1024 * 1024 }, async req => {
+      const p = parse(z.object({ brandId: z.string().regex(/^[a-z0-9-]{2,40}$/), kind: z.enum(MEDIA_KINDS) }), req.params);
+      const b = parse(z.object({ dataUrl: z.string().max(2_100_000) }), req.body);
+      return setBrandMedia(ctx, req.admin!, p.brandId, p.kind, b.dataUrl);
+    });
+    a.delete('/brands/:brandId/media/:kind', async req => {
+      const p = parse(z.object({ brandId: z.string().regex(/^[a-z0-9-]{2,40}$/), kind: z.enum(MEDIA_KINDS) }), req.params);
+      return removeBrandMedia(ctx, req.admin!, p.brandId, p.kind);
+    });
     a.patch('/products/:id', async req => {
       const b = parse(z.object({ isActive: z.boolean().optional(), priceOverrideMinor: z.number().int().positive().nullable().optional() }), req.body);
       return A.updateProduct(ctx, req.admin!, id(req), b);
@@ -124,12 +139,19 @@ export async function adminRoutes(app: FastifyInstance, ctx: Ctx) {
       await A.mapProductSource(ctx, req.admin!, id(req), String((req.params as any).providerId), b.externalProductId, b.unitCostCents, b.priority);
       return { ok: true };
     });
+    a.delete('/products/:id/sources/:providerId', async req => {
+      await A.unmapProductSource(ctx, req.admin!, id(req), String((req.params as any).providerId));
+      return { ok: true };
+    });
+    a.get('/providers/:providerId/products', async req => ({ products: await A.providerProducts(ctx, String((req.params as any).providerId)) }));
     a.post('/providers/:providerId/automap', async req => {
       A.requireRole(req.admin!, 'admin');
       const pid = String((req.params as any).providerId);
-      const b = parse(z.object({ apply: z.boolean().default(false) }), req.body ?? {});
+      const b = parse(z.object({ apply: z.boolean().default(false), addValues: z.boolean().default(false) }), req.body ?? {});
+      // adding the provider's card values changes the catalogue: only together with apply
+      const values = b.apply && b.addValues ? await addProviderValues(ctx, req.admin!.id, pid) : null;
       const rows = await suggestMappings(ctx, pid);
-      return { suggestions: rows, saved: b.apply ? await applyMappings(ctx, req.admin!.id, pid, rows) : 0 };
+      return { suggestions: rows, saved: b.apply ? await applyMappings(ctx, req.admin!.id, pid, rows) : 0, ...(values ? { addedValues: values.added, brandsNotCarried: values.brandsNotCarried } : {}) };
     });
     a.get('/providers/log', async req => ({ calls: await A.providerLog(ctx, (req.query as any)?.provider) }));
 

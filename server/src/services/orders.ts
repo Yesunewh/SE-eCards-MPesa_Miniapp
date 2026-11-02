@@ -5,7 +5,7 @@ import { getSettings, productViews } from './catalog.js';
 import type { Customer } from './customers.js';
 
 export interface CartLine {
-  /** Either productId, or brandId + faceValueUsd (the shape the demo cart uses: bid + amount). */
+  /** Either productId, or brandId + faceValueUsd (the shape the app's cart uses: bid + amount). */
   productId?: string;
   brandId?: string;
   faceValueUsd?: number;
@@ -173,7 +173,7 @@ export async function cancelOrder(ctx: Ctx, customerId: string, orderId: string)
   });
 }
 
-/** "I used this code" toggle (K_USED in the demo). */
+/** "I used this code" toggle in My Orders. */
 export async function markCodeUsed(ctx: Ctx, customerId: string, codeId: string, used: boolean) {
   const r = await ctx.db.query(`
     UPDATE gift_codes g SET customer_used_at = CASE WHEN $3 THEN COALESCE(g.customer_used_at, now()) ELSE NULL END

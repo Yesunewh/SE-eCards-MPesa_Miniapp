@@ -42,8 +42,9 @@ export function createContext(cfg: Config, overrides: Partial<Ctx> & { providers
         shortcode: cfg.MPESA_SHORTCODE, passkey: cfg.MPESA_PASSKEY
       })
     : new MockPayments());
+  // the mock supplier (generated codes) exists only where it is configured: never alongside a real one
   const providers: Record<string, GiftCardProvider> = overrides.providers ?? {
-    mock: new MockProvider(),
+    ...(cfg.GIFTCARD_ADAPTER === 'mock' ? { mock: new MockProvider() } : {}),
     ...(cfg.GIFTCARD_ADAPTER === 'wupex'
       ? { wupex: new WupexProvider({ baseUrl: cfg.WUPEX_BASE_URL, apiKey: cfg.WUPEX_API_KEY, merchant: cfg.WUPEX_MERCHANT, currency: cfg.WUPEX_CURRENCY }) }
       : {})

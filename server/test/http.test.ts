@@ -22,6 +22,12 @@ async function login(phone = '0712345482', name = 'Hana Tesfaye') {
   return r.json().token as string;
 }
 
+/** M-Pesa confirms the payment (the mock adapter's callback, posted to our webhook). */
+async function confirm(pay: { checkoutRequestId: string; amountMinor: number }) {
+  const r = await call('POST', `/v1/webhooks/mpesa/${SECRET}`, undefined, mockCallback(pay.checkoutRequestId, { ok: true, amountMinor: pay.amountMinor }));
+  expect(r.statusCode).toBe(200);
+}
+
 async function adminToken(role: 'owner' | 'admin' | 'support' | 'viewer' = 'owner') {
   const email = `${role}-${Math.random().toString(36).slice(2)}@ecards.test`;
   await createAdmin(ctx.db, email, role, 'a-long-password', role);
@@ -79,12 +85,29 @@ describe('customer API', () => {
     expect((await one(ctx.db, `SELECT count(*)::int n FROM webhook_events`)).n).toBe(0);
   });
 
-  it('dev simulate endpoint approves a mock payment', async () => {
+  it('there is no payment simulator', async () => {
+    expect((await call('POST', '/v1/dev/mpesa/simulate', undefined, { paymentId: '00000000-0000-0000-0000-000000000000' })).statusCode).toBe(404);
+  });
+
+  it('staff record an M-Pesa payment by its receipt: right amount only, once, admins only, audited', async () => {
     const t = await login();
     const order = (await call('POST', '/v1/orders', t, { items: [{ brandId: 'netflix', faceValueUsd: 50, quantity: 1 }] })).json();
-    const pay = (await call('POST', `/v1/orders/${order.id}/pay`, t)).json();
-    const r = await call('POST', '/v1/dev/mpesa/simulate', undefined, { paymentId: pay.id });
-    expect(r.json()).toMatchObject({ ok: true, result: 'paid' });
+    await call('POST', `/v1/orders/${order.id}/pay`, t);
+    const support = await adminToken('support'), admin = await adminToken('admin');
+    const unpaid = (await call('GET', '/v1/admin/orders/unpaid', support)).json().orders;
+    expect(unpaid[0]).toMatchObject({ reference: order.reference, status: 'pending_payment', last_payment: { status: 'pending' } });
+    const rec = (tok: string, body: object) => call('POST', `/v1/admin/orders/${order.id}/record-payment`, tok, body);
+    expect((await rec(support, { receipt: 'QAYGDMWP8S', amountMinor: order.totalMinor })).statusCode).toBe(403);
+    expect((await rec(admin, { receipt: 'QAYGDMWP8S', amountMinor: order.totalMinor - 100 })).json().error).toBe('amount_mismatch');
+    expect((await rec(admin, { receipt: 'x', amountMinor: order.totalMinor })).json().error).toBe('receipt_invalid');
+    expect((await rec(admin, { receipt: 'qaygdmwp8s', amountMinor: order.totalMinor })).json()).toEqual({ ok: true, result: 'paid' });
+    await drainJobs(ctx);
+    expect((await call('GET', `/v1/orders/${order.id}`, t)).json()).toMatchObject({ status: 'completed', payment: { receipt: 'QAYGDMWP8S' } });
+    expect((await rec(admin, { receipt: 'QAYGDMWP8S', amountMinor: order.totalMinor })).json().error).toBe('order_not_payable');
+    // the same receipt cannot pay a second order
+    const o2 = (await call('POST', '/v1/orders', t, { items: [{ brandId: 'netflix', faceValueUsd: 50, quantity: 1 }] })).json();
+    expect((await call('POST', `/v1/admin/orders/${o2.id}/record-payment`, admin, { receipt: 'QAYGDMWP8S', amountMinor: o2.totalMinor })).json().error).toBe('receipt_used');
+    expect((await many(ctx.db, `SELECT action FROM audit_log`)).map(a => a.action)).toContain('payment.recorded_by_staff');
   });
 
   it('validates input with clear errors', async () => {
@@ -163,7 +186,7 @@ describe('admin API', () => {
     const owner = await adminToken('owner');
     const order = (await call('POST', '/v1/orders', t, { items: [{ brandId: 'cod', faceValueUsd: 200, quantity: 1 }] })).json();
     const pay = (await call('POST', `/v1/orders/${order.id}/pay`, t)).json();
-    await call('POST', '/v1/dev/mpesa/simulate', undefined, { paymentId: pay.id });
+    await confirm(pay);
     await drainJobs(ctx);
     expect((await call('GET', `/v1/orders/${order.id}`, t)).json().status).toBe('awaiting_stock');
     const up = await call('POST', `/v1/admin/stock/${order.items[0].productId}/codes`, owner, { codes: ['COD1-2222-3333', { code: 'COD2-4444-5555', pin: '1234' }] });
@@ -178,7 +201,7 @@ describe('admin API', () => {
     const t = await login();
     const order = (await call('POST', '/v1/orders', t, { items: [{ brandId: 'netflix', faceValueUsd: 50, quantity: 1 }] })).json();
     const pay = (await call('POST', `/v1/orders/${order.id}/pay`, t)).json();
-    await call('POST', '/v1/dev/mpesa/simulate', undefined, { paymentId: pay.id });
+    await confirm(pay);
     await drainJobs(ctx);
     const support = await adminToken('support'), admin = await adminToken('admin');
     const masked = (await call('GET', `/v1/admin/orders/${order.id}`, support)).json();
@@ -192,6 +215,29 @@ describe('admin API', () => {
     // search by phone and by reference
     expect((await call('GET', `/v1/admin/orders?q=${order.reference}`, support)).json().orders).toHaveLength(1);
     expect((await call('GET', `/v1/admin/orders?q=712345482`, support)).json().orders).toHaveLength(1);
+  });
+
+  it('brand pictures: stored on the server, served with their real type, admins only, no SVG', async () => {
+    const admin = await adminToken('admin'), support = await adminToken('support');
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    const put = (tok: string, dataUrl: string, kind = 'logo') => call('PUT', `/v1/admin/brands/netflix/media/${kind}`, tok, { dataUrl });
+    expect((await put(support, 'data:image/png;base64,' + png.toString('base64'))).statusCode).toBe(403);
+    expect((await put(admin, 'data:image/svg+xml;base64,' + Buffer.from('<svg onload="alert(1)"/>').toString('base64'))).json().error).toBe('image_type');
+    expect((await put(admin, 'data:image/png;base64,' + Buffer.from('not a png').toString('base64'))).json().error).toBe('image_type');
+    const ok = (await put(admin, 'data:image/png;base64,' + png.toString('base64'))).json();
+    expect(ok.url).toMatch(/^\/media\/brands\/netflix\/logo\?v=/);
+    const b = (await call('GET', '/v1/catalog')).json().brands.find((x: any) => x.id === 'netflix');
+    expect(b.logoUrl).toBe(ok.url);
+    const img = await call('GET', ok.url);
+    expect(img.statusCode).toBe(200);
+    expect(img.headers['content-type']).toBe('image/png');
+    expect(img.headers['x-content-type-options']).toBe('nosniff');
+    expect(img.rawPayload.equals(png)).toBe(true);
+    expect((await call('GET', '/media/brands/netflix/card')).statusCode).toBe(404);
+    expect((await call('GET', '/media/brands/..%2f/logo')).statusCode).toBe(404);
+    expect((await call('DELETE', '/v1/admin/brands/netflix/media/logo', admin)).statusCode).toBe(200);
+    expect((await call('GET', '/v1/catalog')).json().brands.find((x: any) => x.id === 'netflix').logoUrl).toBeNull();
+    expect((await call('GET', ok.url)).statusCode).toBe(404);
   });
 
   it('brands: create a new one with values, it shows in the catalog', async () => {
@@ -216,6 +262,13 @@ describe('admin API', () => {
     expect(apple50.availability).toBe('in_stock');
     const providers = (await call('GET', '/v1/admin/providers', owner)).json().providers;
     expect(providers[0]).toMatchObject({ id: 'mock', status: 'ok', products_mapped: 1 });
+    const cat = (await call('GET', '/v1/admin/providers/mock/products', owner)).json().products;
+    expect(cat.find((x: any) => x.external_id === 'apple-50').linked).toEqual([{ productId: pid, brandId: 'apple', faceValueUsd: 50, unitCostCents: 4900 }]);
+    expect((await call('DELETE', `/v1/admin/products/${pid}/sources/mock`, owner)).statusCode).toBe(200);
+    expect((await call('GET', '/v1/admin/providers/mock/products', owner)).json().products.find((x: any) => x.external_id === 'apple-50').linked).toEqual([]);
+    const auto = (await call('POST', '/v1/admin/providers/mock/automap', owner, { apply: true, addValues: true })).json();
+    expect(auto.saved).toBeGreaterThan(0);
+    expect(auto.addedValues).toEqual([]);
 
     // a provider whose adapter is not configured on this server reports an error instead of crashing
     await call('PUT', '/v1/admin/providers/wupex', owner, { adapter: 'wupex' });
@@ -228,7 +281,7 @@ describe('admin API', () => {
     const t = await login();
     const order = (await call('POST', '/v1/orders', t, { items: [{ brandId: 'netflix', faceValueUsd: 50, quantity: 2 }] })).json();
     const pay = (await call('POST', `/v1/orders/${order.id}/pay`, t)).json();
-    await call('POST', '/v1/dev/mpesa/simulate', undefined, { paymentId: pay.id });
+    await confirm(pay);
     await drainJobs(ctx);
     const mine = (await call('GET', '/v1/orders?full=1', t)).json().orders;
     expect(mine[0].items[0].codes).toHaveLength(2);

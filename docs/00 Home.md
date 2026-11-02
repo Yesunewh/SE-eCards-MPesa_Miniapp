@@ -21,7 +21,8 @@ This vault documents what has been built, how it works, how it is deployed, and 
 |---|---|
 | Understand the project in 5 minutes, no tech | [[What is eCards]] |
 | Prepare for tomorrow's meeting | [[Meeting Brief]] and [[Questions for Partners]] |
-| Show the product to someone | [[Demo Guide – Simple]] or [[Demo Guide – Technical]] |
+| Show the product to someone | [[Product Walkthrough]] |
+| Check everything works (after each update) | [[Acceptance Test Guide]] |
 | Know exactly how it is built | [[System Overview]] |
 | Know what's done and what's left | [[Status and Roadmap]] |
 
@@ -39,7 +40,7 @@ This vault documents what has been built, how it works, how it is deployed, and 
 - [[System Overview]]: architecture and component map
 - [[Tech Stack]]
 - [[Repository Structure]]
-- [[Frontend]]: mini app, admin panel, web store, `ecards-api.js`
+- [[Frontend]]: mini app, admin panel, `ecards-api.js`
 - [[Backend API]]: every endpoint
 - [[Database]]: tables, migrations, conventions
 - [[Orders and Fulfilment]]: state machines, stock, pre-orders, provider purchases
@@ -54,9 +55,9 @@ This vault documents what has been built, how it works, how it is deployed, and 
 - [[Project Log]]: what was done, in order
 - [[Glossary]]
 
-## 3. Demo
-- [[Demo Guide – Simple]]: talk track for non-technical audiences
-- [[Demo Guide – Technical]]: the full walkthrough, including curl and the admin panel
+## 3. Guides
+- [[Acceptance Test Guide]]: step-by-step checks of the whole system, with what "pass" looks like
+- [[Product Walkthrough]]: what to show and say to partners and management
 - [[Flow Walkthrough]]: each step explained twice, once technically and once simply
 
 ## 4. Meeting material
@@ -70,7 +71,7 @@ This vault documents what has been built, how it works, how it is deployed, and 
 
 | | |
 |---|---|
-| Live (staging) URL | https://ecards.paperless.et/ (admin: `/admin.html`) |
+| Address | https://ecards.paperless.et/ (admin: `/admin.html`) · test payments until the M-Pesa mini program is registered |
 | Server | VPS `91.107.204.59`, app in `/opt/ecards`, systemd service `ecards-api` |
 | Database | PostgreSQL 16 in Docker container `ecards-db` (localhost:5433) |
 | Code | GitHub `Yesunewh/SE-eCards-MPesa_Miniapp`, branch `backend-api` |
@@ -78,7 +79,7 @@ This vault documents what has been built, how it works, how it is deployed, and 
 | Payments | M-Pesa Ethiopia H5 mini app: `userScopes` + `payWithMpesa` + C2B callbacks |
 | Gift card supplier | Wupex API: **sandbox connected and tested** (merchant `Paperless345`); production keys to come |
 | Merchant number to try | `0711885151` (still to confirm with Safaricom: see [[Questions for Partners]]) |
-| Tests | 107 automated tests, all passing |
+| Tests | 109 automated tests, all passing |
 
 > [!warning] Secrets are never stored in these notes
 > API keys, passwords and encryption keys live only on the server in `/opt/ecards/.env` and `/root/ecards-db.pass`. Anything that was shared in chat should be rotated. See [[Security]].

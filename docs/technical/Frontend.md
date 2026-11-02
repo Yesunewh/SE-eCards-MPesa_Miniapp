@@ -13,19 +13,16 @@ There are three pages, each a single self-contained HTML file with no build step
 |---|---|---|---|
 | `index.html` | ~3,000 | Customers (the M-Pesa H5 mini app) | **Wired to the API** |
 | `admin.html` | ~3,200 | Staff | **Wired to the API** |
-| `web.html` | ~2,400 | Public web shop | Demo mode only (localStorage) |
+| `web.html` | ~2,400 | Public web shop | **Not served**: still to be built on the API |
 | `assets/ecards-api.js` | ~500 | Shared API client | Done |
 
-## Two modes: server mode and demo mode
-The pages were first built as a clickable demo that keeps everything in `localStorage`. Instead of rewriting them, `ecards-api.js` was added, and small hooks in the pages call it.
-
-- **Server mode.** The API was found, so all data comes from the server and every action becomes an API call.
-- **Demo mode.** No API was found, so the old localStorage behaviour runs unchanged. This is handy for showing the UI offline.
+## The pages run only against the server
+Every piece of data (catalogue, prices, stock, orders, codes, support messages, brand pictures) comes from the eCards server, and every change goes to it. Nothing is kept or invented in the browser, apart from this device's preferences: the cart, the language and the session. If the server can't be reached, the mini app shows *"eCards is not available right now"* with **Try again**, and the admin panel says it can't reach the server.
 
 **How the API is found (first match wins):**
 1. `?api=https://…` in the URL. It is remembered in localStorage (`ecards-api-base`).
-2. A `<meta name="ecards-api" content="https://…">` tag in the page.
-3. The same server the page came from, when `GET /health` answers. This is the production setup: nginx serves both the page and the API from `ecards.paperless.et`.
+2. The same server the page came from, when `GET /health` answers. This is the normal case: nginx serves both the page and the API from `ecards.paperless.et`.
+3. `<meta name="ecards-api" content="https://ecards.paperless.et">` in the page, for copies hosted elsewhere (such as cPanel).
 
 ## `ecards-api.js`: what it contains
 | Area | Functions | Notes |
@@ -33,8 +30,8 @@ The pages were first built as a clickable demo that keeps everything in `localSt
 | Core | `init`, `req` | Bearer token, JSON, idempotency keys, error mapping |
 | Catalogue | `fromCatalog` | Turns `/v1/catalog` into the `BRANDS`/products shape the UI already used |
 | Orders | `toAppOrder`, `checkout` | Maps server orders to the app's tickets/wallet; handles `codesHidden` |
-| Login | `loadSdk`, `myCall`, `deviceKey`, `signIn` | Loads hylid-bridge only inside M-Pesa; tries `userScopes` (Ethiopia) first, then `getAuthCode` (generic) |
-| Pay | inside `checkout` | Calls `my.call('payWithMpesa', …)` (Ethiopia), `my.tradePay` (generic) or the mock dev flow (`?devkey=`) |
+| Login | `loadSdk`, `myCall`, `deviceKey`, `signIn` | Inside M-Pesa: `userScopes` (Ethiopia), or `getAuthCode` (generic). Outside M-Pesa: sign-in by phone number, only while the server runs test payments; otherwise "Open eCards from the M-Pesa app" |
+| Pay | inside `checkout` | Calls `my.call('payWithMpesa', …)` (Ethiopia) or `my.tradePay` (generic), then waits for the server to see M-Pesa's confirmation |
 | Support | tickets helpers | Open, reply, mark seen |
 | Wishlist | add/remove/list | |
 | Admin | `adminLoad`, `adminDiff` | Loads everything for admin.html; turns edits into API calls |
@@ -49,7 +46,11 @@ Screens: Home (banners, popular brands, rows), Brand page (choose value), Cart, 
 - `loadTickets`, `setUsed`, `toggleWish`, `saveRecv`, `applyLang`.
 - **Polling every 20 seconds** refreshes orders and tickets, so pre-orders show up when they are filled.
 
-**When codes are hidden.** If the order was paid on another device (see device binding in [[Security]]), the card shows *"SENT BY SMS · SHOWN ON THE PHONE THAT BOUGHT IT"* instead of the code.
+**When codes are hidden.** If the order was paid on another device (see device binding in [[Security]]), the card shows *"SHOWN ON THE PHONE THAT BOUGHT IT"* instead of the code.
+
+**Sign-in outside the M-Pesa app.** Only while the server runs test payments, a *Sign in* sheet asks for the M-Pesa number and name. With real payments, the page only says *"Open eCards from the M-Pesa app"*.
+
+**Waiting for M-Pesa.** After *Pay now*, the app waits up to 3 minutes for the server to see M-Pesa's confirmation. If it doesn't come in time, the app says so, empties the cart, and the order appears in My Orders by itself once it is confirmed.
 
 ### Loading the M-Pesa bridge
 ```html
@@ -59,13 +60,19 @@ Screens: Home (banners, popular brands, rows), Brand page (choose value), Cart, 
 It is a UMD bundle that defines the global `my`. Calls look like `my.call('userScopes', {...})` and `my.call('payWithMpesa', {...})`.
 
 ## The admin panel (`admin.html`)
-Sections: Dashboard, Orders (search, detail, reveal codes, retry, resend), Payments review (unmatched C2B payments, amount mismatches), Stock (paste codes, ETA, void), Catalogue (brands, products, prices), Home screen editor, Providers (Wupex: sync, auto-map, priorities, call log), Support tickets, Settings (rate, VAT, limits, support contacts), Audit log.
+Sections:
+- **Dashboard**
+- **Orders**: search, detail, **Show code** (admins; audited), **Try delivery**, **Resend codes**, and **Awaiting payment** with *Record M-Pesa payment* by receipt (admins; audited).
+- **Pre-orders**
+- **Inventory**: paste codes (`CODE, PIN` when there is a PIN), expected dates, which cards a supplier delivers.
+- **Brands**: names, colours, card values, pictures uploaded to the server.
+- **Home banners**, **Customers**, **Support**.
+- **Suppliers**: Wupex balance and sync; automatic linking, which can also add Wupex's card values; link and unlink per product; the call log.
+- **Pricing & settings**: rate, VAT, store, support contacts.
 
-**Server mode wiring:**
-- Admin login is real (`/v1/admin/login`), with lockout after 5 failed attempts.
-- Every `act()` call becomes `serverAct()`. `EcardsAPI.adminDiff` compares old and new state and sends only the needed API calls.
-- **Polling every 15 seconds** replays the same storage-event sync that the demo used between tabs.
-- `fulfilWaiting` / `fulfilApi` do nothing in server mode, because the server worker fulfils. This was a real bug: the panel used to "deliver" pasted codes locally, so they were never uploaded.
-
-## Staging helpers
-- `?devkey=<DEV_SIMULATE_KEY>` makes the app approve **mock** payments itself, through `/v1/dev/mpesa/simulate`. It only works when the server runs mock payments **and** the key matches. See [[Demo Guide – Technical]].
+**How it talks to the server:**
+- Admin login is real (`/v1/admin/login`), with lockout after 5 failed attempts. The role is shown next to the name, and the server enforces it.
+- **Catalogue edits** (brands, values, banners, settings, pasted codes, dates) go through `act()`. It applies the change to a copy, and `EcardsAPI.adminDiff` sends only the difference to the API.
+- **Direct actions** call the API at once: pictures, show code, try delivery, resend, record payment, supplier actions. The panel then reloads, and looks again 2.5 seconds later, because deliveries finish on the server a moment after.
+- **Every 15 seconds** the panel reloads from the server and tells you about new orders and support messages.
+- The panel never delivers or changes stock by itself: the server's worker does all deliveries.

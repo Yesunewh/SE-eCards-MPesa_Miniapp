@@ -43,7 +43,7 @@ const schema = z.object({
   PUBLIC_BASE_URL: z.string().default('http://localhost:8080'),
   MPESA_CALLBACK_SECRET: z.string().default(''),
 
-  GIFTCARD_ADAPTER: z.enum(['mock', 'wupex']).default('mock'),
+  GIFTCARD_ADAPTER: z.enum(['none', 'mock', 'wupex']).default('mock'),   // none = own stock only
   WUPEX_BASE_URL: z.string().default(''),
   WUPEX_API_KEY: z.string().default(''),
   WUPEX_MERCHANT: z.string().default(''),          // merchant code sent with every order line
@@ -51,10 +51,8 @@ const schema = z.object({
 
   NOTIFY_ADAPTER: z.enum(['log']).default('log'),
 
-  // Staging only: run with NODE_ENV=production but mock M-Pesa / mock provider (no real money, DEMO codes).
+  // Before M-Pesa is connected: NODE_ENV=production with test payments (no money moves). Never with real customers.
   ALLOW_MOCK_ADAPTERS: bool,
-  // When set, POST /v1/dev/mpesa/simulate works (mock payments only) but needs header x-dev-key with this value.
-  DEV_SIMULATE_KEY: z.string().default(''),
 
   // Folder with index.html, admin.html, web.html and assets/ to serve at /. Empty = API only.
   STATIC_DIR: z.string().default('')

@@ -41,7 +41,7 @@ export async function suggestMappings(ctx: Ctx, providerId: string): Promise<Map
     WHERE p.is_active AND b.is_active AND NOT b.is_hidden
     ORDER BY b.sort_order, p.face_value_cents`, [providerId]);
   const theirs = await many(ctx.db, `
-    SELECT external_id, name, brand_name, country, currency, denominations_cents, price_cents, discount_pct
+    SELECT external_id, name, brand_name, country, currency, denominations_cents, price_cents, discount_pct, fee_cents
     FROM provider_products WHERE provider_id = $1 AND is_available`, [providerId]);
 
   return ours.map(p => {
@@ -53,8 +53,10 @@ export async function suggestMappings(ctx: Ctx, providerId: string): Promise<Map
     const rank = (x: any) => { const i = PREFERRED_COUNTRY.indexOf(String(x.country ?? '').toUpperCase()); return i < 0 ? 99 : i; };
     matches.sort((a, b) => rank(a) - rank(b) || String(a.external_id).localeCompare(String(b.external_id)));
     const best = matches[0];
-    // the provider's price is what we pay per card (Wupex: face value minus its discount already)
-    const cost = best?.price_cents != null ? Number(best.price_cents) : null;
+    // the provider's price is what we pay per card (Wupex: face value minus its discount already);
+    // without a price: face value minus the provider's discount, plus its fee
+    const cost = !best ? null : best.price_cents != null ? Number(best.price_cents)
+      : Math.round(p.face_value_cents * (1 - Number(best.discount_pct ?? 0) / 100) + Number(best.fee_cents ?? 0));
     return {
       productId: p.id, brandId: p.brand_id, valueUsd: p.face_value_cents / 100,
       externalId: best?.external_id ?? null, providerName: best?.name ?? null, country: best?.country ?? null,

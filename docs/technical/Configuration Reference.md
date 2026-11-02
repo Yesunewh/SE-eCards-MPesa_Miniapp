@@ -12,7 +12,7 @@ All settings are environment variables. On the VPS they live in `/opt/ecards/.en
 > [!warning] Never paste real values into git, these notes or chat.
 
 ## Core
-| Variable | Meaning | Staging value |
+| Variable | Meaning | Value on the server now |
 |---|---|---|
 | `NODE_ENV` | `development` / `test` / `production` | `production` |
 | `HOST` | Listen address. Use `127.0.0.1` behind nginx. | `0.0.0.0` → change to `127.0.0.1` after HTTPS |
@@ -28,7 +28,7 @@ All settings are environment variables. On the VPS they live in `/opt/ecards/.en
 ## Payments
 | Variable | Meaning |
 |---|---|
-| `PAYMENTS_ADAPTER` | `mock` (staging) · **`mpesa_et`** (go-live) · `miniapp` · `safaricom` |
+| `PAYMENTS_ADAPTER` | `mock` = test payments, confirmed by staff recording a receipt (now) · **`mpesa_et`** (go-live) · `miniapp` · `safaricom` |
 | `MPESA_BASE_URL` | `https://apisandbox.safaricom.et` (sandbox) or the live URL |
 | `MPESA_CONSUMER_KEY` / `MPESA_CONSUMER_SECRET` | From developer.safaricom.et → My Apps |
 | `MPESA_SHORTCODE` | businessID / C2B ShortCode. Candidate: `0711885151` (**to confirm**) |
@@ -39,18 +39,17 @@ All settings are environment variables. On the VPS they live in `/opt/ecards/.en
 ## Gift cards
 | Variable | Meaning |
 |---|---|
-| `GIFTCARD_ADAPTER` | `mock` (DEMO codes) · `wupex` |
+| `GIFTCARD_ADAPTER` | **`wupex`** · `none` (only codes uploaded in the admin) · `mock` (generated codes, tests only) |
 | `WUPEX_BASE_URL` | the **service** URL: sandbox `https://sandbox-service.wupex.com` · production: the URL Wupex gives (not the portal address) |
 | `WUPEX_API_KEY` | from the Wupex portal (secret) |
 | `WUPEX_MERCHANT` | merchant code (portal → avatar): `Paperless345` in the sandbox |
 | `WUPEX_CURRENCY` | currency of prices and balance: `USD` (confirmed) |
 
-## Notifications and staging
+## Notifications and test payments
 | Variable | Meaning |
 |---|---|
 | `NOTIFY_ADAPTER` | `log` (only option now). An SMS gateway or SMTP is still to be added. |
-| `ALLOW_MOCK_ADAPTERS` | `true` lets mock adapters run with `NODE_ENV=production` (staging). **Set to false for go-live.** |
-| `DEV_SIMULATE_KEY` | Key for `/v1/dev/mpesa/simulate` (header `x-dev-key`) and the app's `?devkey=` |
+| `ALLOW_MOCK_ADAPTERS` | `true` lets test payments run with `NODE_ENV=production` (until M-Pesa is connected). **Remove for go-live.** |
 
 ## Business settings (in the database, not env)
 Edit these in **Admin → Settings**. They are stored in `app_settings`:

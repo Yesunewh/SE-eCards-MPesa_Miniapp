@@ -1,15 +1,12 @@
 /**
- * Catalog and settings that match the demo app's defaults (BRANDS, defaultConfig() and ROWS0 in index.html).
+ * Starting catalogue and settings: brands and designs as in the app (BRANDS, defaultConfig() and ROWS0 in index.html).
  * Safe to run more than once: existing rows are left alone, so admin edits are never overwritten.
  *   npm run seed                 settings, brands, products, home screen
- *   npm run seed -- --demo-stock also uploads DEMO-… codes (development only)
  */
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { randomInt } from 'node:crypto';
 import type { Db } from './pool.js';
 import { withTx } from './pool.js';
-import type { CodeVault } from '../lib/crypto.js';
 
 export const CARD_VALUES_USD = [50, 100, 150, 200];
 
@@ -49,15 +46,13 @@ export async function seed(db: Db, opts: { mockProvider?: boolean } = {}): Promi
     await tx.query(
       `INSERT INTO app_settings (id, usd_etb_rate, vat_rate, seller_name, support)
        VALUES (1, 265, 0.15, 'eCards', $1) ON CONFLICT (id) DO NOTHING`,
-      [{ phone: '', email: 'support@example.com', telegram: '', whatsapp: '', from: '08:00', to: '22:00' }]
+      [{ phone: '', email: '', telegram: '', whatsapp: '', from: '08:00', to: '22:00' }]
     );
     for (const [i, b] of BRAND_SEED.entries()) {
       await tx.query(
-        `INSERT INTO brands (id, name, label, mark, category, color1, color2, ink, tile, tile_ink, style, is_hidden, sort_order,
-                             logo_url, card_image_url, banner_url)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) ON CONFLICT (id) DO NOTHING`,
-        [b.id, b.name, b.label ?? null, b.mark, b.cat, b.c1, b.c2, b.ink, b.tile, b.tileInk, b.style ?? {}, !!b.hidden, i * 10,
-         `assets/logos/${b.id}`, `assets/cards/${b.id}`, `assets/banners/${b.id}`]
+        `INSERT INTO brands (id, name, label, mark, category, color1, color2, ink, tile, tile_ink, style, is_hidden, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) ON CONFLICT (id) DO NOTHING`,
+        [b.id, b.name, b.label ?? null, b.mark, b.cat, b.c1, b.c2, b.ink, b.tile, b.tileInk, b.style ?? {}, !!b.hidden, i * 10]
       );
       if (b.hidden) continue;
       for (const v of CARD_VALUES_USD) {
@@ -87,7 +82,7 @@ export async function seed(db: Db, opts: { mockProvider?: boolean } = {}): Promi
       // Stands in for Wupex until its endpoints are available: every product mapped at ~2% below face value.
       await tx.query(
         `INSERT INTO providers (id, name, adapter, environment, is_active, status, balance_cents, low_balance_cents, buy_rate, priority)
-         VALUES ('mock', 'Mock provider (demo)', 'mock', 'sandbox', true, 'ok', 1000000, 50000, 265, 100)
+         VALUES ('mock', 'Mock supplier (tests)', 'mock', 'sandbox', true, 'ok', 1000000, 50000, 265, 100)
          ON CONFLICT (id) DO NOTHING`
       );
       await tx.query(
@@ -99,48 +94,16 @@ export async function seed(db: Db, opts: { mockProvider?: boolean } = {}): Promi
   });
 }
 
-/** Development only: puts some DEMO codes in stock, leaving a few products empty to show pre-orders. */
-export async function seedDemoStock(db: Db, vault: CodeVault): Promise<number> {
-  const products = (await db.query(`SELECT id, brand_id, face_value_cents FROM products ORDER BY brand_id, face_value_cents`)).rows;
-  const empty = new Set(['netflix:10000', 'playstation:5000', 'spotify:15000', 'steam:10000', 'apple:20000', 'googleplay:15000']);
-  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const g = () => Array.from({ length: 4 }, () => A[randomInt(A.length)]).join('');
-  let n = 0;
-  for (const p of products) {
-    if (empty.has(`${p.brand_id}:${p.face_value_cents}`) || p.brand_id === 'pubg') continue;
-    const count = 3 + randomInt(10);
-    const batch = (await db.query(
-      `INSERT INTO inventory_batches (product_id, source, supplier, code_count, note) VALUES ($1,'upload','demo',$2,'demo seed') RETURNING id`,
-      [p.id, count])).rows[0].id;
-    for (let i = 0; i < count; i++) {
-      const code = `DEMO-${g()}-${g()}-${g()}`;
-      await db.query(
-        `INSERT INTO gift_codes (product_id, batch_id, source, code_enc, code_hmac, code_last4, key_version)
-         VALUES ($1,$2,'upload',$3,$4,$5,$6) ON CONFLICT (code_hmac) DO NOTHING`,
-        [p.id, batch, vault.encrypt(code), vault.fingerprint(code), code.replace(/-/g, '').slice(-4), vault.keyVersion]
-      );
-      n++;
-    }
-  }
-  return n;
-}
-
-// CLI: npm run seed [-- --demo-stock] [-- --mock-provider]
+// CLI: npm run seed [-- --mock-provider]   (the mock supplier is for tests and local development)
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const { loadConfig } = await import('../config.js');
   const { createPool } = await import('./pool.js');
-  const { CodeVault } = await import('../lib/crypto.js');
   const cfg = loadConfig();
   const db = createPool(cfg.DATABASE_URL);
   try {
     const mockProvider = process.argv.includes('--mock-provider');
     await seed(db, { mockProvider });
     console.log('catalog and settings seeded' + (mockProvider ? ' (with mock provider)' : ''));
-    if (process.argv.includes('--demo-stock')) {
-      if (cfg.NODE_ENV === 'production' && !cfg.ALLOW_MOCK_ADAPTERS) throw new Error('--demo-stock is only allowed with ALLOW_MOCK_ADAPTERS=true');
-      const n = await seedDemoStock(db, new CodeVault(cfg.CODE_ENCRYPTION_KEY, cfg.CODE_HMAC_KEY));
-      console.log(`${n} demo codes added`);
-    }
   } finally {
     await db.end();
   }

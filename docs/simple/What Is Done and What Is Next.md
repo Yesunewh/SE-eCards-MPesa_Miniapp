@@ -14,8 +14,8 @@ Back to [[00 Home]] · Detailed: [[Status and Roadmap]]
 - **M-Pesa connection** built exactly as Safaricom's documents describe: login with M-Pesa, pay with M-Pesa, and M-Pesa's "payment received" messages.
 - **Wupex connection** working with Wupex's **test (sandbox) account**: a real test order went through and the code arrived. Protection against double buying is built in.
 - **Security**: encrypted codes, logs, staff roles, phone-bound codes.
-- **107 automatic tests** check all of this every time.
-- Running on our server at **ecards.paperless.et** in **test mode**, with fake money and demo codes.
+- **109 automatic tests** check all of this every time.
+- Running on our server at **ecards.paperless.et**. Payments are in **test mode** until the M-Pesa mini program is registered; cards come from Wupex's **test** account.
 - Safaricom **developer account** created and the test connection works.
 
 ## ⏳ Waiting for partners

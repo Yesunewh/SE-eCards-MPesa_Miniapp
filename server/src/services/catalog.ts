@@ -23,7 +23,7 @@ export interface ProductView {
 
 /**
  * Products with price and availability. Availability = codes on hand + a ready provider that can afford one card,
- * the same rule as stockOf()/apiReady() in the demo.
+ * the same rule the app shows (stockOf() in index.html).
  */
 export async function productViews(q: Queryable, s: Settings, where = 'TRUE', params: unknown[] = []): Promise<ProductView[]> {
   const rows = await many(q, `

@@ -6,9 +6,9 @@ cd "$(dirname "$0")/.."
 [[ -d node_modules ]] || npm ci --no-audit --no-fund --loglevel=error   # build tools, only inside this folder
 rm -rf dist && npm run build >/dev/null
 mkdir -p release
-# the front end (mini app, admin panel, web store, images) is served by the API from public/
+# the front end (mini app, admin panel, images) is served by the API from public/
 rm -rf release/public && mkdir -p release/public
-cp ../index.html ../admin.html ../web.html release/public/ && cp -r ../assets release/public/
+cp ../index.html ../admin.html release/public/ && cp -r ../assets release/public/
 EXTRA=""; [[ -f .env.example ]] && EXTRA=".env.example"
 tar -czf release/ecards-server.tar.gz dist migrations package.json package-lock.json deploy README.md $EXTRA -C release public
 rm -rf release/public

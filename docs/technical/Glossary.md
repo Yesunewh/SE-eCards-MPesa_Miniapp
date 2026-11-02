@@ -42,5 +42,5 @@ Back to [[00 Home]]
 | **systemd** | Linux's service manager. It keeps `ecards-api` running. |
 | **nginx** | The web server in front of the app. It handles HTTPS and the domain. |
 | **certbot / Let's Encrypt** | Free HTTPS certificates |
-| **Staging** | A safe test setup with fake money and fake codes |
+| **Test payments** | `PAYMENTS_ADAPTER=mock`: no money moves; staff confirm a payment by recording an M-Pesa receipt. Used until M-Pesa is connected. |
 | **Device binding** | Codes are visible only on the phone that bought them, for unverified logins |

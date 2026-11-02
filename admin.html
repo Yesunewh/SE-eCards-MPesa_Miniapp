@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="ecards-api" content="https://ecards.paperless.et">
 <meta name="theme-color" content="#dce4fb">
 <title>eCards Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap">
 <style>
-/* eCards admin panel for the M-Pesa mini app demo.
+/* eCards admin panel for the M-Pesa mini app.
    Same look as the app (index.html): Figtree, blue #1d55f3, soft blue gradient, white rounded cards, pills.
    Reads and writes the same browser storage as the app, so open both from the same folder (or the same web host). */
 :root{
@@ -718,8 +719,8 @@ body.locked{overflow:hidden}
 @keyframes lgspin{to{transform:rotate(360deg)}}
 .lg-terms{margin:22px 0 0;color:var(--muted);font-size:13.5px;line-height:1.55;text-wrap:pretty}
 .lg-terms b{color:var(--ink-2);font-weight:600}
-.lg-demo{margin:18px 0 0;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--chip);color:var(--ink-2);font-size:13px;font-weight:600}
-.lg-demo .ic{width:16px;height:16px;color:var(--blue)}
+.lg-info{margin:18px 0 0;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--chip);color:var(--ink-2);font-size:13px;font-weight:600}
+.lg-info .ic{width:16px;height:16px;color:var(--blue)}
 /* the picture side: the mini app's splash screen */
 .lg-art{position:relative;overflow:hidden;container-type:size;background:linear-gradient(180deg,#dbe3fb 0%,#e1e8fb 55%,#ecf0fb 100%)}
 .lg-art .dots{position:absolute;inset:6% 4%;
@@ -769,10 +770,7 @@ body.locked{overflow:hidden}
       <span class="ec lg-logo" id="lg-logo"><span>eCards</span></span>
       <h1 id="lg-title">Welcome back</h1>
       <p class="lg-sub" id="lg-sub">Sign in to manage orders, stock and brands for the eCards mini app.</p>
-      <div class="lg-step" id="lg-social">
-        <button type="button" class="lg-google" id="lg-google"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg><span>Continue with Google</span></button>
-        <div class="lg-or"><span>or</span></div>
-      </div>
+      <div class="lg-step" id="lg-social" hidden></div>
       <form id="lg-form" novalidate>
         <div id="lg-s1">
           <label class="sr" for="lg-email">Email address</label>
@@ -787,7 +785,7 @@ body.locked{overflow:hidden}
         <button type="submit" class="btn lg-go" id="lg-go">Continue</button>
       </form>
       <p class="lg-terms">By continuing, you agree to the eCards <b>Terms of Service</b> and <b>Privacy Policy</b>.</p>
-      <p class="lg-demo" id="lg-demo"></p>
+      <p class="lg-info" id="lg-info"></p>
     </div>
   </div>
   <div class="lg-art" aria-hidden="true"><div class="dots"></div><div id="lg-float"></div>
@@ -798,8 +796,7 @@ body.locked{overflow:hidden}
   <nav class="nav" id="nav"></nav>
   <div class="side-foot">
     <a class="side-link" href="index.html" target="_blank" rel="noopener"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4.5h5.5V10"/><path d="M19.5 4.5L11 13"/><path d="M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4"/></svg>Open the mini app</a>
-    <a class="side-link" href="web.html" target="_blank" rel="noopener"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4.5h5.5V10"/><path d="M19.5 4.5L11 13"/><path d="M18 14v4a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4"/></svg>Open the web store</a>
-    <div class="who" id="who"><span class="avatar">AD</span><div><b>Admin <span class="tag">Demo</span></b><small></small></div></div>
+    <div class="who" id="who"><span class="avatar">AD</span><div><b>Admin</b><small></small></div></div>
   </div>
 </aside>
 <div class="scrim" id="scrim"></div>
@@ -823,21 +820,16 @@ body.locked{overflow:hidden}
 <script>
 (() => {
 'use strict';
-/* ---------- server mode: when the eCards API is reachable, the panel reads and changes the real data (assets/ecards-api.js) ---------- */
-const API = window.EcardsAPI || { on: false, init: () => Promise.resolve(false) };
-const SV = { config: null, stock: {}, pid: {}, orders: [], tickets: [] };
-let svPolling = false;   // true while a server refresh replays the cross-tab sync below
+/* ---------- every piece of data comes from the eCards server, and every change is sent to it (assets/ecards-api.js) ---------- */
+const API = window.EcardsAPI;
+const SV = { config: null, stock: {}, pid: {}, media: { logos: {}, cards: {}, banners: {} }, orders: [], tickets: [] };
 
 /* =====================================================================
-   Shared with the mini app (index.html). Keep these in step with the app:
-   storage keys, brand list, starting settings, starting stock, fulfilment.
+   Brand designs and fallbacks, the same as in the mini app (index.html).
    ===================================================================== */
 const CARD_VALUES = [50, 100, 150, 200];
 const DEF_RATE = 265, DEF_VAT = 0.15, DEF_SELLER = 'eCards';
-const K_CART = 'ecards-et-v2-cart', K_ORDERS = 'ecards-et-v2-orders', K_USED = 'ecards-et-v2-used', K_WISH = 'ecards-et-v2-wish';
-const K_CONFIG = 'ecards-et-v2-config', K_STOCK = 'ecards-et-v2-stock';
-const K_SESSION = 'ecards-et-demo-session', K_WELCOME = 'ecards-et-demo-welcome-seen';
-const K_PV = 'ecards-admin-preview';   // admin only: preview panel open or closed
+const K_PV = 'ecards-admin-preview';   // this browser only: preview panel open or closed
 const CAT = { gaming: 'Gaming', apps: 'Apps', video: 'Streaming', music: 'Music', telecom: 'Mobile top-up', card: 'Gift card' };
 const CAT_ICON = { gaming: 'pad', apps: 'apps', video: 'play', music: 'note', telecom: 'signal', card: 'card' };
 const ET = ['ETH'];
@@ -873,9 +865,8 @@ const SLIDES0 = [
 const SLIDE_BY = Object.fromEntries(SLIDES0.map(x => [x.bid, x]));
 const DAY = 86400000;
 const DAY0 = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
-const STOCK_SEED = { 'netflix:100': 2, 'playstation:50': 1, 'spotify:150': 3, 'steam:100': 2, 'apple:200': 4, 'pubg:*': 2, 'googleplay:150': 5 };
 
-/* browser storage, or memory when the viewer blocks it (some preview windows do): pages still work, changes last until the window closes */
+/* browser storage for this browser's preferences only (sign-in, preview open), or memory when it is blocked */
 const MEM = new Map();
 const LS = (() => { try { localStorage.setItem('__ec_t', '1'); localStorage.removeItem('__ec_t'); return true; } catch (e) { return false; } })();
 const store = {
@@ -887,7 +878,7 @@ const store = {
   set(k, v) { const t = JSON.stringify(v); if (LS) { try { localStorage.setItem(k, t); MEM.delete(k); return; } catch (e) { /* full or blocked */ } } MEM.set(k, t); },
   del(k) { MEM.delete(k); if (LS) { try { localStorage.removeItem(k); } catch (e) { /* storage unavailable */ } } }
 };
-/* opened as a real page (from the folder or a website), not inside a preview window */
+/* opened as a normal web page (address and history available) */
 const LINKED = /^(https?|file):$/.test(location.protocol);
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function hashStr(str) { let x = 2166136261; for (let i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 16777619); } return x >>> 0; }
@@ -935,13 +926,13 @@ function defaultConfig() {
     rate: DEF_RATE, vat: DEF_VAT, seller: DEF_SELLER, values: CARD_VALUES.slice(), lowAt: 5, autoFulfil: true,
     brands: Object.fromEntries(BRANDS.filter(b => !b.hidden && !b.custom).map(b => [b.id, { on: true, values: CARD_VALUES.slice() }])),
     custom: [],
-    support: { phone: '', email: 'support@example.com', telegram: '', whatsapp: '', from: '08:00', to: '22:00' },
+    support: { phone: '', email: '', telegram: '', whatsapp: '', from: '08:00', to: '22:00' },
     popular: POPULAR0.slice(),
     banners: [...SLIDES0.map(x => x.bid), 'steam', 'pubg', 'cod'].map(bid => ({ bid, on: true }))
   };
 }
 function loadConfig() {
-  const d = defaultConfig(), sv = API.on && SV.config ? SV.config : store.get(K_CONFIG, null);
+  const d = defaultConfig(), sv = SV.config;
   if (!sv || typeof sv !== 'object') { applyBrands(d); return d; }
   const c = { ...d, ...sv };
   c.rate = +c.rate > 0 ? +c.rate : d.rate;
@@ -957,139 +948,33 @@ function loadConfig() {
   SLIDES0.forEach(x => { if (!c.banners.some(y => y.bid === x.bid)) c.banners.push({ bid: x.bid, on: false }); });
   return c;
 }
-function defaultStockEntry(bid, v) {
-  if (!ORIG[bid] || !CARD_VALUES.includes(+v)) return { qty: 0, eta: null, codes: [] };   // brands and values added later start empty
-  const d = STOCK_SEED[`${bid}:${v}`] ?? STOCK_SEED[`${bid}:*`];
-  if (d != null) return { qty: 0, eta: DAY0 + d * DAY, codes: [] };
-  const r = mulberry32(hashStr(`${bid}:${v}`))();
-  return { qty: r < .15 ? 2 + Math.floor(r * 20) : 8 + Math.floor(r * 40), eta: null, codes: [] };
-}
-function loadStock(c) {
-  const sv = store.get(K_STOCK, null), st = sv && typeof sv === 'object' ? sv : {};
-  let changed = !sv;
-  shown().forEach(b => c.values.forEach(v => {
-    const k = `${b.id}:${v}`;
-    if (!st[k] || typeof st[k].qty !== 'number') { st[k] = defaultStockEntry(b.id, v); changed = true; }
-    if (!Array.isArray(st[k].codes)) st[k].codes = [];
-  }));
-  if (changed) store.set(K_STOCK, st);
-  return st;
-}
-function makeCode() {
-  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const g = () => Array.from({ length: 4 }, () => A[Math.floor(Math.random() * A.length)]).join('');
-  return `DEMO-${g()}-${g()}-${g()}`;
-}
-function takeCodes(x, n) { const out = x.codes.splice(0, n); while (out.length < n) out.push(makeCode()); return out; }
 const skey = (bid, v) => `${bid}:${v}`;
-/* oldest pre-orders first; a line is delivered only when its whole quantity is in stock */
-function fulfilWaiting(onlyKey) {
-  if (API.on) return 0;   // server mode: the server delivers pre-orders itself after a restock
-  let n = 0;
-  orders.slice().sort((a, b) => a.at - b.at).forEach(o => o.items.forEach(it => {
-    if (it.status !== 'waiting') return;
-    const k = skey(it.bid, it.amount); if (onlyKey && k !== onlyKey) return;
-    const x = stock[k]; if (!x || x.qty < it.qty) return;
-    x.qty -= it.qty; it.codes = takeCodes(x, it.qty); it.status = 'delivered'; it.deliveredAt = Date.now(); n++;
-  }));
-  return n;
-}
-
-/* there are no refunds: demo data saved by an older version may still hold refunded lines (same as the app) */
-function noRefunds(list) {
-  let changed = false;
-  list.forEach(o => o.items.forEach(it => {
-    if (it.status !== 'refunded') return;
-    changed = true; delete it.refundedAt;
-    if (o.sample) { it.status = 'delivered'; it.codes = Array.from({ length: it.qty }, makeCode); it.deliveredAt = o.at; }
-    else { it.status = 'waiting'; it.codes = []; it.eta = it.eta || DAY0 + 3 * DAY; }
-  }));
-  return changed;
-}
-
-
-/* ---------- gift card API providers (shared by the app and the admin; the same in both files) ----------
-   DEMO: no provider is contacted. Calls are simulated and written to the API log so the flow can be followed.
-   In the live system these calls run on the eCards server, never in the browser, and keys stay on the server. */
-const K_API = 'ecards-et-v2-api';
-function loadApi() {
-  const a = store.get(K_API, null) || {};
-  return {
-    providers: Array.isArray(a.providers) ? a.providers.filter(p => p && p.id) : [],
-    products: Array.isArray(a.products) ? a.products.filter(p => p && p.key) : [],
-    sell: a.sell && typeof a.sell === 'object' ? a.sell : {},
-    log: Array.isArray(a.log) ? a.log : []
-  };
-}
-const saveApi = A => store.set(K_API, A);
-const provOf = (A, id) => A.providers.find(p => p.id === id);
-const provReady = p => !!p && p.on !== false && p.status === 'ok';
-function apiFor(A, bid, v) {   // the provider product that delivers this brand and value, when it can sell right now
-  const s = A.sell[`${bid}:${v}`]; if (!s) return null;
-  const p = provOf(A, s.pid); if (!provReady(p)) return null;
-  return { s, p };
-}
-const apiReady = (A, bid, v, qty = 1) => { const x = apiFor(A, bid, v); return !!x && x.p.balance >= x.s.cost * qty; };
-function apiLog(A, e) { A.log.unshift({ at: Date.now(), ...e }); if (A.log.length > 250) A.log.length = 250; }
-const apiMs = () => 140 + Math.floor(Math.random() * 520);
-const apiPath = (p, k, vars = {}) => String((p.paths && p.paths[k]) || k).replace(/\{(\w+)\}/g, (m, n) => vars[n] ?? m);
-/* buy cards for one order line: order, then fetch the codes. Returns { codes, via } or null (line stays a pre-order) */
-function apiBuy(A, line, ref, src) {
-  const x = apiFor(A, line.bid, line.amount); if (!x) return null;
-  const { s, p } = x, cost = +(s.cost * line.qty).toFixed(2);
-  if (p.balance < cost) {
-    apiLog(A, { pid: p.id, src, m: 'POST', p: apiPath(p, 'order'), s: 400, ms: apiMs(), err: true, note: `${ref} · not enough balance: needs $${cost.toFixed(2)}, has $${p.balance.toFixed(2)} · kept as a pre-order` });
-    return null;
-  }
-  const txn = String(100000 + Math.floor(Math.random() * 899999));
-  p.balance = +(p.balance - cost).toFixed(2);
-  apiLog(A, { pid: p.id, src, m: 'POST', p: apiPath(p, 'order'), s: 200, ms: apiMs(), note: `customIdentifier ${ref} · product ${s.product} · ${line.qty} × $${line.amount} · SUCCESSFUL · transaction ${txn} · cost $${cost.toFixed(2)}` });
-  apiLog(A, { pid: p.id, src, m: 'GET', p: apiPath(p, 'codes', { id: txn }), s: 200, ms: apiMs(), note: `${line.qty} code${line.qty === 1 ? '' : 's'} received · codes are never written to the log` });
-  return { codes: Array.from({ length: line.qty }, makeCode), via: { pid: p.id, provider: p.name, txn, cost } };
-}
-
-/* ================= state ================= */
-const K_TICKETS = 'ecards-et-v2-tickets';   // support messages, written in the app and answered here
-let cfg, stock, orders, wish, session, tickets, apiS;
+/* ================= state: the latest data from the server ================= */
+let cfg, stock, orders, tickets;
+let sup = { providers: [], products: {}, log: [], loaded: false, tab: null };   // gift card suppliers (Suppliers page)
 function reload() {
-  if (API.on) {
-    cfg = loadConfig();
-    stock = JSON.parse(JSON.stringify(SV.stock));
-    BRANDS.filter(b => !b.hidden).forEach(b => cfg.values.forEach(v => { const k = `${b.id}:${v}`; if (!stock[k]) stock[k] = { qty: 0, eta: null, codes: [] }; }));
-    orders = JSON.parse(JSON.stringify(SV.orders)).sort((a, b) => b.at - a.at);
-    tickets = JSON.parse(JSON.stringify(SV.tickets));
-    wish = []; session = null;
-    apiS = { providers: [], products: [], sell: {}, log: [] };
-    return;
-  }
   cfg = loadConfig();
-  stock = loadStock(cfg);
-  orders = (store.get(K_ORDERS, []) || []).filter(o => o && Array.isArray(o.items)).sort((a, b) => b.at - a.at);
-  if (noRefunds(orders)) store.set(K_ORDERS, orders);
-  wish = (store.get(K_WISH, []) || []).filter(x => x && BR[x.bid]);
-  session = store.get(K_SESSION, null);
-  tickets = (store.get(K_TICKETS, []) || []).filter(x => x && Array.isArray(x.msgs) && x.msgs.length);
-  apiS = loadApi();
+  stock = JSON.parse(JSON.stringify(SV.stock));
+  BRANDS.filter(b => !b.hidden).forEach(b => cfg.values.forEach(v => { const k = `${b.id}:${v}`; if (!stock[k]) stock[k] = { qty: 0, eta: null, codes: [] }; }));
+  orders = JSON.parse(JSON.stringify(SV.orders)).sort((a, b) => b.at - a.at);
+  tickets = JSON.parse(JSON.stringify(SV.tickets));
 }
-function save(parts) {   // stock and orders first, so the app never sees a new brand or value before its stock
-  if (parts.includes('stock')) store.set(K_STOCK, stock);
-  if (parts.includes('orders')) store.set(K_ORDERS, orders);
-  if (parts.includes('tickets')) store.set(K_TICKETS, tickets);
-  if (parts.includes('api')) saveApi(apiS);
-  if (parts.includes('cfg')) store.set(K_CONFIG, cfg);
-}
-/* every change: read the latest saved data first (the app may have changed it), change it, save, redraw */
+/* every change: applied to a copy, the difference is sent to the server, then the server's answer is shown */
 const ABORT = Symbol('abort');   // returned by a change that turned out not to be possible
-function act(fn, parts, msg) {
-  if (API.on) return serverAct(fn, parts, msg);
-  reload();
-  const r = fn();
-  if (r === ABORT) { render(); return r; }
-  save(parts);
-  if (parts.includes('cfg')) applyBrands(cfg);   // names, colours and added brands take effect straight away
-  render();
-  if (msg) toast(typeof msg === 'function' ? msg(r) : msg);
-  return r;
+const act = (fn, parts, msg) => serverAct(fn, parts, msg);
+/* a direct server action (retry, resend, record payment…): run it, reload, redraw, tell the result */
+async function call(fn, okMsg) {
+  try {
+    const r = await fn();
+    await serverLoad(); reload(); render(); refreshDrawer();
+    if (okMsg) toast(typeof okMsg === 'function' ? okMsg(r) : okMsg);
+    // deliveries finish on the server a moment later: look again shortly
+    setTimeout(() => serverLoad().then(() => { reload(); render(); refreshDrawer(); }).catch(() => {}), 2500);
+    return r;
+  } catch (e) {
+    toast(e.code === 'forbidden' ? 'Your role cannot do this' : e.code === 'network' ? 'Cannot reach the eCards server' : (e.message || 'Something went wrong'));
+    throw e;
+  }
 }
 
 /* ================= helpers ================= */
@@ -1165,31 +1050,14 @@ const P = {
 };
 const ic = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[n]}</svg>`;
 
-/* brand images: the same assets folder as the app (logos and banners) */
-const HAVE = { logos: {}, cards: {}, banners: {} };    // what the previews use: uploads first, then the assets folder
+/* brand pictures: set here and stored on the server; otherwise files in the assets folder */
+const HAVE = { logos: {}, cards: {}, banners: {} };    // what the previews use: the server's pictures first, then the assets folder
 const FOUND = { logos: {}, cards: {}, banners: {} };   // files found in the assets folder
-const K_MEDIA = 'ecards-et-v2-media';                  // pictures uploaded here (shared with the app)
-const IMG_URL = /^data:image\/(png|jpeg|webp|gif|svg\+xml)[;,]/;
-let media = { logos: {}, cards: {}, banners: {} };
+const media = SV.media;
 function loadMedia() {
-  const m = store.get(K_MEDIA, null) || {};
-  ['logos', 'cards', 'banners'].forEach(k => {
-    media[k] = Object.fromEntries(Object.entries(m[k] || {}).filter(([, v]) => typeof v === 'string' && IMG_URL.test(v)));
-    HAVE[k] = { ...FOUND[k], ...media[k] };
-  });
+  ['logos', 'cards', 'banners'].forEach(k => { HAVE[k] = { ...FOUND[k], ...(SV.media[k] || {}) }; });
 }
-const srcOf = (kind, id) => media[kind][id] ? 'upload' : FOUND[kind][id] ? 'folder' : 'none';
-/* save or remove one uploaded picture; false when the browser has no room for it */
-function saveMedia(kind, id, url) {
-  const m = store.get(K_MEDIA, null) || {};
-  ['logos', 'cards', 'banners'].forEach(k => { m[k] = m[k] || {}; });
-  if (url) m[kind][id] = url; else delete m[kind][id];
-  const t = JSON.stringify(m);
-  if (LS) { try { localStorage.setItem(K_MEDIA, t); MEM.delete(K_MEDIA); } catch (e) { return false; } }
-  else MEM.set(K_MEDIA, t);
-  loadMedia();
-  return true;
-}
+const srcOf = (kind, id) => SV.media[kind][id] ? 'upload' : FOUND[kind][id] ? 'folder' : 'none';
 function tryLoad(url) {
   return new Promise(res => {
     const im = new Image(); const tm = setTimeout(() => res(false), 4000);
@@ -1221,7 +1089,6 @@ const stPill = s => { const [c, i, l] = ST[s]; return `<span class="st ${c}">${i
 const lineRev = it => unitOf(it) * it.qty;
 const oPaid = o => sum(o.items, lineRev);
 const oCards = o => sum(o.items, it => it.qty);
-const isDemoCustomer = o => session && o.phone && o.phone === session.phone;
 const custName = o => o.name || 'App customer';
 function itemsHTML(o) {
   const ids = [...new Set(o.items.map(it => it.bid))];
@@ -1232,13 +1099,14 @@ function itemsHTML(o) {
 
 /* stock */
 const qtyOf = k => stock[k] ? Math.max(0, stock[k].qty) : 0;
+const supplierOf = k => stock[k] && stock[k].provider || null;   // a ready gift card supplier delivers this card (server)
+const supName = id => { const p = sup.providers.find(x => x.id === id); return p ? p.name : id ? id.charAt(0).toUpperCase() + id.slice(1) : ''; };
 function stockState(k) {
-  const [b, v] = k.split(':'), x = apiFor(apiS, b, +v);
-  if (x) return qtyOf(k) > 0 ? 'ok' : x.p.balance >= x.s.cost ? 'api' : 'out';   // a provider delivers when own stock runs out
+  if (supplierOf(k)) return qtyOf(k) > 0 ? 'ok' : 'api';   // the supplier delivers when our own codes run out
   return qtyOf(k) <= 0 ? 'out' : qtyOf(k) <= cfg.lowAt ? 'low' : 'ok';
 }
 const waitingFor = k => allLines().filter(l => l.k === k && statusOf(l.it) === 'waiting');
-const wishFor = k => wish.filter(x => skey(x.bid, x.amount) === k).length;
+const wishFor = () => 0;   // wishlists are per customer in the app; not counted here
 const brandOn = id => { const bc = cfg.brands[id]; return !bc || bc.on !== false; };
 const valueOn = (id, v) => { const bc = cfg.brands[id]; return cfg.values.includes(v) && (!bc || !Array.isArray(bc.values) || bc.values.includes(v)); };
 const sellable = (id, v) => brandOn(id) && valueOn(id, v);
@@ -1265,7 +1133,7 @@ const PAGES = {
   banners: { title: 'Home banners', icon: 'image' },
   customers: { title: 'Customers', icon: 'users' },
   support: { title: 'Support', icon: 'headset' },
-  api: { title: 'API providers', icon: 'plug' },
+  api: { title: 'Suppliers', icon: 'plug' },
   settings: { title: 'Pricing & settings', icon: 'sliders' },
   brand: { title: 'Brand', icon: 'tag', sub: 'brands' }   // one brand; not in the menu
 };
@@ -1297,7 +1165,7 @@ function go(r, q) {
 function renderNav() {
   const waitN = sum(allLines().filter(l => statusOf(l.it) === 'waiting'), l => l.it.qty);
   const outN = stockAlerts().filter(a => a.s === 'out').length;
-  const counts = { preorders: waitN, inventory: outN, support: tickets.filter(x => x.status === 'open').length, api: apiS.providers.filter(apiIssue).length };
+  const counts = { preorders: waitN, inventory: outN, support: tickets.filter(x => x.status === 'open').length, api: sup.providers.filter(apiIssue).length };
   const cur = PAGES[route].sub || route;
   $('#nav').innerHTML = Object.entries(PAGES).filter(([, p]) => !p.sub).map(([id, p]) => `<button class="navi" data-route="${id}"${id === cur ? ' aria-current="page"' : ''}>${ic(p.icon)}<span>${p.title}</span>${counts[id] ? `<span class="ncount">${counts[id]}<span class="sr"> ${id === 'preorders' ? 'cards waiting' : id === 'support' ? 'messages need a reply' : id === 'api' ? 'providers need attention' : 'out of stock'}</span></span>` : ''}</button>`).join('');
 }
@@ -1311,8 +1179,8 @@ const SUBTITLE = {
   banners: () => 'The pictures that rotate at the top of the home screen',
   customers: () => 'Everyone who has ordered, from their M-Pesa account',
   support: () => 'Messages customers send from Contact support in the app',
-  api: () => 'Gift card companies you buy international cards from, their catalogs and every API call',
-  settings: () => 'Exchange rate, VAT, card values and demo data'
+  api: () => 'The gift card companies you buy cards from: balance, catalogue, which cards they deliver, every call',
+  settings: () => 'Exchange rate, VAT, card values and support contacts'
 };
 
 let lastRoute = null;
@@ -1370,8 +1238,8 @@ function Dashboard() {
 }
 function noOrdersCard() {
   return `<div class="card"><div class="empty"><span class="eic">${ic('receipt')}</span><h2>No orders yet</h2>
-    <p>Orders from the mini app show up here as soon as a customer pays with M-Pesa. To try the dashboard, add sample orders from a few made-up customers, or buy a card in the app.</p>
-    <div class="btns"><button class="btn" data-act="sample">${ic('sparkle')}Add sample orders</button><a class="btn ghost" href="index.html" target="_blank" rel="noopener">Open the mini app</a></div></div></div>`;
+    <p>Orders from the mini app show up here as soon as a customer pays with M-Pesa.</p>
+    <div class="btns"><a class="btn ghost" href="index.html" target="_blank" rel="noopener">Open the mini app</a></div></div></div>`;
 }
 function dayBuckets(start, days) {
   const b = Array.from({ length: days }, (_, i) => ({ ts: start + i * DAY, rev: 0, n: 0 }));
@@ -1467,19 +1335,63 @@ function filteredOrders() {
     return hay.includes(q);
   });
 }
+let unpaid = null;   // orders waiting for M-Pesa (loaded when the Awaiting payment tab opens)
 function Orders() {
-  const cnt = s => orders.filter(o => s === 'all' || oStatus(o) === s).length;
-  const F = [['all', 'All'], ['delivered', 'Delivered'], ['waiting', 'Waiting for stock']];
+  const cnt = s => s === 'unpaid' ? (unpaid ? unpaid.length : '…') : orders.filter(o => s === 'all' || oStatus(o) === s).length;
+  const F = [['all', 'All'], ['delivered', 'Delivered'], ['waiting', 'Waiting for stock'], ['unpaid', 'Awaiting payment']];
+  if (ui.oFilter === 'unpaid' && !unpaid) loadUnpaid();
   return `<div class="card">
     <div class="toolbar">
       <label class="search">${ic('search')}<span class="sr">Search orders</span><input id="oq" type="search" placeholder="Order, customer, phone or brand" value="${esc(ui.oq)}" autocomplete="off"></label>
       <div class="chips" role="group" aria-label="Status">${F.map(([k, l]) => `<button class="fchip" data-of="${k}" aria-pressed="${ui.oFilter === k}">${l} · ${cnt(k)}</button>`).join('')}</div>
     </div>
-    <div id="olist">${orderList()}</div>
+    <div id="olist">${ui.oFilter === 'unpaid' ? unpaidList() : orderList()}</div>
   </div>`;
 }
+function loadUnpaid() {
+  API.adminUnpaid().then(list => { unpaid = list; if (route === 'orders') render(); }).catch(() => { unpaid = []; });
+}
+const PAY_ST = { pending_payment: ['wait', 'clock', 'Waiting for M-Pesa'], payment_failed: ['out', 'alert', 'Payment failed'], expired: ['muted', 'hourglass', 'Expired'] };
+function unpaidList() {
+  if (!unpaid) return `<p class="note">Loading…</p>`;
+  const q = ui.oq.trim().toLowerCase();
+  const list = unpaid.filter(o => !q || `${o.reference} ${o.customer_name || ''} ${o.msisdn || ''}`.toLowerCase().includes(q));
+  if (!list.length) return `<div class="empty"><span class="eic">${ic('check')}</span><h2>Nothing waiting</h2><p>Orders from the last 14 days that are not paid yet show up here. If a customer paid in M-Pesa but the order is still here, record the payment with its M-Pesa receipt number.</p></div>`;
+  return `<div class="rows"><div class="rowh o-cols"><span>Order</span><span class="hide-m">Date</span><span>Customer</span><span class="hide-m">M-Pesa</span><span class="r">Total</span><span>Status</span></div>
+    ${list.map(o => { const [c, i, l] = PAY_ST[o.status] || PAY_ST.pending_payment; return `<button class="row o-cols" data-unpaid="${esc(o.id)}">
+      <span class="cell cell-id"><b>${esc(o.reference)}</b></span><span class="cell hide-m">${esc(dtime(new Date(o.created_at).getTime()))}</span>
+      <span class="cell c-cust"><span class="ell"><b>${esc(o.customer_name || 'App customer')}</b></span><small class="ell">${esc(API.fmtPhone(o.msisdn) || '')}</small></span>
+      <span class="cell hide-m"><small class="ell">${esc(o.last_payment ? (o.last_payment.message || o.last_payment.status) : 'Not started')}</small></span>
+      <span class="cell r"><b>${fmt(o.total_minor / 100)}</b></span><span class="cell c-status"><span class="st ${c}">${ic(i)}${l}</span></span></button>`; }).join('')}</div>
+    <p class="note">${num(list.length)} order${list.length === 1 ? '' : 's'} not paid</p>`;
+}
+function openUnpaid(id) {
+  const o = (unpaid || []).find(x => x.id === id); if (!o) return;
+  const w = openDrawer(`<div class="d-head"><div class="t"><h2>Order ${esc(o.reference)}</h2><small>${esc(dtime(new Date(o.created_at).getTime()))} · not paid</small></div><button class="d-x" data-close aria-label="Close">${ic('close')}</button></div>
+    <form class="d-body" id="rp-form" novalidate>
+      <div class="sec"><dl class="kv"><dt>Customer</dt><dd>${esc(o.customer_name || 'App customer')}</dd><dt>M-Pesa</dt><dd>${esc(API.fmtPhone(o.msisdn) || '—')}</dd><dt>Total</dt><dd>${fmt(o.total_minor / 100)}</dd>
+        <dt>Last attempt</dt><dd>${esc(o.last_payment ? `${o.last_payment.status}${o.last_payment.message ? ' · ' + o.last_payment.message : ''}` : 'The customer has not paid yet')}</dd></dl></div>
+      <div class="sec"><h3>Record an M-Pesa payment</h3>
+        <p class="note">Only when the money is in the eCards M-Pesa account but the order did not update (for example M-Pesa's confirmation never arrived). Check the M-Pesa statement first. The order is then paid and delivered, and this is written to the audit log.</p>
+        <div class="field"><label for="rp-rec">M-Pesa receipt number</label><div class="inp"><input id="rp-rec" autocomplete="off" spellcheck="false" maxlength="20" placeholder="e.g. QAYGDMWP8S" style="text-transform:uppercase"></div></div>
+        <div class="field"><label for="rp-amt">Amount received</label><div class="inp"><span class="fix">Br</span><input id="rp-amt" inputmode="decimal" value="${(o.total_minor / 100).toFixed(2)}"></div><span class="hint">Must be exactly the order total.</span></div>
+        <p class="err-msg" id="rp-err" hidden></p></div>
+    </form>
+    <div class="d-foot"><button class="btn line" data-close>Cancel</button><button class="btn" id="rp-ok">${ic('check')}Record payment</button></div>`, { label: `Order ${o.reference}` });
+  const err = w.querySelector('#rp-err');
+  const submit = () => {
+    const rec = w.querySelector('#rp-rec').value.trim().toUpperCase(), amt = Math.round(parseFloat(w.querySelector('#rp-amt').value) * 100);
+    if (!/^[A-Z0-9]{8,20}$/.test(rec)) { err.hidden = false; err.textContent = 'Enter the receipt number from the M-Pesa statement (letters and digits).'; return; }
+    if (amt !== o.total_minor) { err.hidden = false; err.textContent = `The amount must be ${fmt(o.total_minor / 100)}.`; return; }
+    w.querySelector('#rp-ok').disabled = true;
+    call(() => API.adminRecordPayment(o.id, rec, amt), `${o.reference} paid · delivering the cards`).then(() => { closeDrawer(true); unpaid = null; loadUnpaid(); })
+      .catch(e => { w.querySelector('#rp-ok').disabled = false; err.hidden = false; err.textContent = e.message || 'Not recorded'; });
+  };
+  w.querySelector('#rp-ok').addEventListener('click', submit);
+  w.querySelector('#rp-form').addEventListener('submit', e => { e.preventDefault(); submit(); });
+}
 function orderList() {
-  if (!orders.length) return `<div class="empty"><span class="eic">${ic('receipt')}</span><h2>No orders yet</h2><p>Orders appear here as soon as a customer pays in the mini app.</p><div class="btns"><button class="btn" data-act="sample">${ic('sparkle')}Add sample orders</button></div></div>`;
+  if (!orders.length) return `<div class="empty"><span class="eic">${ic('receipt')}</span><h2>No orders yet</h2><p>Orders appear here as soon as a customer pays in the mini app.</p></div>`;
   const list = filteredOrders();
   if (!list.length) return `<div class="empty"><span class="eic">${ic('search')}</span><h2>No matching orders</h2><p>Try another search or status.</p></div>`;
   return `<div class="rows"><div class="rowh o-cols"><span>Order</span><span class="hide-m">Date</span><span>Customer</span><span class="hide-m">Items</span><span class="r">Total</span><span>Status</span></div>
@@ -1491,37 +1403,45 @@ function orderList() {
 /* ---------- order detail ---------- */
 const revealed = new Set();   // codes revealed in the order drawer
 const maskCode = c => c.replace(/[A-Z0-9](?=[A-Z0-9-]{4,}$)/g, '•');
+const fullCodes = {};   // order sid → { item sid: [codes] }, after an audited reveal
+function revealOrder(o) {
+  API.adminReveal(o.sid).then(d => {
+    fullCodes[o.sid] = Object.fromEntries(d.items.map(it => [it.id, it.codes.map(c => c.code + (c.pin ? `  PIN ${c.pin}` : ''))]));
+    refreshDrawer(); toast('Codes shown · this is written to the audit log');
+  }).catch(e => toast(e.code === 'forbidden' ? 'Only admins can see full codes' : (e.message || 'Could not load the codes')));
+}
 function openOrder(id) {
   const o = orders.find(x => x.id === id); if (!o) return;
   const st = oStatus(o), paid = oPaid(o);
   const line = (it, i) => {
     const k = skey(it.bid, it.amount), s = statusOf(it), q = qtyOf(k);
-    const codes = (it.codes || []).map((c, ci) => { const key = `${o.id}-${i}-${ci}`, vis = revealed.has(key); return `<div class="code"><span>${esc(vis ? c : maskCode(c))}</span><button data-reveal="${key}" aria-label="${vis ? 'Hide' : 'Show'} code" aria-pressed="${vis}">${ic(vis ? 'eyeOff' : 'eye')}</button><button data-copy="${esc(c)}" aria-label="Copy code">${ic('copy')}</button></div>`; }).join('');
+    const full = fullCodes[o.sid] && fullCodes[o.sid][it.sid];
+    const codes = (it.codes || []).map((c, ci) => { const key = `${o.id}-${i}-${ci}`, vis = !!full && revealed.has(key), real = full ? full[ci] || c : c; return `<div class="code"><span>${esc(vis ? real : c)}</span><button data-reveal="${key}" data-reveal-order="${esc(o.id)}" aria-label="${vis ? 'Hide' : 'Show'} code" aria-pressed="${vis}">${ic(vis ? 'eyeOff' : 'eye')}</button>${vis ? `<button data-copy="${esc(full[ci] || '')}" aria-label="Copy code">${ic('copy')}</button>` : ''}</div>`; }).join('');
     return `<div class="li">
       <div class="li-top">${bnameHTML(it.bid, `${usd(it.amount)} card · ${fmt(unitOf(it))} each`)}<span class="li-amt">${fmt(unitOf(it) * it.qty)}<small>× ${it.qty}</small></span></div>
-      <div class="li-acts">${s === 'delivered' ? `<span class="st ok">${ic('check')}Delivered${it.deliveredAt && it.deliveredAt - o.at > 60000 ? ` ${esc(dtime(it.deliveredAt))}` : ''}</span>${it.via ? `<span class="st info">${ic('plug')}${esc(it.via.provider)} · transaction ${esc(it.via.txn)} · cost $${Number(it.via.cost || 0).toFixed(2)}</span>` : ''}`
+      <div class="li-acts">${s === 'delivered' ? `<span class="st ok">${ic('check')}Delivered${it.deliveredAt && it.deliveredAt - o.at > 60000 ? ` ${esc(dtime(it.deliveredAt))}` : ''}</span>${it.via ? `<span class="st info">${ic('plug')}From ${esc(supName(it.via.provider))}</span>` : ''}`
         : `<span class="st wait">${ic('hourglass')}Waiting · expected ${esc(dmy(it.eta || etaShown(k)))}</span>
-           <button class="btn sm" data-deliver="${esc(o.id)}|${i}"${q < it.qty ? ' disabled' : ''}>Deliver now</button>${apiFor(apiS, it.bid, it.amount) ? `<button class="btn sm ghost" data-api-buy="${esc(o.id)}|${i}"${apiReady(apiS, it.bid, it.amount, it.qty) ? '' : ' disabled'}>${ic('plug')}Buy from ${esc(apiFor(apiS, it.bid, it.amount).p.name)}</button>` : ''}
-           <p class="note">${q >= it.qty ? `${q} in stock, enough to deliver.` : `${q} in stock, ${it.qty} needed. <button class="lnk" style="margin:0;padding:0" data-stock="${k}">Add stock</button>`}</p>`}</div>
+           <button class="btn sm" data-retry="${esc(o.id)}">Try delivery now</button>
+           <p class="note">${q >= it.qty ? `${q} in stock, enough to deliver.` : supplierOf(k) ? `${q} in stock · ${esc(supName(supplierOf(k)))} is buying the rest.` : `${q} in stock, ${it.qty} needed. <button class="lnk" style="margin:0;padding:0" data-stock="${k}">Add stock</button>`}</p>`}</div>
       ${codes ? `<div class="codes">${codes}</div>` : ''}
     </div>`;
   };
   openDrawer(`<div class="d-head"><div class="t"><h2>Order ${esc(o.id)}</h2><small>${esc(dtime(o.at))} · ${esc(ago(o.at))}</small></div>${stPill(st)}<button class="d-x" data-close aria-label="Close">${ic('close')}</button></div>
     <div class="d-body">
       <div class="sec"><h3>Customer</h3><dl class="kv">
-        <dt>Name</dt><dd>${esc(custName(o))}${isDemoCustomer(o) ? ' <span class="tag">App demo account</span>' : ''}</dd>
+        <dt>Name</dt><dd>${esc(custName(o))}</dd>
         <dt>M-Pesa</dt><dd>${esc(o.phone || '—')}</dd>
         <dt>Ordered in</dt><dd>${o.channel === 'web' ? `Web store${o.payPhone ? ` · paid from ${esc(o.payPhone)}` : ''}` : 'M-Pesa mini app'}</dd>
         <dt>Code sent to</dt><dd>${o.smsTo ? `SMS · ${esc(o.smsTo)}` : o.email ? `Email · ${esc(o.email)}` : '—'}</dd>
-        ${o.sample ? '<dt>Data</dt><dd><span class="tag">Sample order</span></dd>' : ''}
       </dl></div>
       <div><h3 class="sr">Items</h3>${o.items.map(line).join('')}</div>
       <div class="sec"><h3>Payment</h3><dl class="kv">
         <dt>Paid with M-Pesa</dt><dd>${fmt(paid)}</dd>
+        ${o.receipt ? `<dt>M-Pesa receipt</dt><dd class="mono">${esc(o.receipt)}</dd>` : ''}
         <dt>VAT included (${vatPct()}%)</dt><dd>${fmt(vatOf(paid))}</dd>
       </dl></div>
     </div>
-    <div class="d-foot"><button class="btn ghost" data-act="resend" data-to="${esc(o.smsTo ? 'SMS to ' + o.smsTo : o.email ? o.email : '')}"${(o.email || o.smsTo) && o.items.some(it => statusOf(it) === 'delivered') ? '' : ' disabled'}>${ic(o.smsTo ? 'phone' : 'mail')}Resend code</button><button class="btn line" data-close>Close</button></div>`, { label: `Order ${o.id}`, key: `order:${o.id}` });
+    <div class="d-foot"><button class="btn ghost" data-act="resend" data-sid="${esc(o.sid)}" data-to="${esc(o.smsTo ? 'SMS to ' + o.smsTo : o.email ? o.email : '')}"${(o.email || o.smsTo) && o.items.some(it => statusOf(it) === 'delivered') ? '' : ' disabled'}>${ic(o.smsTo ? 'phone' : 'mail')}Resend code</button><button class="btn line" data-close>Close</button></div>`, { label: `Order ${o.id}`, key: `order:${o.id}` });
 }
 
 /* ---------- confirm dialog ---------- */
@@ -1542,7 +1462,7 @@ function preGroups() {
   return [...m.values()].map(g => {
     g.lines.sort((a, b) => a.o.at - b.o.at);
     g.cards = sum(g.lines, l => l.it.qty); g.paid = sum(g.lines, l => lineRev(l.it)); g.oldest = g.lines[0].o.at; g.q = qtyOf(g.k);
-    let left = g.q; g.ready = g.lines.filter(l => { if (l.it.qty > left) return false; left -= l.it.qty; return true; }).length;   // lines the stock covers, oldest first (same rule as fulfilWaiting)
+    let left = g.q; g.ready = g.lines.filter(l => { if (l.it.qty > left) return false; left -= l.it.qty; return true; }).length;   // lines the stock covers, oldest first (the server's rule)
     return g;
   }).sort((a, b) => a.oldest - b.oldest);
 }
@@ -1558,7 +1478,7 @@ function Preorders() {
       <div class="sumchip"><b>${fmt(paid, 0)}</b><small>already paid</small></div>
       <div class="sumchip"><b>${num(custs)}</b><small>customer${custs === 1 ? '' : 's'}</small></div>
     </div>
-    <p class="note" style="margin:0 2px 16px">${cfg.autoFulfil ? 'Adding stock delivers these automatically, oldest order first. Customers see the codes in My Orders.' : 'Automatic delivery is off in Settings, so use Deliver after adding stock.'} Pre-orders can't be cancelled or refunded, so each one waits until it is delivered. The expected date is what customers see in the app.</p>
+    <p class="note" style="margin:0 2px 16px">${cfg.autoFulfil ? 'Adding stock delivers these automatically, oldest order first. Customers see the codes in My Orders.' : 'Automatic delivery is off in Settings, so use Try delivery after adding stock.'} Pre-orders can't be cancelled or refunded, so each one waits until it is delivered. The expected date is what customers see in the app.</p>
     ${gs.map(g => {
       const open = ui.open[g.k] !== false;
       return `<div class="pg">
@@ -1569,7 +1489,7 @@ function Preorders() {
           <label class="eta">${ic('clock')}Expected<input type="date" data-eta="${g.k}" value="${isoDay(etaShown(g.k))}" min="${isoDay(DAY0 + DAY)}" aria-label="Expected restock date for ${esc(cardName(g.bid, g.v))}"></label>
           <span style="flex:1"></span>
           <button class="btn ghost sm" data-stock="${g.k}">${ic('plus')}Add stock</button>
-          <button class="btn sm" data-deliver-group="${g.k}"${g.ready ? '' : ' disabled'}>${g.ready ? `Deliver ${g.ready} order${g.ready === 1 ? '' : 's'} now` : 'Not enough stock'}</button>
+          <button class="btn sm" data-deliver-group="${g.k}"${g.ready || supplierOf(g.k) ? '' : ' disabled'}>${g.ready || supplierOf(g.k) ? `Try delivery now` : 'Not enough stock'}</button>
           <button class="btn line sm" data-toggle="${g.k}" aria-expanded="${open}">${open ? 'Hide orders' : 'Show orders'}</button>
         </div>
         ${open ? `<div class="pg-lines">${g.lines.map(l => `<div class="pl"><span><button class="ix" data-order="${esc(l.o.id)}">${esc(l.o.id)}</button><small class="show-s">${esc(custName(l.o))} · ×${l.it.qty} · ${esc(ago(l.o.at))}</small></span><span class="hide-s">${esc(custName(l.o))}<br><small style="color:var(--muted)">${esc(l.o.phone || '')}</small></span><span class="hide-s num">× ${l.it.qty}</span><span class="hide-s num">${fmt(lineRev(l.it), 0)}<br><small style="color:var(--muted)">${esc(dtime(l.o.at))}</small></span></div>`).join('')}</div>` : ''}
@@ -1603,74 +1523,49 @@ function Inventory() {
           const k = skey(id, v);
           if (!sellable(id, v)) return `<td><button class="scell na" data-stock="${k}" aria-label="${esc(cardName(id, v))}: not sold"><span class="q">Not sold</span></button></td>`;
           const s = stockState(k), q2 = qtyOf(k), w = sum(waitingFor(k), l => l.it.qty);
-          if (s === 'api') { const ap = apiFor(apiS, id, v); return `<td><button class="scell api" data-route="api" aria-label="${esc(cardName(id, v))}: delivered by ${esc(ap.p.name)}"><span class="q">API</span><span class="s">${ic('plug')}${esc(ap.p.name)}</span></button></td>`; }
+          if (s === 'api') { const pn = supName(supplierOf(k)); return `<td><button class="scell api" data-stock="${k}" aria-label="${esc(cardName(id, v))}: delivered by ${esc(pn)}"><span class="q">${q2}</span><span class="s">${ic('plug')}${esc(pn)}</span>${w ? `<span class="w">${w} waiting</span>` : ''}</button></td>`; }
           return `<td><button class="scell ${s === 'ok' ? '' : s}" data-stock="${k}" aria-label="${esc(cardName(id, v))}: ${q2} in stock${s === 'out' ? ', out of stock' : s === 'low' ? ', low' : ''}${w ? `, ${w} pre-ordered` : ''}">
             <span class="q">${q2}</span>${s === 'out' ? `<span class="s">${ic('hourglass')}Out</span>` : s === 'low' ? `<span class="s">${ic('alert')}Low</span>` : ''}${w ? `<span class="w">${w} waiting</span>` : ''}</button></td>`;
         }).join('')}</tr>`).join('')}
     </tbody></table></div>
-    <div class="legend"><span class="st low">${ic('alert')}Low: ${cfg.lowAt} or fewer</span><span class="st out">${ic('hourglass')}Out: sold as a pre-order</span><span class="st info">${ic('plug')}API: delivered by a provider</span><span>Select a value to add stock or set the expected date.</span></div>`
+    <div class="legend"><span class="st low">${ic('alert')}Low: ${cfg.lowAt} or fewer</span><span class="st out">${ic('hourglass')}Out: sold as a pre-order</span><span class="st info">${ic('plug')}Delivered by a gift card supplier</span><span>Select a value to add stock or set the expected date.</span></div>`
     : `<div class="empty"><span class="eic">${ic('check')}</span><h2>Nothing to show</h2><p>No brand matches this search or filter.</p></div>`}
   </div></div>`;
 }
 
-/* ---------- stock drawer ---------- */
-function openStock(k, suggest) {
+/* ---------- stock drawer: stock is the codes you paste ---------- */
+function openStock(k) {
   const [bid, vs] = k.split(':'), v = +vs, x = stock[k] || { qty: 0, eta: null, codes: [] }, q = Math.max(0, x.qty);
-  const waits = waitingFor(k), wCards = sum(waits, l => l.it.qty), wl = wishFor(k);
-  const st = stockState(k), sold = sellable(bid, v);
-  const need = Math.max(0, wCards - q);
+  const waits = waitingFor(k), wCards = sum(waits, l => l.it.qty);
+  const st = stockState(k), sold = sellable(bid, v), sp = supplierOf(k);
   const w = openDrawer(`<div class="d-head"><div class="t">${bnameHTML(bid, `${fmt(priceOf(v))} each`, 'lg', cardName(bid, v))}</div><button class="d-x" data-close aria-label="Close">${ic('close')}</button></div>
     <div class="d-body">
-      <div class="sec"><div class="bigq"><b>${q}</b><span>in stock</span></div>
-        <div class="li-acts" style="margin-top:10px">${sold ? stockPill(st, q) : `<span class="st muted">${ic('info')}Not sold in the app</span>`}${wCards ? `<span class="st wait">${ic('hourglass')}${wCards} pre-ordered</span>` : ''}${wl ? `<span class="st info">${ic('heart')}On ${wl} wishlist${wl === 1 ? '' : 's'}</span>` : ''}</div>
-        ${x.codes.length ? `<p class="note">${x.codes.length} of these are uploaded codes. The rest get a demo code when sold.</p>` : '<p class="note">No codes uploaded. In this demo every card sold gets a generated DEMO code.</p>'}
+      <div class="sec"><div class="bigq"><b>${q}</b><span>codes in stock</span></div>
+        <div class="li-acts" style="margin-top:10px">${sold ? stockPill(st, q) : `<span class="st muted">${ic('info')}Not sold in the app</span>`}${wCards ? `<span class="st wait">${ic('hourglass')}${wCards} pre-ordered</span>` : ''}${sp ? `<span class="st info">${ic('plug')}${esc(supName(sp))} delivers when these run out</span>` : ''}</div>
       </div>
       <form class="field" id="add-form">
-        <span class="lbl">Add cards</span>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><div class="stepper"><button type="button" data-step="-1" aria-label="Fewer">${ic('minus')}</button><input id="add-n" type="number" min="1" max="10000" inputmode="numeric" value="${Math.max(1, suggest || need || 10)}" aria-label="Number of cards to add"><button type="button" data-step="1" aria-label="More">${ic('plus')}</button></div>
-          <button class="btn" type="submit" id="add-btn">Add to stock</button></div>
-        <details${API.on ? ' open' : ''} style="margin-top:4px"><summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--blue)">${API.on ? 'Paste the codes (live system: stock is the codes you upload)' : 'Paste real codes instead'}</summary>
-          <textarea class="ta" id="add-codes" placeholder="One code per line" aria-label="Codes, one per line" style="margin-top:8px"></textarea>
-          <span class="hint">When you paste codes, the number added is the number of codes. Customers get these codes first.</span></details>
-        ${wCards ? `<span class="hint">${cfg.autoFulfil ? `The ${waits.length} waiting pre-order${waits.length === 1 ? '' : 's'} will be delivered first, oldest first.` : 'Automatic delivery is off: deliver pre-orders from the Pre-orders page.'}</span>` : ''}
+        <label for="add-codes">Add codes</label>
+        <textarea class="ta" id="add-codes" placeholder="One code per line. If the card has a PIN: CODE, PIN" aria-label="Codes, one per line" style="min-height:140px"></textarea>
+        <span class="hint">Codes are encrypted on the server. A code that is already in stock is refused, so pasting a list twice is safe.${wCards ? (cfg.autoFulfil ? ` The ${waits.length} waiting pre-order${waits.length === 1 ? '' : 's'} get codes first, oldest first.` : ' Automatic delivery is off: use Try delivery on the Pre-orders page.') : ''}</span>
+        <p class="err-msg" id="add-err" hidden></p>
+        <div><button class="btn" type="submit" id="add-btn">${ic('plus')}Add to stock</button></div>
       </form>
       <div class="field"><label for="eta-in">Expected restock date</label>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><div class="inp" style="flex:1 1 180px"><input id="eta-in" type="date" value="${x.eta ? isoDay(x.eta) : ''}" min="${isoDay(DAY0 + DAY)}"></div><button class="btn line sm" id="eta-save" style="min-height:50px">Save date</button></div>
         <span class="hint">Shown to customers on out-of-stock cards and pre-orders. Without a date the app shows ${esc(dmy(DAY0 + 3 * DAY))} (3 days from today).</span></div>
-      <form class="field" id="set-form"><label for="set-n">Correct the stock count</label>
-        <div style="display:flex;gap:10px;flex-wrap:wrap"><div class="inp" style="flex:1 1 140px"><input id="set-n" type="number" min="0" max="100000" inputmode="numeric" value="${q}"><span class="fix">cards</span></div><button class="btn line sm" type="submit" style="min-height:50px">Set count</button></div>
-        <span class="hint">For stock counts and write-offs. Setting it to 0 makes this value a pre-order in the app.</span></form>
     </div>`, { label: `Stock for ${cardName(bid, v)}`, key: `stock:${k}` });
-  const addN = w.querySelector('#add-n');
-  w.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => { addN.value = Math.max(1, (parseInt(addN.value, 10) || 0) + +b.dataset.step); }));
   w.querySelector('#add-form').addEventListener('submit', e => {
     e.preventDefault();
-    const codes = w.querySelector('#add-codes').value.split(/[\r\n,;]+/).map(s => s.trim()).filter(Boolean);
-    const n = codes.length || parseInt(addN.value, 10);
-    if (!(n > 0)) { addN.focus(); return; }
+    const codes = w.querySelector('#add-codes').value.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
+    if (!codes.length) { const er = w.querySelector('#add-err'); er.hidden = false; er.textContent = 'Paste at least one code.'; w.querySelector('#add-codes').focus(); return; }
     closeDrawer(true);
-    act(() => {
-      const s = stock[k] || (stock[k] = { qty: 0, eta: null, codes: [] });
-      s.qty = Math.max(0, s.qty) + n; s.codes.push(...codes); s.eta = null;
-      return cfg.autoFulfil ? fulfilWaiting(k) : 0;
-    }, ['stock', 'orders'], d => `Added ${n} × ${cardName(bid, v)}${d ? ` · ${d} pre-order${d === 1 ? '' : 's'} delivered` : ''}`);
+    act(() => { const s = stock[k] || (stock[k] = { qty: 0, eta: null, codes: [] }); s.qty = Math.max(0, s.qty) + codes.length; s.codes.push(...codes); s.eta = null; }, ['stock'],
+      `${codes.length} code${codes.length === 1 ? '' : 's'} sent for ${cardName(bid, v)}`);
   });
   w.querySelector('#eta-save').addEventListener('click', () => {
     const ts = fromIso(w.querySelector('#eta-in').value);
     closeDrawer(true);
     act(() => { const s = stock[k] || (stock[k] = { qty: 0, eta: null, codes: [] }); s.eta = ts; }, ['stock'], ts ? `Expected date set to ${dmy(ts)}` : 'Expected date cleared');
-  });
-  w.querySelector('#set-form').addEventListener('submit', e => {
-    e.preventDefault();
-    const n = parseInt(w.querySelector('#set-n').value, 10);
-    if (!(n >= 0)) return;
-    closeDrawer(true);
-    act(() => {
-      const s = stock[k] || (stock[k] = { qty: 0, eta: null, codes: [] }), was = Math.max(0, s.qty);
-      s.qty = n; if (s.codes.length > n) s.codes.length = n;
-      if (n > 0) s.eta = null;
-      return n > was && cfg.autoFulfil ? fulfilWaiting(k) : 0;
-    }, ['stock', 'orders'], d => `${cardName(bid, v)} stock set to ${n}${d ? ` · ${d} pre-order${d === 1 ? '' : 's'} delivered` : ''}`);
   });
 }
 
@@ -1859,12 +1754,12 @@ const IMG_SPEC = {
   banners: { w: 1080, h: 1080, fit: 'cover', type: 'image/jpeg', q: .82, label: 'banner picture' }
 };
 function readFile(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(new Error('This file could not be read.')); r.readAsDataURL(file); }); }
-/* resize and compress in the browser, so pictures stay small enough to share with the app */
+/* resize and compress in the browser before sending, so pictures stay small and quick to load in the app */
 async function prepImage(file, kind) {
   const spec = IMG_SPEC[kind];
   if (!file || !/^image\/(png|jpeg|webp|gif|svg\+xml)$/.test(file.type)) throw new Error('Choose a PNG, JPG, WebP or SVG picture.');
   if (file.size > 20 * 1048576) throw new Error('That picture is over 20 MB. Choose a smaller one.');
-  if (file.type === 'image/svg+xml' && kind === 'logos' && file.size <= 150000) return readFile(file);   // keep logos sharp
+  // SVG files are drawn into a PNG here: the server stores bitmap pictures only
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('This picture could not be opened.')); im.src = url; });
@@ -1877,7 +1772,7 @@ async function prepImage(file, kind) {
     if (spec.type === 'image/jpeg') { cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, cv.width, cv.height); }
     cx.drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
     let out = cv.toDataURL(spec.type, spec.q);
-    if (kind === 'logos' && out.length > 180000) { const wp = cv.toDataURL('image/webp', .9); if (wp.startsWith('data:image/webp') && wp.length < out.length) out = wp; }
+    if (kind === 'logos' && out.length > 400000) { const wp = cv.toDataURL('image/webp', .9); if (wp.startsWith('data:image/webp') && wp.length < out.length) out = wp; }
     return out;
   } finally { URL.revokeObjectURL(url); }
 }
@@ -1887,13 +1782,15 @@ function pickFile(kind, id) { pendingPick = { kind, id }; fileIn.value = ''; fil
 fileIn.addEventListener('change', () => { const f = fileIn.files && fileIn.files[0], p = pendingPick; pendingPick = null; if (f && p) upload(p.kind, p.id, f); });
 async function upload(kind, id, file) {
   const b = BR[id];
-  try {
-    const url = await prepImage(file, kind);
-    if (!saveMedia(kind, id, url)) { toast('Not enough room in this browser for that picture. Try a smaller one, or remove other pictures in Pricing & settings.'); return; }
-    if (kind === 'logos' && id === 'ecards') sideLogo();
-    render(); refreshDrawer();
-    toast(`${cap(IMG_SPEC[kind].label)} updated${b && !b.hidden ? ` for ${bname(b)}` : ''} · the app shows it now`);
-  } catch (err) { toast(err && err.message ? err.message : 'That picture could not be used.'); }
+  let url;
+  try { url = await prepImage(file, kind); } catch (err) { toast(err && err.message ? err.message : 'That picture could not be used.'); return; }
+  toast('Uploading…');
+  await call(() => API.adminSetMedia(kind, id, url), `${cap(IMG_SPEC[kind].label)} updated${b && !b.hidden ? ` for ${bname(b)}` : ''} · the app shows it now`).catch(() => {});
+  loadMedia(); if (kind === 'logos' && id === 'ecards') sideLogo(); render(); refreshDrawer();
+}
+async function unupload(kind, id) {
+  await call(() => API.adminRemoveMedia(kind, id), `${cap(IMG_SPEC[kind].label)} removed`).catch(() => {});
+  loadMedia(); if (kind === 'logos' && id === 'ecards') sideLogo(); render(); refreshDrawer();
 }
 function mediaSlot(kind, id, title, noPrev) {
   const b = BR[id] || BR.ecards, src = HAVE[kind][id], from = srcOf(kind, id);
@@ -1907,17 +1804,8 @@ function mediaSlot(kind, id, title, noPrev) {
     : kind === 'cards' ? 'Optional. Replaces the whole front of the gift card. Landscape, about 1000 × 640 px.'
     : 'Square, at least 1080 × 1080 px. The title and Shop now sit on top of it.';
   return `<div class="ms${noPrev ? ' np' : ''}" data-drop="${kind}|${id}">${prev}<div class="ms-txt"><b>${esc(title || cap(IMG_SPEC[kind].label))}</b><small>${hint}</small>
-    <span class="ms-src${from === 'upload' ? ' up' : ''}">${from === 'upload' ? `${ic('check')}Uploaded here` : from === 'folder' ? 'From the assets folder' : 'Not set, using the built-in design'}</span>
+    <span class="ms-src${from === 'upload' ? ' up' : ''}">${from === 'upload' ? `${ic('check')}Uploaded` : from === 'folder' ? 'From the assets folder' : 'Not set, using the built-in design'}</span>
     <div class="ms-acts"><button class="btn ghost sm" type="button" data-pick="${kind}|${id}">${ic('upload')}${src ? 'Replace' : 'Upload'}</button>${from === 'upload' ? `<button class="btn line sm" type="button" data-unpick="${kind}|${id}">Remove</button>` : ''}<span class="or">or drop a picture here</span></div></div></div>`;
-}
-function storageHTML() {
-  if (!LS) return '<p class="note">This window can’t use browser storage, so pictures and changes last until it closes.</p>';
-  let n = 0, pics = 0;
-  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!k || !k.startsWith('ecards')) continue; const len = k.length + (localStorage.getItem(k) || '').length; n += len; if (k === K_MEDIA) pics = len; } } catch (e) { return ''; }
-  const pct = Math.min(100, n / (5 * 1048576) * 100), mb = x => (x / 1048576).toFixed(x < 104858 ? 2 : 1);
-  return `<div style="margin-top:16px"><div class="kpi-s"><b style="color:var(--ink)">${mb(n)} MB</b> used of about 5 MB this browser keeps for the demo · pictures ${mb(pics)} MB</div>
-    <div class="meter" role="img" aria-label="${pct.toFixed(0)}% of the demo storage used"><i style="width:${Math.max(1, pct).toFixed(1)}%"></i></div>
-    <p class="note">In a real launch, pictures live on your server, so there is no limit like this.</p></div>`;
 }
 /* drop a picture on any upload area */
 const hasFiles = e => e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files');
@@ -2073,8 +1961,6 @@ function removeBrand(id) {
         cfg.popular = cfg.popular.filter(x => x !== id); cfg.banners = cfg.banners.filter(x => x.bid !== id);
         Object.keys(stock).forEach(k => { if (k.startsWith(id + ':')) delete stock[k]; });
       }, ['stock', 'cfg']);
-      ['logos', 'cards', 'banners'].forEach(k => { if (media[k][id]) saveMedia(k, id, null); });
-      const wl = store.get(K_WISH, []) || []; if (wl.some(x => x.bid === id)) store.set(K_WISH, wl.filter(x => x.bid !== id));
       go('brands'); toast(`${b.name} removed`);
     } });
 }
@@ -2084,8 +1970,7 @@ function brandClick(e, g) {
   if ((x = g('[data-pick]'))) { const [k, id] = x.dataset.pick.split('|'); pickFile(k, id); return true; }
   if ((x = g('[data-unpick]'))) {
     const [k, id] = x.dataset.unpick.split('|');
-    saveMedia(k, id, null); if (k === 'logos' && id === 'ecards') sideLogo();
-    render(); refreshDrawer(); toast(`${cap(IMG_SPEC[k].label)} removed`); return true;
+    unupload(k, id); return true;
   }
   if ((x = g('[data-bp-val]'))) { ui.bpVal = +x.dataset.bpVal; const pv = $('#bp-pv'); if (pv) pv.outerHTML = previewSide(routeQ.q); const nb = document.querySelector(`[data-bp-val="${ui.bpVal}"]`); if (nb) nb.focus(); return true; }
   if ((x = g('[data-add-banner]'))) { addBanner(x.dataset.addBanner); return true; }
@@ -2170,7 +2055,7 @@ function customers() {
   const m = new Map();
   orders.forEach(o => {
     const id = o.phone || o.email || o.id;
-    if (!m.has(id)) m.set(id, { id, name: custName(o), phone: o.phone || '', email: o.email || '', n: 0, cards: 0, spent: 0, last: 0, demo: isDemoCustomer(o) });
+    if (!m.has(id)) m.set(id, { id, name: custName(o), phone: o.phone || '', email: o.email || '', n: 0, cards: 0, spent: 0, last: 0 });
     const c = m.get(id); c.n++; c.cards += oCards(o); c.spent += oPaid(o); c.last = Math.max(c.last, o.at); if (!c.email && o.email) c.email = o.email;
   });
   return [...m.values()].sort((a, b) => b.last - a.last);
@@ -2178,12 +2063,12 @@ function customers() {
 function Customers() {
   const all = customers(), q = ui.cq.trim().toLowerCase();
   const list = all.filter(c => !q || `${c.name} ${c.phone} ${c.email}`.toLowerCase().includes(q));
-  if (!all.length) return `<div class="card"><div class="empty"><span class="eic">${ic('users')}</span><h2>No customers yet</h2><p>Customers appear here after their first order. The app signs them in with their M-Pesa account, so name and phone come from M-Pesa and the email is the one they enter at checkout.</p><div class="btns"><button class="btn" data-act="sample">${ic('sparkle')}Add sample orders</button></div></div></div>`;
+  if (!all.length) return `<div class="card"><div class="empty"><span class="eic">${ic('users')}</span><h2>No customers yet</h2><p>Customers appear here after their first order. The app signs them in with their M-Pesa account, so name and phone come from M-Pesa and the email is the one they enter at checkout.</p></div></div>`;
   return `<div class="card">
     <div class="toolbar"><label class="search">${ic('search')}<span class="sr">Search customers</span><input id="cq" type="search" placeholder="Name, phone or email" value="${esc(ui.cq)}" autocomplete="off"></label><span class="note" style="margin:0">${num(all.length)} customers · ${fmt(sum(all, c => c.spent), 0)} spent</span></div>
     <div class="rows"><div class="rowh c-cols"><span>Customer</span><span class="hide-m">Email</span><span class="r">Orders</span><span class="r hide-m">Cards</span><span class="r">Spent</span><span class="hide-m">Last order</span></div>
     ${list.map(c => `<button class="row c-cols" data-route="orders" data-q="${esc(c.phone || c.email)}">
-      <span class="cell bname"><span class="avatar">${esc(initials(c.name))}</span><span class="t"><b>${esc(c.name)}${c.demo ? ' <span class="tag">App demo</span>' : ''}</b><small>${esc(c.phone || '—')}</small></span></span>
+      <span class="cell bname"><span class="avatar">${esc(initials(c.name))}</span><span class="t"><b>${esc(c.name)}</b><small>${esc(c.phone || '—')}</small></span></span>
       <span class="cell c-mail hide-m"><span class="ell">${esc(c.email || '—')}</span></span>
       <span class="cell r num">${c.n}</span><span class="cell r num hide-m">${c.cards}</span>
       <span class="cell r num"><b>${fmt(c.spent, 0)}</b></span><span class="cell hide-m">${esc(ago(c.last))}</span></button>`).join('') || '<p class="note">No customer matches this search.</p>'}
@@ -2225,12 +2110,6 @@ function Settings() {
       </div>
     </div>
     ${supportForm()}
-    <div class="card">
-      <div class="card-h"><h2>Demo data</h2><p>Everything is kept in this browser and shared with the mini app opened from the same folder or website. Nothing is sent anywhere.</p></div>
-      <div class="chips"><button class="btn ghost" data-act="sample">${ic('sparkle')}Add sample orders</button><button class="btn line" data-act="clear-orders"${orders.length ? '' : ' disabled'}>${ic('trash')}Delete all orders</button><button class="btn line" data-act="clear-media"${Object.values(media).some(m => Object.keys(m).length) ? '' : ' disabled'}>${ic('image')}Remove uploaded pictures</button><button class="btn danger ghost" data-act="reset">${ic('reset')}Reset the whole demo</button></div>
-      <p class="note">Sample orders come from made-up customers over the last 60 days. Reset puts prices, card values, brands, banners, stock and support contacts back to the start and deletes all orders and support messages, including the app's. Uploaded pictures of the original brands are kept.</p>
-      ${storageHTML()}
-    </div>
   </div>`;
 }
 function priceTable(rate, vat) {
@@ -2293,7 +2172,7 @@ function SupportPage() {
   return `<div class="stack"><div class="card">
     <div class="toolbar"><label class="search">${ic('search')}<span class="sr">Search messages</span><input id="tq" type="search" placeholder="Customer, order or words in the message" value="${esc(ui.tq || '')}" autocomplete="off"></label>
       <div class="chips" role="group" aria-label="Status">${[['open', 'Needs reply'], ['answered', 'Answered'], ['closed', 'Closed'], ['all', 'All']].map(([k, l]) => `<button class="fchip" data-tf="${k}" aria-pressed="${f === k}">${l} · ${cnt(k)}</button>`).join('')}</div></div>
-    ${!all.length ? `<div class="empty"><span class="eic">${ic('headset')}</span><h2>No messages yet</h2><p>When a customer writes from Settings › Contact support in the app, the message lands here and you can reply. Sample orders come with a few sample messages too.</p></div>`
+    ${!all.length ? `<div class="empty"><span class="eic">${ic('headset')}</span><h2>No messages yet</h2><p>When a customer writes from Settings › Contact support in the app, the message lands here and you can reply.</p></div>`
       : !list.length ? `<div class="empty"><span class="eic">${ic('check')}</span><h2>${f === 'open' && !q ? 'All caught up' : 'Nothing here'}</h2><p>${f === 'open' && !q ? 'Every message has a reply.' : 'No messages match this search or filter.'}</p></div>`
       : `<div class="rows"><div class="rowh t-cols"><span>Message</span><span>Customer</span><span class="hide-m">About</span><span>Status</span></div>
         ${list.map(x => { const l = tkLast(x); return `<button class="row t-cols" data-ticket="${esc(x.id)}">
@@ -2312,7 +2191,7 @@ function openTicket(id) {
   const w = openDrawer(`<div class="d-head"><div class="t"><h2>Message ${esc(x.id)}</h2><small>${esc(TOPIC[x.topic] || TOPIC.other)} · started ${esc(ago(x.at))}</small></div>${tkPill(x.status)}<button class="d-x" data-close aria-label="Close">${ic('close')}</button></div>
     <div class="d-body">
       <div class="sec"><h3>Customer</h3><dl class="kv">
-        <dt>Name</dt><dd>${esc(x.name || 'App customer')}${x.sample ? ' <span class="tag">Sample</span>' : ''}</dd>
+        <dt>Name</dt><dd>${esc(x.name || 'App customer')}</dd>
         <dt>M-Pesa</dt><dd>${esc(x.phone || '—')}</dd>
         <dt>Email</dt><dd>${esc(x.email || '—')}</dd>
         ${x.orderId ? `<dt>Order</dt><dd>${o ? `<button class="inl" data-order="${esc(o.id)}">#${esc(o.id)}</button> · ${esc(cardName(o.items[0].bid, o.items[0].amount))}${o.items.length > 1 ? ` +${o.items.length - 1}` : ''}` : `#${esc(x.orderId)}`}</dd>` : ''}
@@ -2321,7 +2200,7 @@ function openTicket(id) {
       ${x.status === 'closed' ? '<p class="note">This conversation is closed. Reopen it to reply.</p>'
         : `<form class="field" id="tk-form" novalidate><label for="tk-reply">Reply</label><textarea class="ta tk-ta" id="tk-reply" placeholder="Write your reply. The customer sees it in the app."></textarea><p class="err-msg" id="tk-err" hidden></p>
           <div style="display:flex;flex-wrap:wrap;gap:10px"><button class="btn" type="submit">${ic('chat')}Send reply</button><button class="btn line" type="button" data-tk-send-close>Send and close</button></div>
-          <span class="hint">Demo: the reply shows in the customer's app. No email or SMS is sent.</span></form>`}
+          <span class="hint">The reply shows in the customer's app.</span></form>`}
     </div>
     <div class="d-foot">${x.status === 'closed' ? '<button class="btn ghost" data-tk-status="open">Reopen</button>' : '<button class="btn line" data-tk-status="closed">Close conversation</button>'}<button class="btn line" data-close>Done</button></div>`, { label: `Message ${x.id}`, key: `ticket:${x.id}` });
   const f = w.querySelector('#tk-form');
@@ -2381,16 +2260,6 @@ function mountSupportForm(page) {
     act(() => { cfg.support = x; }, ['cfg'], 'Support contacts saved · the app is updated');
   });
 }
-function sampleTickets(made, rnd) {
-  const now = Date.now(), done = made.filter(o => o.items.every(it => it.status === 'delivered')), wait = made.filter(o => o.items.some(it => it.status === 'waiting'));
-  const mk = (o, topic, status, msgs, withOrder = true) => ({ id: 'T' + String(Math.floor(100000 + rnd() * 899999)), at: msgs[0].at, name: o.name, phone: o.phone, email: o.email, topic, orderId: withOrder ? o.id : null, status, sample: true, custSeen: msgs[msgs.length - 1].at, msgs });
-  const out = [];
-  if (done.length) out.push(mk(done[done.length - 1], 'order', 'open', [{ from: 'customer', text: 'Hello, I tried to redeem my code but the store says it is not valid. Can you check it please?', at: now - 50 * 60000 }]));
-  if (wait.length) { const o = wait[0], eta = o.items.find(it => it.status === 'waiting').eta; out.push(mk(o, 'pre', 'answered', [{ from: 'customer', text: 'When will my pre-order arrive? I need it for this weekend.', at: now - 26 * 3600000 }, { from: 'support', text: `Hi, it is expected by ${dmy(eta)}. We will email the code as soon as it arrives.`, at: now - 25 * 3600000 }])); }
-  if (done.length > 1) out.push(mk(done[0], 'other', 'closed', [{ from: 'customer', text: 'Will you add more game cards?', at: now - 4 * DAY }, { from: 'support', text: 'Yes, more brands are coming soon. Thank you for asking!', at: now - 4 * DAY + 2 * 3600000 }], false));
-  return out;
-}
-
 /* ================= drawers ================= */
 let current = null, lastFocus = null, refreshing = false;
 function openDrawer(html, opts = {}) {
@@ -2437,55 +2306,6 @@ function toast(msg) {
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200);
 }
 
-/* ================= sample data ================= */
-const SAMPLE_CUSTOMERS = [
-  ['Abebe Kebede', '+251 7•• ••• 103', 'abebe.kebede@example.com'], ['Selam Girma', '+251 7•• ••• 218', 'selam.girma@example.com'],
-  ['Dawit Alemu', '+251 7•• ••• 334', 'dawit.alemu@example.com'], ['Meron Haile', '+251 7•• ••• 457', 'meron.haile@example.com'],
-  ['Yonas Tadesse', '+251 7•• ••• 561', 'yonas.tadesse@example.com'], ['Liya Bekele', '+251 7•• ••• 609', 'liya.bekele@example.com'],
-  ['Biruk Mengistu', '+251 7•• ••• 742', 'biruk.m@example.com'], ['Tsion Wolde', '+251 7•• ••• 815', 'tsion.wolde@example.com'],
-  ['Kalkidan Assefa', '+251 7•• ••• 926', 'kalkidan.a@example.com'], ['Natnael Desta', '+251 7•• ••• 038', 'natnael.desta@example.com'],
-  ['Ruth Mulugeta', '+251 7•• ••• 147', 'ruth.mulugeta@example.com'], ['Samuel Getachew', '+251 7•• ••• 290', 'samuel.g@example.com']
-];
-const BRAND_W = { playstation: 18, netflix: 14, apple: 12, spotify: 10, xbox: 10, steam: 10, pubg: 8, googleplay: 8, razer: 5, cod: 5 };
-const VALUE_W = { 50: 40, 100: 35, 150: 12, 200: 13 };
-function pick(rnd, weights) { const e = Object.entries(weights).filter(([, w]) => w > 0), tot = sum(e, x => x[1]); let r = rnd() * tot; for (const [k, w] of e) { r -= w; if (r <= 0) return k; } return e[e.length - 1][0]; }
-function addSamples() {
-  const rnd = mulberry32(Date.now() & 0xffffffff), now = Date.now(), made = [];
-  const bw = Object.fromEntries(Object.entries(BRAND_W).filter(([id]) => brandOn(id)));
-  shown().forEach(b => { if (b.custom && brandOn(b.id)) bw[b.id] = 5; });
-  if (!Object.keys(bw).length) return 0;
-  const newId = () => 'EC' + String(Math.floor(10000000 + rnd() * 89999999));
-  for (let d = 59; d >= 0; d--) {
-    const n = Math.max(0, Math.round(rnd() * 3 + 1 + (60 - d) / 25 - (new Date(DAY0 - d * DAY).getDay() === 0 ? 1 : 0)));
-    for (let j = 0; j < n; j++) {
-      const at = DAY0 - d * DAY + Math.floor((8 + rnd() * 14) * 3600000);
-      if (at > now - 5 * 60000) continue;
-      const c = SAMPLE_CUSTOMERS[Math.floor(rnd() * SAMPLE_CUSTOMERS.length)];
-      const items = [], nl = rnd() < .82 ? 1 : 2;
-      for (let x = 0; x < nl; x++) {
-        const bid = pick(rnd, bw), vw = Object.fromEntries(Object.entries(VALUE_W).filter(([v]) => sellable(bid, +v)));
-        const amount = Object.keys(vw).length ? +pick(rnd, vw) : cfg.values[0];
-        const qty = rnd() < .86 ? 1 : 2, unit = priceOf(amount), k = skey(bid, amount);
-        let it;
-        if (d <= 3 && qtyOf(k) <= 0) it = { bid, region: 'ETH', amount, qty, unit, codes: [], status: 'waiting', eta: etaShown(k) };
-        else it = { bid, region: 'ETH', amount, qty, unit, codes: Array.from({ length: qty }, makeCode), status: 'delivered', deliveredAt: at };
-        items.push(it);
-      }
-      const sms = rnd() < .35;   // some customers get their codes by SMS
-      made.push({ id: newId(), at, name: c[0], phone: c[1], deliverBy: sms ? 'phone' : 'email', email: sms ? '' : c[2], smsTo: sms ? c[1] : '', sample: true, total: sum(items, it => it.unit * it.qty), items });
-    }
-  }
-  // make sure the pre-order queue has something to show
-  const outKeys = shown().flatMap(b => cfg.values.filter(v => sellable(b.id, v) && qtyOf(skey(b.id, v)) <= 0).map(v => [b.id, v]));
-  outKeys.slice(0, 4).forEach(([bid, amount], i) => {
-    const c = SAMPLE_CUSTOMERS[(i * 5 + 3) % SAMPLE_CUSTOMERS.length], at = now - (6 + i * 17) * 3600000, unit = priceOf(amount), qty = i === 1 ? 2 : 1;
-    made.push({ id: newId(), at, name: c[0], phone: c[1], email: c[2], sample: true, total: unit * qty, items: [{ bid, region: 'ETH', amount, qty, unit, codes: [], status: 'waiting', eta: etaShown(skey(bid, amount)) }] });
-  });
-  orders = orders.concat(made).sort((a, b) => b.at - a.at);
-  tickets = tickets.concat(sampleTickets(made, rnd));
-  return made.length;
-}
-
 /* ================= page registry ================= */
 const PAGE_FNS = { api: ApiPage, support: SupportPage, dashboard: Dashboard, orders: Orders, preorders: Preorders, inventory: Inventory, brands: Brands, brand: BrandPage, banners: Banners, customers: Customers, settings: Settings };
 const MOUNT = {
@@ -2494,7 +2314,6 @@ const MOUNT = {
 };
 
 /* ================= events ================= */
-const NEED_FOLDER = 'The app opens from the unzipped folder: open admin.html (or index.html) from inside ecards-mpesa-demo.';
 document.addEventListener('click', e => {
   const t = e.target;
   const g = sel => t.closest(sel);
@@ -2503,36 +2322,32 @@ document.addEventListener('click', e => {
   if (brandClick(e, g)) return;
   if (supportClick(e, g)) return;
   if (apiClick(e, g)) return;
-  if (!LINKED && (x = g('a[href="index.html"], a[href="web.html"]'))) { e.preventDefault(); toast(NEED_FOLDER); return; }
   if ((x = g('[data-period]'))) { ui.period = +x.dataset.period; render(); return; }
   if ((x = g('[data-ctab]'))) { ui.chartTable = x.dataset.ctab === '1'; render(); return; }
   if ((x = g('[data-order]'))) { openOrder(x.dataset.order); return; }
   if ((x = g('[data-stock]'))) { const k = x.dataset.stock, gr = preGroups().find(y => y.k === k); openStock(k, gr ? Math.max(1, gr.cards - gr.q) : 0); return; }
-  if ((x = g('[data-of]'))) { ui.oFilter = x.dataset.of; ui.oLimit = 30; render(); return; }
+  if ((x = g('[data-of]'))) { ui.oFilter = x.dataset.of; ui.oLimit = 30; if (ui.oFilter === 'unpaid') unpaid = null; render(); return; }
   if ((x = g('[data-inv]'))) { ui.invFilter = x.dataset.inv; render(); return; }
   if ((x = g('[data-toggle]'))) { const k = x.dataset.toggle; ui.open[k] = ui.open[k] === false; render(); return; }
-  if ((x = g('[data-reveal]'))) { const k = x.dataset.reveal; if (revealed.has(k)) revealed.delete(k); else revealed.add(k); refreshDrawer(); return; }
+  if ((x = g('[data-reveal]'))) {
+    const k = x.dataset.reveal, o = orders.find(y => y.id === x.dataset.revealOrder);
+    if (revealed.has(k)) revealed.delete(k); else revealed.add(k);
+    if (o && !fullCodes[o.sid] && revealed.has(k)) revealOrder(o); else refreshDrawer();
+    return;
+  }
+  if ((x = g('[data-unpaid]'))) { openUnpaid(x.dataset.unpaid); return; }
+  if ((x = g('[data-retry]'))) {
+    const o = orders.find(y => y.id === x.dataset.retry); if (!o) return;
+    call(() => API.adminRetry(o.sid), `Delivery of ${o.id} started · stock first, then the supplier`).catch(() => {});
+    return;
+  }
   if ((x = g('[data-copy]'))) { const c = x.dataset.copy; (navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast('Code copied'), () => toast('Copy isn’t available here')); return; }
-  if ((x = g('[data-deliver]'))) {
-    const [id, i] = x.dataset.deliver.split('|');
-    act(() => {
-      const o = orders.find(y => y.id === id), it = o && o.items[+i]; if (!it || statusOf(it) !== 'waiting') return ABORT;
-      const s = stock[skey(it.bid, it.amount)]; if (!s || s.qty < it.qty) { toast('Not enough stock'); return ABORT; }
-      s.qty -= it.qty; it.codes = takeCodes(s, it.qty); it.status = 'delivered'; it.deliveredAt = Date.now();
-    }, ['stock', 'orders'], 'Delivered · the customer sees the codes in My Orders');
-    refreshDrawer(); return;
+  if ((x = g('[data-deliver-group]'))) {
+    const gr = preGroups().find(y => y.k === x.dataset.deliverGroup); if (!gr) return;
+    const sids = [...new Set(gr.lines.map(l => l.o.sid))];
+    call(() => Promise.all(sids.map(id => API.adminRetry(id))), `Delivery started for ${sids.length} order${sids.length === 1 ? '' : 's'}, oldest first`).catch(() => {});
+    return;
   }
-  if ((x = g('[data-api-buy]'))) {
-    const [id, i] = x.dataset.apiBuy.split('|');
-    act(() => {
-      const o = orders.find(y => y.id === id), it = o && o.items[+i]; if (!it || statusOf(it) !== 'waiting') return ABORT;
-      const got = apiBuy(apiS, it, `${o.id}-${+i + 1}`, 'admin');
-      if (!got) { save(['api']); toast('The provider could not fill it · see the API log'); return ABORT; }
-      it.codes = got.codes; it.via = got.via; it.status = 'delivered'; it.deliveredAt = Date.now();
-    }, ['orders', 'api'], 'Bought from the provider and delivered · the customer sees the code in My Orders');
-    refreshDrawer(); return;
-  }
-  if ((x = g('[data-deliver-group]'))) { const k = x.dataset.deliverGroup; act(() => fulfilWaiting(k), ['stock', 'orders'], n => n ? `${n} pre-order${n === 1 ? '' : 's'} delivered` : 'Not enough stock to deliver'); return; }
   if ((x = g('[data-brand-on]'))) {
     const id = x.dataset.brandOn;
     act(() => { const bc = cfg.brands[id] || (cfg.brands[id] = { on: true, values: cfg.values.slice() }); bc.on = !brandOn(id); return bc.on; }, ['cfg'], on => `${bname(BR[id])} ${on ? 'is back in the app' : 'is hidden in the app'}`);
@@ -2581,25 +2396,14 @@ document.addEventListener('click', e => {
   }
   if ((x = g('[data-act]'))) {
     switch (x.dataset.act) {
-      case 'sample': act(() => addSamples(), ['orders', 'tickets'], n => n ? `${n} sample orders added` : 'Switch on at least one brand first'); break;
       case 'more-orders': ui.oLimit += 30; render(); break;
-      case 'resend': toast(`Demo: nothing was sent${x.dataset.to ? ` (${x.dataset.to})` : ''}`); break;
-      case 'clear-orders': confirmDlg({ title: 'Delete all orders?', danger: 'trash', ok: 'Delete all orders', body: `All ${num(orders.length)} orders are deleted, including the ones placed in the app. Customers' My Orders pages will be empty. Stock and settings stay as they are.`, onOk: () => { act(() => { orders = []; }, ['orders'], 'All orders deleted'); store.set(K_USED, []); } }); break;
-      case 'reset': confirmDlg({ title: 'Reset the whole demo?', danger: 'reset', ok: 'Reset demo', body: 'Prices, card values, brands, banners, stock and support contacts go back to how they started, brands you added are removed, and every order and support message is deleted, including the app customer’s cart, wishlist and orders. Uploaded pictures of the original brands are kept.', onOk: resetAll }); break;
-      case 'clear-media': confirmDlg({ title: 'Remove uploaded pictures?', danger: 'image', ok: 'Remove pictures', body: 'Every logo, card picture and banner uploaded here is removed. The app goes back to files in the assets folder, or the built-in design.', onOk: () => { store.del(K_MEDIA); loadMedia(); render(); toast('Uploaded pictures removed'); } }); break;
+      case 'resend': call(() => API.adminResend(x.dataset.sid), `Codes queued to send again${x.dataset.to ? ` · ${x.dataset.to}` : ''}`).catch(() => {}); break;
     }
   }
 });
-function resetAll() {
-  const custom = new Set(BRANDS.filter(b => b.custom).map(b => b.id));
-  [K_CONFIG, K_STOCK].forEach(store.del);
-  if (custom.size) ['logos', 'cards', 'banners'].forEach(k => Object.keys(media[k]).forEach(id => { if (custom.has(id)) saveMedia(k, id, null); }));
-  store.set(K_ORDERS, []); store.set(K_WISH, []); store.set(K_USED, []); store.set(K_CART, []); store.set(K_WELCOME, false); store.set(K_TICKETS, []);
-  reload(); ui.oq = ''; ui.oFilter = 'all'; render(); toast('Demo reset');
-}
 document.addEventListener('input', e => {
   const t = e.target;
-  if (t.id === 'oq') { ui.oq = t.value; ui.oLimit = 30; $('#olist').innerHTML = orderList(); }
+  if (t.id === 'oq') { ui.oq = t.value; ui.oLimit = 30; $('#olist').innerHTML = ui.oFilter === 'unpaid' ? unpaidList() : orderList(); }
   else if (t.id === 'invq') { ui.invq = t.value; const pos = t.selectionStart; render(); const n = $('#invq'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (er) { /* type=search */ } } }
   else if (t.id === 'tq') { ui.tq = t.value; const pos = t.selectionStart; render(); const n = $('#tq'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (er) { /* type=search */ } } }
   else if (t.id === 'apiq') { ui.apiQ = t.value; const pos = t.selectionStart; render(); const n = $('#apiq'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (er) { /* type=search */ } } }
@@ -2641,10 +2445,7 @@ function fitPhone() {
   phone.style.width = 390 * s + 'px'; phone.style.height = 844 * s + 'px'; frame.style.transform = `scale(${s})`;
 }
 function setPreview(on, remember = true) {
-  if (on && !LINKED && !phone.querySelector('.pv-off')) {
-    phone.innerHTML = `<div class="pv-off"><span class="eic">${ic('phone')}</span><b>Preview needs the app file</b><span>This window shows admin.html on its own. Unzip ecards-mpesa-demo.zip and open admin.html from that folder to see the mini app here, live.</span></div>`;
-  }
-  if (on && LINKED && !frame.getAttribute('src')) frame.setAttribute('src', 'index.html');
+  if (on && !frame.getAttribute('src')) frame.setAttribute('src', 'index.html');
   pv.hidden = false;
   requestAnimationFrame(() => { pv.classList.toggle('on', on); document.body.classList.toggle('pv', on); fitPhone(); });
   if (!on) setTimeout(() => { if (!pv.classList.contains('on')) pv.hidden = true; }, 320);
@@ -2655,159 +2456,95 @@ pvBtn.addEventListener('click', () => setPreview(!pv.classList.contains('on')));
 $('#pv-close').addEventListener('click', () => setPreview(false));
 window.addEventListener('resize', () => { if (pv.classList.contains('on')) fitPhone(); });
 
-/* live updates from the mini app (another tab, or the preview) */
+/* live updates: after each server refresh, redraw and tell about new orders and messages */
 let pending = false;
-window.addEventListener('storage', e => {
-  if (API.on && !svPolling) return;
-  if (e.key !== null && ![K_ORDERS, K_CONFIG, K_STOCK, K_WISH, K_SESSION, K_MEDIA, K_TICKETS].includes(e.key)) return;
-  const before = new Set(orders.map(o => o.id));
-  const seen = new Map(tickets.map(x => [x.id, x.msgs.length]));
-  reload();
-  if (e.key === null || e.key === K_MEDIA) loadMedia();
-  const fresh = orders.filter(o => !before.has(o.id));
+function applyRefresh(beforeOrders, seenMsgs) {
+  reload(); loadMedia();
+  const fresh = orders.filter(o => !beforeOrders.has(o.id));
   const redraw = () => { render(); refreshDrawer(); };
   const ae = document.activeElement;
-  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && !current) {   // don't wipe what's being typed
+  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) {   // don't wipe what's being typed
     if (!pending) { pending = true; ae.addEventListener('blur', () => { pending = false; redraw(); }, { once: true }); }
-  } else if (!current || e.key === K_ORDERS || e.key === K_STOCK || e.key === K_API) redraw();
-  const asked = tickets.filter(x => (seen.get(x.id) || 0) < x.msgs.length && tkLast(x).from === 'customer');
+  } else redraw();
+  const asked = tickets.filter(x => (seenMsgs.get(x.id) || 0) < x.msgs.length && tkLast(x).from === 'customer');
   if (asked.length) toast(asked.length === 1 ? `New support message from ${asked[0].name || 'a customer'}` : `${asked.length} new support messages`);
   else if (fresh.length === 1) toast(`New order ${fresh[0].id} · ${fmt(oPaid(fresh[0]), 0)}`);
   else if (fresh.length > 1) toast(`${fresh.length} new orders`);
-});
-
-
-
-/* ================= API providers ================= */
-/* Reloadly endpoints are taken from Reloadly's official SDK. Tillo and other providers give their endpoints during
-   onboarding, so their paths below are placeholders to replace with the ones in the provider's documentation. */
-const API_PRESETS = {
-  reloadly: {
-    name: 'Reloadly', auth: 'oauth', color: '#1d55f3',
-    envs: { sandbox: { base: 'https://giftcards-sandbox.reloadly.com', token: 'https://auth.reloadly.com/oauth/token' },
-            live: { base: 'https://giftcards.reloadly.com', token: 'https://auth.reloadly.com/oauth/token' } },
-    paths: { balance: '/accounts/balance', products: '/products?size=200&page={page}', order: '/orders', codes: '/orders/transactions/{id}/cards', txns: '/reports/transactions?customIdentifier={ref}' },
-    note: 'OAuth 2.0 client credentials. The token lasts 24 hours in sandbox and 60 days in live. Header Accept: application/com.reloadly.giftcards-v1+json.'
-  },
-  tillo: {
-    name: 'Tillo', auth: 'hmac', color: '#7c3aed',
-    envs: { sandbox: { base: '', token: '' }, live: { base: '', token: '' } },
-    paths: { balance: '/balance', products: '/brands', order: '/orders', codes: '/orders/{id}', txns: '/orders?reference={ref}' },
-    note: 'Tillo sends the base URL, keys and endpoint list during onboarding. Replace the example paths under Advanced with theirs.'
-  },
-  custom: {
-    name: 'Other provider', auth: 'key', color: '#0f766e',
-    envs: { sandbox: { base: '', token: '' }, live: { base: '', token: '' } },
-    paths: { balance: '/balance', products: '/products', order: '/orders', codes: '/orders/{id}/codes', txns: '/orders?reference={ref}' },
-    note: 'Any REST gift card API. Fill in the base URL, how it signs in and its endpoint paths from the provider’s documentation.'
-  }
-};
-const AUTH_LABEL = { oauth: 'OAuth 2.0 client credentials', hmac: 'API key + signed requests (HMAC)', key: 'API key in a header' };
-const KEY_LABEL = { oauth: ['Client ID', 'Client secret'], hmac: ['API key', 'API secret'], key: ['API key', 'Header name'] };
-const API_COUNTRIES = [['US', 'United States'], ['GB', 'United Kingdom'], ['AE', 'UAE'], ['GLOBAL', 'Global']];
-/* what a provider's catalog looks like after a sync (demo data: product names, values and costs are examples) */
-const MOCK_CATALOG = [
-  { brand: 'Netflix', name: 'Netflix US', country: 'US', type: 'FIXED', faces: [25, 30, 50, 60, 100, 200], disc: 1.5, fee: .5, cat: 'video', match: 'netflix' },
-  { brand: 'PlayStation', name: 'PlayStation Store US', country: 'US', type: 'FIXED', faces: [10, 25, 50, 75, 100], disc: 2, fee: .3, cat: 'gaming', match: 'playstation' },
-  { brand: 'Xbox', name: 'Xbox Gift Card US', country: 'US', type: 'FIXED', faces: [15, 25, 50, 100], disc: 2, fee: .3, cat: 'gaming', match: 'xbox' },
-  { brand: 'Steam', name: 'Steam Wallet USD', country: 'GLOBAL', type: 'FIXED', faces: [10, 20, 50, 100], disc: 1, fee: .5, cat: 'gaming', match: 'steam' },
-  { brand: 'App Store & iTunes', name: 'App Store & iTunes US', country: 'US', type: 'FIXED', faces: [10, 25, 50, 100, 200], disc: 2.5, fee: .5, cat: 'apps', match: 'apple' },
-  { brand: 'Google Play', name: 'Google Play US', country: 'US', type: 'FIXED', faces: [10, 25, 50, 100, 200], disc: 2, fee: .5, cat: 'apps', match: 'googleplay' },
-  { brand: 'Spotify', name: 'Spotify US', country: 'US', type: 'FIXED', faces: [10, 30, 60, 99], disc: 1, fee: .3, cat: 'music', match: 'spotify' },
-  { brand: 'Razer Gold', name: 'Razer Gold Global', country: 'GLOBAL', type: 'RANGE', min: 5, max: 500, disc: 3, fee: .25, cat: 'gaming', match: 'razer' },
-  { brand: 'PUBG Mobile', name: 'PUBG Mobile UC Global', country: 'GLOBAL', type: 'FIXED', faces: [10, 25, 50, 100], disc: 2.5, fee: .2, cat: 'gaming', match: 'pubg' },
-  { brand: 'Amazon', name: 'Amazon.com US', country: 'US', type: 'RANGE', min: 1, max: 2000, disc: 0, fee: .5, cat: 'card' },
-  { brand: 'Roblox', name: 'Roblox US', country: 'US', type: 'FIXED', faces: [10, 25, 50, 100, 200], disc: 3, fee: .3, cat: 'gaming' },
-  { brand: 'Nintendo eShop', name: 'Nintendo eShop US', country: 'US', type: 'FIXED', faces: [10, 20, 35, 50], disc: 2, fee: .3, cat: 'gaming' },
-  { brand: 'Free Fire', name: 'Free Fire Diamonds Global', country: 'GLOBAL', type: 'FIXED', faces: [10, 20, 50, 100], disc: 4, fee: .2, cat: 'gaming' },
-  { brand: 'Valorant', name: 'Valorant US', country: 'US', type: 'FIXED', faces: [10, 25, 50, 100], disc: 2, fee: .3, cat: 'gaming' },
-  { brand: 'Uber', name: 'Uber US', country: 'US', type: 'FIXED', faces: [25, 50, 100, 200], disc: 1, fee: .5, cat: 'apps' },
-  { brand: 'Amazon', name: 'Amazon.co.uk', country: 'GB', type: 'RANGE', min: 1, max: 1000, disc: 0, fee: .5, cat: 'card', cur: 'GBP' },
-  { brand: 'Netflix', name: 'Netflix UK', country: 'GB', type: 'FIXED', faces: [15, 25, 50], disc: 1.5, fee: .5, cat: 'video', cur: 'GBP' },
-  { brand: 'Noon', name: 'Noon UAE', country: 'AE', type: 'FIXED', faces: [50, 100, 200], disc: 2, fee: .4, cat: 'card', cur: 'AED' }
-];
-const prodCost = (pr, face) => +(face * (1 - pr.disc / 100) + pr.fee).toFixed(2);   // what one card costs you, in USD
-const availVals = pr => cfg.values.filter(v => pr.cur && pr.cur !== 'USD' ? false : pr.type === 'RANGE' ? v >= pr.min && v <= pr.max : (pr.faces || []).includes(v));
-function marginOf(v, cost, p) {   // share of the price (after VAT) you keep
-  const net = v * cfg.rate / (1 + cfg.vat), c = cost * (+p.buyRate || cfg.rate);
-  return { net, c, pct: net ? (net - c) / net * 100 : 0 };
 }
-const apiIssue = p => p.on === false ? null : p.status === 'error' ? 'error' : p.status === 'ok' && p.balance < (+p.lowAt || 0) ? 'low' : null;
-/* deliver pre-orders that a provider can now fill (oldest first) */
-function fulfilApi(onlyKey) {
-  if (API.on) return 0;   // server mode: the server delivers pre-orders itself after a restock
-  let n = 0;
-  orders.slice().sort((a, b) => a.at - b.at).forEach(o => o.items.forEach((it, i) => {
-    if (it.status !== 'waiting') return;
-    const k = skey(it.bid, it.amount); if (onlyKey && k !== onlyKey) return;
-    if (!apiReady(apiS, it.bid, it.amount, it.qty)) return;
-    const got = apiBuy(apiS, it, `${o.id}-${i + 1}`, 'admin'); if (!got) return;
-    it.codes = got.codes; it.via = got.via; it.status = 'delivered'; it.deliveredAt = Date.now(); n++;
-  }));
-  return n;
-}
-function newPid(preset) { let i = 1, id = preset; while (apiS.providers.some(p => p.id === id)) id = `${preset}-${++i}`; return id; }
-const provTile = p => `<span class="ptile" style="--pc:${esc((API_PRESETS[p.preset] || API_PRESETS.custom).color)}">${esc(initials(p.name))}</span>`;
-const envTag = p => `<span class="st ${p.env === 'live' ? 'ok' : 'low'}">${p.env === 'live' ? 'Live' : 'Sandbox'}</span>`;
+
+/* ================= gift card suppliers (Wupex) =================
+   Everything here runs on the eCards server: API keys stay in the server's settings (/opt/ecards/.env) and never
+   reach this browser. The page shows the supplier's balance and catalogue, which of our cards it delivers, and every call. */
+const apiIssue = p => !p.is_active ? null : p.status === 'error' ? 'error' : p.status === 'ok' && p.low_balance_cents && p.balance_cents < p.low_balance_cents ? 'low' : null;
+const money$ = c => '$' + (Number(c || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const provTile = p => `<span class="ptile" style="--pc:#0f766e">${esc(initials(p.name))}</span>`;
+const envTag = p => `<span class="st ${p.environment === 'live' ? 'ok' : 'low'}">${p.environment === 'live' ? 'Live' : 'Sandbox'}</span>`;
 function provStatus(p) {
-  if (p.on === false) return `<span class="st muted">Turned off</span>`;
+  if (!p.is_active) return `<span class="st muted">Turned off</span>`;
   if (p.status === 'ok') return `<span class="st ok">${ic('check')}Connected</span>`;
-  if (p.status === 'error') return `<span class="st out">${ic('alert')}${esc(p.err || 'Connection failed')}</span>`;
-  return `<span class="st muted">Not tested yet</span>`;
+  if (p.status === 'error') return `<span class="st out" title="${esc(p.status_message || '')}">${ic('alert')}${esc((p.status_message || 'Connection failed').slice(0, 80))}</span>`;
+  return `<span class="st muted">Not synced yet</span>`;
+}
+let supLoading = null;
+function loadSup(force) {
+  if (supLoading && !force) return supLoading;
+  supLoading = Promise.all([API.adminProviders(), API.adminProviderLog()]).then(async ([ps, log]) => {
+    sup.providers = ps; sup.log = log;
+    if (!ps.some(p => p.id === sup.tab)) sup.tab = ps.length ? ps[0].id : null;
+    if (sup.tab) sup.products[sup.tab] = await API.adminProviderProducts(sup.tab);
+    sup.loaded = true;
+  }).catch(e => { sup.loaded = true; toast(e.code === 'forbidden' ? 'Your role cannot see suppliers' : 'Could not load the suppliers'); })
+    .finally(() => { supLoading = null; if (route === 'api') render(); renderNav(); });
+  return supLoading;
 }
 function flowHTML() {
-  const steps = [['cash', 'Customer pays', 'M-Pesa confirms the payment to your server'], ['plug', 'Order from provider', 'Your server buys the card with your provider balance'], ['card', 'Get the code', 'The provider returns the code; it is stored encrypted'], ['mail', 'Deliver', 'Shown in My Orders and sent by SMS or email'], ['receipt', 'Reconcile', 'Daily check of your orders against the provider’s report']];
+  const steps = [['cash', 'Customer pays', 'M-Pesa confirms the payment to the eCards server'], ['box', 'Own stock first', 'Codes you uploaded are used first, oldest first'], ['plug', 'Supplier buys', 'Otherwise the server buys the card with your supplier balance, under the order’s own reference, so it is never bought twice'], ['card', 'Code stored', 'The code is stored encrypted'], ['mail', 'Delivered', 'Shown in My Orders and sent by SMS or email']];
   return `<ol class="aflow">${steps.map(([i, t, s], n) => `<li><span class="af-ic">${ic(i)}</span><b>${n + 1}. ${t}</b><small>${s}</small></li>`).join('')}</ol>`;
 }
 function ApiPage() {
-  const ps = apiS.providers;
-  const head = `<div class="card"><div class="card-h"><h2>Providers</h2><p>Connect the companies you buy international gift cards from. Cards from a provider are always in stock in the app while your balance with them covers the cost.</p>
-      ${ps.length ? `<button class="btn sm" data-api-add style="margin-left:auto">${ic('plus')}Add provider</button>` : ''}</div>
-    ${ps.length ? `<div class="provs">${ps.map(p => {
-      const nProd = apiS.products.filter(x => x.pid === p.id).length, nSell = Object.values(apiS.sell).filter(s => s.pid === p.id).length, iss = apiIssue(p);
-      return `<div class="prov${p.on === false ? ' off' : ''}">
-        <div class="prov-id">${provTile(p)}<div class="t"><b>${esc(p.name)} ${envTag(p)}</b><small>${esc(AUTH_LABEL[p.auth])} · ${esc(p.base || 'No base URL')}</small></div>
-          <button class="sw" role="switch" aria-checked="${p.on !== false}" data-api-on="${esc(p.id)}" aria-label="Use ${esc(p.name)}"></button></div>
+  if (!sup.loaded) { loadSup(); return `<div class="card"><p class="note">Loading suppliers…</p></div>`; }
+  const ps = sup.providers;
+  const head = `<div class="card"><div class="card-h"><h2>Suppliers</h2><p>Gift card companies the server buys cards from when your own stock runs out. Their API keys are set on the server, not here.</p>
+      ${ps.length ? `<button class="btn sm ghost" data-sup-reload style="margin-left:auto">${ic('reset')}Refresh</button>` : ''}</div>
+    ${ps.length ? `<div class="provs">${ps.map(p => { const iss = apiIssue(p); return `<div class="prov${p.is_active ? '' : ' off'}">
+        <div class="prov-id">${provTile(p)}<div class="t"><b>${esc(p.name)} ${envTag(p)}</b><small>${esc(p.adapter)} · priority ${num(p.priority)}</small></div>
+          <button class="sw" role="switch" aria-checked="${!!p.is_active}" data-sup-on="${esc(p.id)}" aria-label="Use ${esc(p.name)}"></button></div>
         <div class="prov-stats">
           <div><small>Status</small>${provStatus(p)}</div>
-          <div><small>Balance</small><b class="num${iss === 'low' ? ' warn-t' : ''}">${p.status === 'ok' ? '$' + p.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</b>${iss === 'low' ? `<span class="st low">${ic('alert')}Below $${num(p.lowAt)}</span>` : ''}</div>
-          <div><small>Catalog</small><b class="num">${num(nProd)} products</b></div>
-          <div><small>Selling in the app</small><b class="num">${num(nSell)} card values</b></div>
-          <div><small>Last sync</small><b>${p.lastSync ? esc(ago(p.lastSync)) : 'Never'}</b></div>
+          <div><small>Balance you can spend</small><b class="num${iss === 'low' ? ' warn-t' : ''}">${p.balance_checked_at ? money$(p.balance_cents) : '—'}</b>${iss === 'low' ? `<span class="st low">${ic('alert')}Below ${money$(p.low_balance_cents)}</span>` : ''}</div>
+          <div><small>Cards it delivers</small><b class="num">${num(p.products_mapped)}</b></div>
+          <div><small>Last checked</small><b>${p.balance_checked_at ? esc(ago(new Date(p.balance_checked_at).getTime())) : 'Never'}</b></div>
         </div>
         <div class="prov-acts">
-          <button class="btn sm ghost" data-api-test="${esc(p.id)}">${ic('check')}Test connection</button>
-          <button class="btn sm ghost" data-api-sync="${esc(p.id)}"${p.status === 'ok' && p.on !== false ? '' : ' disabled'}>${ic('reset')}Sync catalog</button>
-          ${p.env === 'sandbox' ? `<button class="btn sm ghost" data-api-funds="${esc(p.id)}"${p.status === 'ok' ? '' : ' disabled'}>${ic('plus')}Add $500 test funds</button>` : ''}
-          <button class="btn sm line" data-api-edit="${esc(p.id)}">${ic('edit')}Edit</button>
+          <button class="btn sm ghost" data-sup-sync="${esc(p.id)}">${ic('reset')}Sync balance and catalogue</button>
+          <button class="btn sm ghost" data-sup-auto="${esc(p.id)}">${ic('sparkle')}Link cards automatically</button>
+          <button class="btn sm line" data-sup-edit="${esc(p.id)}">${ic('edit')}Settings</button>
         </div>
       </div>`; }).join('')}</div>`
-    : `<div class="empty"><span class="eic">${ic('plug')}</span><h2>No provider connected yet</h2><p>Add the gift card company you buy from. You can start in its sandbox with test keys, then switch to live.</p>
-        <div class="pick3">${Object.entries(API_PRESETS).map(([k, x]) => `<button class="pick" data-api-add="${k}"><span class="ptile" style="--pc:${x.color}">${esc(initials(x.name))}</span><b>${esc(x.name)}</b><small>${esc(AUTH_LABEL[x.auth])}</small></button>`).join('')}</div></div>`}
+    : `<div class="empty"><span class="eic">${ic('plug')}</span><h2>No supplier connected yet</h2><p>First put the Wupex API key and merchant code in the server's settings (GIFTCARD_ADAPTER=wupex). Then add Wupex here and sync its catalogue.</p>
+        <div class="btns"><button class="btn" data-sup-add>${ic('plus')}Add Wupex</button></div></div>`}
   </div>`;
-  return `<div class="stack">
-    <div class="pnote">${ic('info')}<p><b>Demo:</b> no provider is contacted. Connecting, syncing and buying are simulated and written to the API log below. In the live system these calls run on your server, and API keys never reach the app or this browser.</p></div>
-    ${head}
-    ${catalogCard()}
-    <div class="card"><div class="card-h"><h2>How an order flows</h2></div>${flowHTML()}</div>
-    ${logCard()}
-  </div>`;
+  return `<div class="stack">${head}${catalogCard()}<div class="card"><div class="card-h"><h2>How a card is delivered</h2></div>${flowHTML()}</div>${logCard()}</div>`;
+}
+/* our cards that sell this face value: [{ pid, bid, v }] */
+const cardsFor = v => shown().filter(b => SV.pid[skey(b.id, v)]).map(b => ({ pid: SV.pid[skey(b.id, v)], bid: b.id, v }));
+function marginOf(v, costCents, p) {   // share of the price (after VAT) you keep
+  const net = Math.round(v * cfg.rate) / (1 + cfg.vat), c = costCents / 100 * (+p.buy_rate || cfg.rate);
+  return { pct: net ? (net - c) / net * 100 : 0 };
 }
 function catalogCard() {
-  const withProd = apiS.providers.filter(p => apiS.products.some(x => x.pid === p.id));
-  if (!withProd.length) return apiS.providers.some(p => p.status === 'ok') ? `<div class="card"><div class="empty"><span class="eic">${ic('reset')}</span><h2>Sync a catalog</h2><p>Select Sync catalog on a connected provider to load the gift cards it sells. Then choose which ones to sell in the app.</p></div></div>` : '';
-  if (!withProd.some(p => p.id === ui.apiTab)) ui.apiTab = withProd[0].id;
-  const p = provOf(apiS, ui.apiTab), q = ui.apiQ.trim().toLowerCase();
-  let list = apiS.products.filter(x => x.pid === p.id && (!q || `${x.name} ${x.brand} ${x.country}`.toLowerCase().includes(q)));
-  const selling = x => Object.values(apiS.sell).some(s => s.key === x.key);
-  if (ui.apiF === 'match') list = list.filter(x => x.map);
-  if (ui.apiF === 'sell') list = list.filter(selling);
-  const perDollar = cfg.rate / (1 + cfg.vat), buy = +p.buyRate || cfg.rate;
-  const F = [['all', 'All'], ['match', 'Linked to a brand'], ['sell', 'Selling']];
+  const p = sup.providers.find(x => x.id === sup.tab);
+  if (!p) return '';
+  const all = sup.products[p.id] || [];
+  if (!all.length) return `<div class="card"><div class="empty"><span class="eic">${ic('reset')}</span><h2>No catalogue yet</h2><p>Select Sync balance and catalogue to load the cards ${esc(p.name)} sells.</p></div></div>`;
+  const q = ui.apiQ.trim().toLowerCase();
+  let list = all.filter(x => !q || `${x.external_id} ${x.name} ${x.brand_name || ''} ${x.country || ''}`.toLowerCase().includes(q));
+  if (ui.apiF === 'linked') list = list.filter(x => x.linked.length);
+  if (ui.apiF === 'free') list = list.filter(x => !x.linked.length && x.is_available);
+  const F = [['all', `All · ${all.length}`], ['linked', `Delivering · ${all.filter(x => x.linked.length).length}`], ['free', 'Not linked']];
   return `<div class="card">
-    <div class="card-h"><h2>Catalog</h2>${withProd.length > 1 ? `<div class="seg" role="group" aria-label="Provider" style="margin-left:auto">${withProd.map(x => `<button data-api-tab="${esc(x.id)}" aria-pressed="${x.id === p.id}">${esc(x.name)}</button>`).join('')}</div>` : `<span class="aside">${esc(p.name)} · synced ${esc(p.lastSync ? ago(p.lastSync) : '')}</span>`}
-      <p>Link each product to one of your brands, then pick the card values it delivers. Values that are also in your own stock use your stock first.</p></div>
-    <div class="pnote${perDollar < buy * 0.99 ? ' warn' : ''}">${ic(perDollar < buy * 0.99 ? 'alert' : 'info')}<p>At <b>Br ${num(cfg.rate)}</b> per $1 with ${vatPct()}% VAT included, you keep <b>Br ${perDollar.toFixed(2)}</b> per $1 of card value. You pay about <b>Br ${num(buy)}</b> per $1 to fund ${esc(p.name)}${perDollar < buy * 0.99 ? `, so most cards sell at a loss. Raise the selling rate in <button class="lnk" data-route="settings">Pricing &amp; settings</button>, or set what you really pay per dollar in Edit` : ''}.</p></div>
+    <div class="card-h"><h2>Catalogue</h2>${sup.providers.length > 1 ? `<div class="seg" role="group" aria-label="Supplier" style="margin-left:auto">${sup.providers.map(x => `<button data-sup-tab="${esc(x.id)}" aria-pressed="${x.id === p.id}">${esc(x.name)}</button>`).join('')}</div>` : `<span class="aside">${esc(p.name)}</span>`}
+      <p>Link a product to the card of yours it delivers. Cost is what ${esc(p.name)} charges per card; margin is what you keep after VAT${p.buy_rate ? ` at Br ${num(p.buy_rate)} per $1` : ''}.</p></div>
     <div class="toolbar">
       <label class="search">${ic('search')}<span class="sr">Search products</span><input id="apiq" type="search" placeholder="Search products" value="${esc(ui.apiQ)}" autocomplete="off"></label>
       <div class="chips" role="group" aria-label="Show">${F.map(([k, l]) => `<button class="fchip" data-api-f="${k}" aria-pressed="${ui.apiF === k}">${l}</button>`).join('')}</div>
@@ -2816,219 +2553,117 @@ function catalogCard() {
   </div>`;
 }
 function prodRow(x, p) {
-  const av = availVals(x), b = x.map && BR[x.map];
-  const denom = x.type === 'RANGE' ? `Any amount $${num(x.min)}–$${num(x.max)}` : (x.faces || []).map(f => '$' + f).join(', ');
-  const opts = `<option value="">Not sold</option>${shown().map(y => `<option value="${y.id}"${y.id === x.map ? ' selected' : ''}>${esc(y.name)}</option>`).join('')}${!shown().some(y => y.name.toLowerCase() === x.brand.toLowerCase()) && !x.map ? `<option value="__new">+ Add “${esc(x.brand)}” as a new brand</option>` : ''}`;
-  const chips = cfg.values.map(v => {
-    const ok = av.includes(v), s = b && apiS.sell[skey(b.id, v)], on = !!s && s.key === x.key, other = !!s && !on;
-    if (!ok) return `<span class="pv na"><b>${usd(v)}</b><small>Not offered</small></span>`;
-    const cost = prodCost(x, v), m = marginOf(v, cost, p);
-    return `<button class="pv${on ? ' on' : ''}" data-api-val="${esc(x.key)}|${v}" aria-pressed="${on}"${b ? '' : ' disabled'} aria-label="${usd(v)}: costs $${cost.toFixed(2)}, margin ${m.pct.toFixed(1)}%${other ? ', another product delivers it now' : ''}">
-      <b>${usd(v)}</b><small>cost $${cost.toFixed(2)}</small><small class="${m.pct < 0 ? 'neg' : 'pos'}">${m.pct >= 0 ? '+' : '−'}${Math.abs(m.pct).toFixed(1)}%${other ? ' · other' : ''}</small></button>`;
-  }).join('');
-  return `<div class="prod">
-    <div class="prod-id">${b ? bt(b.id) : `<span class="bt ltr" aria-hidden="true">${esc(x.brand.slice(0, 1))}</span>`}<div class="t"><b>${esc(x.name)}</b><small>#${esc(x.product)} · ${esc(x.country === 'GLOBAL' ? 'Global' : x.country)} · ${esc(x.cur || 'USD')} · ${esc(denom)}</small></div></div>
-    <label class="prod-map"><span class="sr">Sell ${esc(x.name)} as</span><div class="inp"><select data-api-map="${esc(x.key)}">${opts}</select></div></label>
-    <div class="prod-vals">${x.cur && x.cur !== 'USD' ? `<span class="pnone">${esc(x.cur)} cards: your card values are in US dollars</span>` : av.length ? chips : `<span class="pnone">None of your card values (${cfg.values.map(usd).join(', ')}) is offered</span>`}</div>
+  const face = (x.denominations_cents || [])[0], v = face ? face / 100 : null, cost = x.price_cents;
+  const avail = x.available == null ? '' : Number(x.available) > 0 ? `${num(x.available)} in stock` : x.preorder ? 'Pre-order only' : 'Out of stock';
+  const linked = x.linked.map(l => { const m = cost != null ? marginOf(l.faceValueUsd, cost, p) : null;
+    return `<span class="pv on"><b>${esc(cardName(l.brandId, l.faceValueUsd))}</b>${m ? `<small class="${m.pct < 0 ? 'neg' : 'pos'}">${m.pct >= 0 ? '+' : '−'}${Math.abs(m.pct).toFixed(1)}%</small>` : ''}<button class="lnk" data-sup-unmap="${esc(l.productId)}|${esc(p.id)}" aria-label="Stop delivering ${esc(cardName(l.brandId, l.faceValueUsd))} through ${esc(p.name)}">Unlink</button></span>`; }).join('');
+  const options = v ? cardsFor(v).filter(c => !x.linked.some(l => l.productId === c.pid)) : [];
+  const pick = options.length && x.is_available ? `<label class="prod-map"><span class="sr">Deliver as</span><div class="inp"><select data-sup-map="${esc(x.external_id)}|${esc(p.id)}|${cost ?? ''}"><option value="">Deliver as…</option>${options.map(c => `<option value="${c.pid}">${esc(cardName(c.bid, c.v))}</option>`).join('')}</select></div></label>` : '';
+  return `<div class="prod${x.is_available ? '' : ' off'}">
+    <div class="prod-id"><span class="bt ltr" aria-hidden="true">${esc((x.brand_name || x.name).slice(0, 1))}</span><div class="t"><b>${esc(x.name)}</b><small>${esc(x.external_id)} · ${esc(x.country || '—')} · ${v ? usd(v) : '—'} · cost ${cost != null ? money$(cost) : '—'}${avail ? ` · ${esc(avail)}` : ''}${x.is_available ? '' : ' · no longer listed'}</small></div></div>
+    ${pick}
+    <div class="prod-vals">${linked || (v && !options.length && x.is_available ? `<span class="pnone">None of your brands sells ${usd(v)}${x.brand_name ? ` · add it on the ${esc(x.brand_name)} brand page, or use Link cards automatically` : ''}</span>` : '')}</div>
   </div>`;
 }
 function logCard() {
-  const rows = apiS.log.slice(0, ui.apiLogN);
-  return `<div class="card"><div class="card-h"><h2>API log</h2><span class="aside">${num(apiS.log.length)} calls · codes and keys are never logged</span>${apiS.log.length ? `<button class="btn sm line" data-api-clear>Clear</button>` : ''}</div>
-    ${rows.length ? `<div class="tscroll"><table class="vt alog"><thead><tr><th>Time</th><th>Provider</th><th>Call</th><th>Result</th><th class="r">ms</th><th>Details</th></tr></thead><tbody>
-      ${rows.map(e => { const p = provOf(apiS, e.pid); return `<tr><td>${esc(dtime(e.at))}</td><td>${esc(p ? p.name : e.pid)}${e.src === 'app' ? ' <span class="tag">from app</span>' : ''}</td><td class="mono">${esc(e.m)} ${esc(e.p)}</td><td><span class="st ${e.err ? 'out' : 'ok'}">${esc(e.s)} ${e.err ? 'Error' : 'OK'}</span></td><td class="r">${num(e.ms)}</td><td class="det">${esc(e.note || '')}</td></tr>`; }).join('')}
-    </tbody></table></div>${apiS.log.length > rows.length ? `<button class="btn sm ghost" data-api-more style="margin-top:12px">Show more</button>` : ''}`
-    : `<p class="pnone" style="margin:0">Calls to providers show up here: connection tests, catalog syncs and every card bought.</p>`}
+  const rows = sup.log.slice(0, ui.apiLogN);
+  return `<div class="card"><div class="card-h"><h2>Call log</h2><span class="aside">latest ${num(sup.log.length)} calls · codes and keys are never logged</span></div>
+    ${rows.length ? `<div class="tscroll"><table class="vt alog"><thead><tr><th>Time</th><th>Supplier</th><th>Call</th><th>Result</th><th class="r">ms</th><th>Order</th><th>Details</th></tr></thead><tbody>
+      ${rows.map(e => `<tr><td>${esc(dtime(new Date(e.created_at).getTime()))}</td><td>${esc(supName(e.provider_id))}</td><td class="mono">${esc(e.method)} ${esc(e.path)}</td><td><span class="st ${e.ok ? 'ok' : 'out'}">${esc(e.http_status ?? '')} ${e.ok ? 'OK' : 'Error'}</span></td><td class="r">${e.duration_ms != null ? num(e.duration_ms) : ''}</td><td class="mono">${esc(e.ref || '')}</td><td class="det">${esc(e.note || '')}</td></tr>`).join('')}
+    </tbody></table></div>${sup.log.length > rows.length ? `<button class="btn sm ghost" data-api-more style="margin-top:12px">Show more</button>` : ''}`
+    : `<p class="pnone" style="margin:0">Calls to suppliers show up here: syncs and every card bought.</p>`}
   </div>`;
 }
-/* ---------- add or edit a provider ---------- */
-function openProvider(id, presetKey) {
-  const ex = id ? provOf(apiS, id) : null;
-  const st = ex ? { preset: ex.preset, env: ex.env, auth: ex.auth, countries: new Set(ex.countries || ['US', 'GLOBAL']) }
-    : { preset: presetKey && API_PRESETS[presetKey] ? presetKey : 'reloadly', env: 'sandbox', auth: (API_PRESETS[presetKey] || API_PRESETS.reloadly).auth, countries: new Set(['US', 'GLOBAL']) };
-  const pre = () => API_PRESETS[st.preset];
-  const val = (k, d) => ex ? (ex[k] ?? d) : d;
-  const w = openDrawer(`<div class="d-head"><div class="t"><h2>${ex ? `Edit ${esc(ex.name)}` : 'Add a provider'}</h2><small>Keys come from the provider’s dashboard. Start with sandbox keys.</small></div><button class="d-x" data-close aria-label="Close">${ic('close')}</button></div>
-    <form class="d-body" id="pf-form" novalidate>
-      <div class="field"><span class="lbl">Provider</span><div class="seg" role="group" aria-label="Provider">${Object.entries(API_PRESETS).map(([k, x]) => `<button type="button" data-pf-preset="${k}" aria-pressed="${k === st.preset}">${esc(x.name)}</button>`).join('')}</div><span class="hint" id="pf-note"></span></div>
+/* add Wupex, or change a supplier's settings (owners) */
+function openSupplier(id) {
+  const ex = id ? sup.providers.find(p => p.id === id) : null;
+  const env = ex ? ex.environment : 'sandbox';
+  const w = openDrawer(`<div class="d-head"><div class="t"><h2>${ex ? `${esc(ex.name)} settings` : 'Add Wupex'}</h2><small>The API key and merchant code are set on the server, not here.</small></div><button class="d-x" data-close aria-label="Close">${ic('close')}</button></div>
+    <form class="d-body" id="sp-form" novalidate>
+      <div class="field"><span class="lbl">Account</span><div class="seg" role="group" aria-label="Account"><button type="button" data-sp-env="sandbox" aria-pressed="${env === 'sandbox'}">Sandbox</button><button type="button" data-sp-env="live" aria-pressed="${env === 'live'}">Live</button></div><span class="hint">Must match the server's WUPEX_BASE_URL.</span></div>
       <div class="form-grid">
-        <div class="field"><label for="pf-name">Name in the admin</label><div class="inp"><input id="pf-name" maxlength="40" autocomplete="off" value="${esc(val('name', pre().name))}"></div></div>
-        <div class="field"><span class="lbl">Environment</span><div class="seg" role="group" aria-label="Environment"><button type="button" data-pf-env="sandbox" aria-pressed="${st.env === 'sandbox'}">Sandbox</button><button type="button" data-pf-env="live" aria-pressed="${st.env === 'live'}">Live</button></div></div>
+        <div class="field"><label for="sp-buy">What you pay per $1</label><div class="inp"><span class="fix">Br</span><input id="sp-buy" inputmode="decimal" value="${esc(ex && ex.buy_rate ? ex.buy_rate : cfg.rate)}"></div><span class="hint">Used to show your margin on each card.</span></div>
+        <div class="field"><label for="sp-low">Low balance alert</label><div class="inp"><span class="fix">$</span><input id="sp-low" inputmode="decimal" value="${esc(ex ? (ex.low_balance_cents || 0) / 100 : 200)}"></div><span class="hint">Warns you before cards stop selling.</span></div>
       </div>
-      <div class="field"><label for="pf-base">API base URL</label><div class="inp"><input id="pf-base" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://… (from the provider)" value="${esc(val('base', pre().envs[st.env].base))}"></div></div>
-      <div class="field"><label for="pf-auth">How it signs in</label><div class="inp"><select id="pf-auth">${Object.entries(AUTH_LABEL).map(([k, l]) => `<option value="${k}"${k === st.auth ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>
-      <div class="field" id="pf-tok-f"><label for="pf-tok">Token URL</label><div class="inp"><input id="pf-tok" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…/oauth/token" value="${esc(val('tokenUrl', pre().envs[st.env].token))}"></div></div>
-      <div class="form-grid">
-        <div class="field"><label for="pf-key" id="pf-key-l"></label><div class="inp"><input id="pf-key" autocomplete="off" spellcheck="false" value="${esc(val('keyId', ''))}"></div></div>
-        <div class="field"><label for="pf-sec" id="pf-sec-l"></label><div class="inp"><input id="pf-sec" type="password" autocomplete="new-password" spellcheck="false" placeholder="${ex && ex.secretTail ? `Saved · ends in ${esc(ex.secretTail)}` : ''}"></div>${ex && ex.secretTail ? '<span class="hint">Leave empty to keep the saved one.</span>' : ''}</div>
-      </div>
-      <div class="form-grid">
-        <div class="field"><label for="pf-buy">What you pay per $1</label><div class="inp"><span class="fix">Br</span><input id="pf-buy" inputmode="decimal" value="${esc(val('buyRate', cfg.rate))}"></div><span class="hint">Used to show your margin on each card.</span></div>
-        <div class="field"><label for="pf-low">Low balance alert</label><div class="inp"><span class="fix">$</span><input id="pf-low" inputmode="decimal" value="${esc(val('lowAt', 200))}"></div><span class="hint">Warns you before cards stop selling.</span></div>
-      </div>
-      <div class="field"><span class="lbl">Countries to load</span><div class="vals" role="group" aria-label="Countries to load">${API_COUNTRIES.map(([c, l]) => `<button type="button" class="vchip" data-pf-c="${c}" aria-pressed="${st.countries.has(c)}">${esc(l)}</button>`).join('')}</div><span class="hint">Few providers sell cards issued for Ethiopia. Most stores accept US or global cards; region-locked ones (PlayStation, Xbox, Nintendo) need an account in that country.</span></div>
-      <details class="adv"><summary>Advanced: endpoint paths</summary>
-        <div class="stack" style="gap:10px;margin-top:12px">${[['balance', 'Balance'], ['products', 'Products'], ['order', 'Place an order'], ['codes', 'Get the codes ({id} = transaction)'], ['txns', 'Find an order ({ref} = your reference)']].map(([k, l]) => `<div class="field"><label for="pf-p-${k}">${l}</label><div class="inp"><input id="pf-p-${k}" data-pf-path="${k}" autocomplete="off" spellcheck="false" class="mono" value="${esc(ex && ex.paths ? ex.paths[k] : pre().paths[k])}"></div></div>`).join('')}</div>
-      </details>
-      <div class="field"><span class="lbl">Webhook address to give the provider</span><div class="inp ro"><input readonly class="mono" id="pf-hook" value=""></div><span class="hint">If the provider sends order updates, they go to your server at this address. Replace your-server with your API domain.</span></div>
-      <p class="hint" style="margin:0">${ic('info')} Demo: the secret is not saved here, only its last 4 characters to show it was entered. In the live system it is stored encrypted on your server.</p>
-      <p class="err-msg" id="pf-err" hidden></p>
+      <div class="field"><label for="sp-pri">Priority</label><div class="inp"><input id="sp-pri" inputmode="numeric" value="${esc(ex ? ex.priority : 100)}"></div><span class="hint">With more than one supplier, the lower number is tried first.</span></div>
+      <p class="err-msg" id="sp-err" hidden></p>
     </form>
-    <div class="d-foot">${ex ? `<button class="btn danger ghost" id="pf-del">${ic('trash')}Remove</button>` : ''}<button class="btn line" data-close>Cancel</button><button class="btn" id="pf-ok">${ex ? 'Save' : `${ic('plug')}Add and test`}</button></div>`, { label: ex ? `Edit ${ex.name}` : 'Add a provider' });
-  const $w = s => w.querySelector(s), err = $w('#pf-err');
-  const draw = () => {
-    $w('#pf-note').textContent = pre().note;
-    const [k1, k2] = KEY_LABEL[st.auth]; $w('#pf-key-l').textContent = k1; $w('#pf-sec-l').textContent = k2;
-    $w('#pf-sec').type = st.auth === 'key' ? 'text' : 'password';
-    $w('#pf-tok-f').hidden = st.auth !== 'oauth';
-    $w('#pf-hook').value = `https://your-server/webhooks/${ex ? ex.id : newPid(st.preset)}`;
-  };
-  const setPreset = k => {
-    st.preset = k; st.auth = pre().auth; $w('#pf-auth').value = st.auth;
-    $w('#pf-name').value = pre().name; $w('#pf-base').value = pre().envs[st.env].base; $w('#pf-tok').value = pre().envs[st.env].token;
-    w.querySelectorAll('[data-pf-path]').forEach(i => { i.value = pre().paths[i.dataset.pfPath]; });
-  };
-  w.addEventListener('click', e => {
-    const a = e.target.closest('[data-pf-preset]'); if (a) { setPreset(a.dataset.pfPreset); w.querySelectorAll('[data-pf-preset]').forEach(x => x.setAttribute('aria-pressed', String(x === a))); draw(); return; }
-    const en = e.target.closest('[data-pf-env]'); if (en) {
-      const was = pre().envs[st.env]; st.env = en.dataset.pfEnv;
-      if (!$w('#pf-base').value || $w('#pf-base').value === was.base) $w('#pf-base').value = pre().envs[st.env].base;
-      if (!$w('#pf-tok').value || $w('#pf-tok').value === was.token) $w('#pf-tok').value = pre().envs[st.env].token;
-      w.querySelectorAll('[data-pf-env]').forEach(x => x.setAttribute('aria-pressed', String(x === en))); return;
-    }
-    const c = e.target.closest('[data-pf-c]'); if (c) { const k = c.dataset.pfC; if (st.countries.has(k)) st.countries.delete(k); else st.countries.add(k); c.setAttribute('aria-pressed', String(st.countries.has(k))); }
-  });
-  $w('#pf-auth').addEventListener('change', e => { st.auth = e.target.value; draw(); });
-  w.addEventListener('input', () => { err.hidden = true; });
+    <div class="d-foot"><button class="btn line" data-close>Cancel</button><button class="btn" id="sp-ok">${ex ? 'Save' : `${ic('plug')}Add and sync`}</button></div>`, { label: ex ? `${ex.name} settings` : 'Add Wupex' });
+  let envSel = env;
+  w.addEventListener('click', e => { const b = e.target.closest('[data-sp-env]'); if (b) { envSel = b.dataset.spEnv; w.querySelectorAll('[data-sp-env]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); } });
   const submit = () => {
-    const name = $w('#pf-name').value.trim(), base = $w('#pf-base').value.trim().replace(/\/+$/, ''), tok = $w('#pf-tok').value.trim();
-    const key = $w('#pf-key').value.trim(), sec = $w('#pf-sec').value.trim(), buy = +$w('#pf-buy').value, low = +$w('#pf-low').value;
-    const fail = (m, f) => { err.hidden = false; err.textContent = m; if (f) $w(f).focus(); };
-    if (!name) return fail('Enter a name.', '#pf-name');
-    if (!/^https:\/\/[^\s/]+\.[^\s]+$/.test(base)) return fail('Enter the API base URL, starting with https://', '#pf-base');
-    if (st.auth === 'oauth' && !/^https:\/\/\S+$/.test(tok)) return fail('Enter the token URL, starting with https://', '#pf-tok');
-    if (!key) return fail(`Enter your ${KEY_LABEL[st.auth][0]}.`, '#pf-key');
-    if (!sec && !(ex && ex.secretTail)) return fail(`Enter your ${KEY_LABEL[st.auth][1]}.`, '#pf-sec');
-    if (!(buy > 0)) return fail('Enter what you pay per $1 in Birr.', '#pf-buy');
-    if (!(low >= 0)) return fail('Enter the low balance alert in dollars.', '#pf-low');
-    if (!st.countries.size) return fail('Choose at least one country to load.');
-    const paths = Object.fromEntries([...w.querySelectorAll('[data-pf-path]')].map(i => [i.dataset.pfPath, i.value.trim() || pre().paths[i.dataset.pfPath]]));
-    const pid = ex ? ex.id : newPid(st.preset);
+    const buy = +w.querySelector('#sp-buy').value, low = +w.querySelector('#sp-low').value, pri = parseInt(w.querySelector('#sp-pri').value, 10);
+    const err = w.querySelector('#sp-err'), fail = m => { err.hidden = false; err.textContent = m; };
+    if (!(buy > 0)) return fail('Enter what you pay per $1 in Birr.');
+    if (!(low >= 0)) return fail('Enter the low balance alert in dollars.');
+    if (!Number.isInteger(pri)) return fail('Enter a whole number for the priority.');
+    const pid = ex ? ex.id : 'wupex';
+    const body = { environment: envSel, buyRate: buy, lowBalanceCents: Math.round(low * 100), priority: pri, ...(ex ? {} : { name: 'Wupex', adapter: 'wupex', isActive: true }) };
     closeDrawer(true);
-    act(() => {
-      let p = provOf(apiS, pid);
-      const changedEnv = p && (p.env !== st.env || p.base !== base);
-      if (!p) { p = { id: pid, on: true, status: 'new', balance: 0, created: Date.now() }; apiS.providers.push(p); }
-      Object.assign(p, { preset: st.preset, name, env: st.env, base, tokenUrl: st.auth === 'oauth' ? tok : '', auth: st.auth, keyId: key, buyRate: buy, lowAt: low, countries: [...st.countries], paths });
-      if (sec) p.secretTail = sec.slice(-4);
-      if (!ex || changedEnv || sec) testConn(p);
-    }, ['api'], ex ? `${name} saved` : null);
-    const p = provOf(apiS, pid);
-    if (!ex) toast(p && p.status === 'ok' ? `${name} connected · next, sync its catalog` : `${name} added · the connection test failed`);
+    call(async () => { await API.adminProviderSave(pid, body); if (!ex) return API.adminProviderSync(pid); }, r => ex ? 'Saved' : r && r.ok ? `Wupex connected · ${num(r.products)} products · balance ${money$(r.balanceCents)}` : `Wupex added · sync failed: ${r && r.error ? r.error : 'see the call log'}`)
+      .then(() => loadSup(true)).catch(() => {});
   };
-  $w('#pf-ok').addEventListener('click', submit);
-  $w('#pf-form').addEventListener('submit', e => { e.preventDefault(); submit(); });
-  if (ex) $w('#pf-del').addEventListener('click', () => confirmDlg({
-    title: `Remove ${ex.name}?`, danger: true, ok: 'Remove provider',
-    body: `Its ${apiS.products.filter(x => x.pid === ex.id).length} catalog products are removed and the card values it delivers stop selling through the API. Orders already delivered keep their codes.`,
-    onOk: () => { closeDrawer(true); act(() => { apiS.providers = apiS.providers.filter(p => p.id !== ex.id); apiS.products = apiS.products.filter(x => x.pid !== ex.id); Object.keys(apiS.sell).forEach(k => { if (apiS.sell[k].pid === ex.id) delete apiS.sell[k]; }); }, ['api'], `${ex.name} removed`); }
-  }));
-  draw();
+  w.querySelector('#sp-ok').addEventListener('click', submit);
+  w.querySelector('#sp-form').addEventListener('submit', e => { e.preventDefault(); submit(); });
 }
-/* ---------- simulated calls ---------- */
-function testConn(p) {
-  const ms = apiMs();
-  if (p.auth === 'oauth') apiLog(apiS, { pid: p.id, src: 'admin', m: 'POST', p: p.tokenUrl.replace(/^https:\/\/[^/]+/, '') || '/oauth/token', s: 200, ms, note: `grant_type client_credentials · audience ${p.base} · access token received, expires in ${p.env === 'live' ? '60 days' : '24 hours'}` });
-  else apiLog(apiS, { pid: p.id, src: 'admin', m: 'GET', p: apiPath(p, 'balance'), s: 200, ms, note: p.auth === 'hmac' ? 'request signed with the API secret (HMAC) · signature accepted' : 'API key accepted' });
-  if (!p.balance && !p.tested) p.balance = p.env === 'live' ? 500 : 1000;
-  p.tested = true;
-  apiLog(apiS, { pid: p.id, src: 'admin', m: 'GET', p: apiPath(p, 'balance'), s: 200, ms: apiMs(), note: `balance $${p.balance.toFixed(2)} USD${p.env === 'sandbox' ? ' (test money)' : ' (demo figure)'}` });
-  p.status = 'ok'; p.err = ''; p.lastTest = Date.now();
-}
-function syncCatalog(p) {
-  const pick = MOCK_CATALOG.filter(x => (p.countries || ['US', 'GLOBAL']).includes(x.country));
-  const pages = Math.max(1, Math.ceil(pick.length / 10));
-  for (let i = 1; i <= pages; i++) apiLog(apiS, { pid: p.id, src: 'admin', m: 'GET', p: apiPath(p, 'products', { page: i }), s: 200, ms: apiMs(), note: `page ${i} of ${pages} · ${Math.min(10, pick.length - (i - 1) * 10)} products` });
-  const seed = hashStr(p.id) % 9000;
-  const keep = new Map(apiS.products.filter(x => x.pid === p.id).map(x => [x.name, x]));
-  const fresh = pick.map((x, i) => {
-    const product = String(seed + 100 + i * 7), old = keep.get(x.name);
-    const auto = x.match && BR[x.match] && !BR[x.match].hidden ? x.match : (shown().find(b => b.name.toLowerCase() === x.brand.toLowerCase()) || {}).id || null;
-    return { ...x, key: `${p.id}:${product}`, pid: p.id, product, cur: x.cur || 'USD', map: old ? old.map : auto };
+/* automatic linking: preview, then apply */
+function openAutomap(id) {
+  const p = sup.providers.find(x => x.id === id); if (!p) return;
+  const w = openDrawer(`<div class="d-head"><div class="t"><h2>Link cards automatically</h2><small>${esc(p.name)}: same brand and value, US cards first</small></div><button class="d-x" data-close aria-label="Close">${ic('close')}</button></div>
+    <div class="d-body" id="am-body"><p class="note">Checking the catalogue…</p></div>
+    <div class="d-foot"><button class="btn line" data-close>Cancel</button><button class="btn" id="am-ok" disabled>${ic('check')}Link them</button></div>`, { label: 'Link cards automatically' });
+  API.adminAutomap(id, false).then(r => {
+    const rows = r.suggestions, found = rows.filter(x => x.externalId), changed = found.filter(x => !x.current || x.current.externalId !== x.externalId);
+    w.querySelector('#am-body').innerHTML = `<p class="note">${num(found.length)} of your ${num(rows.length)} cards have a matching ${esc(p.name)} product${changed.length ? `, ${num(changed.length)} of them new or changed` : ''}.</p>
+      <label class="swrow" style="margin:6px 0 12px"><div class="t"><b>Also add the card values ${esc(p.name)} sells</b><small>For brands you already sell, every value ${esc(p.name)} offers is added to the app and linked.</small></div><input type="checkbox" id="am-add"></label>
+      <div class="tscroll"><table class="vt"><thead><tr><th>Your card</th><th>${esc(p.name)} product</th><th class="r">Cost</th></tr></thead><tbody>
+      ${rows.map(x => `<tr><td>${esc(cardName(x.brandId, x.valueUsd))}</td><td class="mono">${x.externalId ? esc(x.externalId) : `<span class="pnone">${esc(x.note || 'no match')}</span>`}</td><td class="r">${x.costCents != null ? money$(x.costCents) : ''}</td></tr>`).join('')}
+      </tbody></table></div>`;
+    w.querySelector('#am-ok').disabled = false;
+  }).catch(e => { w.querySelector('#am-body').innerHTML = `<p class="err-msg">${esc(e.message || 'Could not check the catalogue')}</p>`; });
+  w.querySelector('#am-ok').addEventListener('click', () => {
+    const add = !!(w.querySelector('#am-add') && w.querySelector('#am-add').checked);
+    closeDrawer(true);
+    call(() => API.adminAutomap(id, true, add), r => `${num(r.saved)} card${r.saved === 1 ? '' : 's'} linked${r.addedValues && r.addedValues.length ? ` · ${num(r.addedValues.length)} values added` : ''}${r.brandsNotCarried && r.brandsNotCarried.length ? ` · not carried: ${r.brandsNotCarried.join(', ')}` : ''}`)
+      .then(() => loadSup(true)).catch(() => {});
   });
-  const keys = new Set(fresh.map(x => x.key));
-  Object.keys(apiS.sell).forEach(k => { const s = apiS.sell[k]; if (s.pid === p.id && !keys.has(s.key)) delete apiS.sell[k]; });
-  apiS.products = apiS.products.filter(x => x.pid !== p.id).concat(fresh);
-  fresh.forEach(x => cfg.values.forEach(v => { const k = x.map && skey(x.map, v), s = k && apiS.sell[k]; if (s && s.key === x.key) s.cost = prodCost(x, v); }));   // costs follow the provider's latest prices
-  p.lastSync = Date.now();
-  return { n: fresh.length, linked: fresh.filter(x => x.map).length };
 }
 function apiClick(e, g) {
   let x;
-  if ((x = g('[data-api-add]'))) { openProvider(null, x.dataset.apiAdd); return true; }
-  if ((x = g('[data-api-edit]'))) { openProvider(x.dataset.apiEdit); return true; }
-  if ((x = g('[data-api-on]'))) { const id = x.dataset.apiOn; act(() => { const p = provOf(apiS, id); if (!p) return ABORT; p.on = p.on === false; return p; }, ['api'], p => `${p.name} ${p.on ? 'turned on' : 'turned off · its cards stop selling through the API'}`); return true; }
-  if ((x = g('[data-api-test]'))) { const id = x.dataset.apiTest; act(() => { const p = provOf(apiS, id); if (!p) return ABORT; testConn(p); return p; }, ['api'], p => `${p.name}: connected · balance $${p.balance.toFixed(2)}`); return true; }
-  if ((x = g('[data-api-sync]'))) {
-    const id = x.dataset.apiSync;
-    act(() => { const p = provOf(apiS, id); if (!provReady(p)) return ABORT; ui.apiTab = id; const r = syncCatalog(p); r.d = fulfilApi(); return r; }, ['orders', 'api'],
-      r => `${r.n} products synced · ${r.linked} linked to your brands${r.d ? ` · ${r.d} pre-order${r.d === 1 ? '' : 's'} delivered` : ''}`);
+  if ((x = g('[data-sup-add]'))) { openSupplier(null); return true; }
+  if ((x = g('[data-sup-edit]'))) { openSupplier(x.dataset.supEdit); return true; }
+  if ((x = g('[data-sup-reload]'))) { loadSup(true); return true; }
+  if ((x = g('[data-sup-on]'))) {
+    const p = sup.providers.find(y => y.id === x.dataset.supOn); if (!p) return true;
+    call(() => API.adminProviderSave(p.id, { isActive: !p.is_active }), `${p.name} ${p.is_active ? 'turned off · its cards stop selling when your own stock runs out' : 'turned on'}`).then(() => loadSup(true)).catch(() => {});
     return true;
   }
-  if ((x = g('[data-api-funds]'))) {
-    const id = x.dataset.apiFunds;
-    act(() => { const p = provOf(apiS, id); if (!p || p.env !== 'sandbox') return ABORT; p.balance = +(p.balance + 500).toFixed(2); apiLog(apiS, { pid: id, src: 'admin', m: 'SANDBOX', p: 'test funds', s: 200, ms: apiMs(), note: `$500 test money added · balance $${p.balance.toFixed(2)}` }); return fulfilApi(); }, ['orders', 'api'], n => `$500 test funds added${n ? ` · ${n} pre-order${n === 1 ? '' : 's'} delivered` : ''}`);
+  if ((x = g('[data-sup-sync]'))) {
+    const id = x.dataset.supSync; x.disabled = true;
+    call(() => API.adminProviderSync(id), r => r.ok ? `Synced · ${num(r.products)} products · balance ${money$(r.balanceCents)}` : `Sync failed: ${r.error}`).then(() => loadSup(true)).catch(() => {});
     return true;
   }
-  if ((x = g('[data-api-tab]'))) { ui.apiTab = x.dataset.apiTab; render(); return true; }
+  if ((x = g('[data-sup-auto]'))) { openAutomap(x.dataset.supAuto); return true; }
+  if ((x = g('[data-sup-unmap]'))) {
+    const [pid, prov] = x.dataset.supUnmap.split('|');
+    call(() => API.adminUnmap(pid, prov), 'Unlinked · this card is no longer bought from the supplier').then(() => loadSup(true)).catch(() => {});
+    return true;
+  }
+  if ((x = g('[data-sup-tab]'))) { sup.tab = x.dataset.supTab; loadSup(true); return true; }
   if ((x = g('[data-api-f]'))) { ui.apiF = x.dataset.apiF; render(); return true; }
   if ((x = g('[data-api-more]'))) { ui.apiLogN += 60; render(); return true; }
-  if ((x = g('[data-api-clear]'))) { confirmDlg({ title: 'Clear the API log?', body: 'This removes the list of calls shown here. It doesn’t change orders, stock or providers.', ok: 'Clear log', onOk: () => act(() => { apiS.log = []; }, ['api'], 'API log cleared') }); return true; }
-  if ((x = g('[data-api-val]'))) {
-    const [key, vs] = x.dataset.apiVal.split('|'), v = +vs;
-    act(() => {
-      const pr = apiS.products.find(y => y.key === key); if (!pr || !pr.map || !BR[pr.map]) return ABORT;
-      const k = skey(pr.map, v), s = apiS.sell[k], on = !!s && s.key === key;
-      if (on) { delete apiS.sell[k]; return { on: false, b: pr.map, v }; }
-      apiS.sell[k] = { pid: pr.pid, key, product: pr.product, face: v, cost: prodCost(pr, v) };
-      const bc = cfg.brands[pr.map] || (cfg.brands[pr.map] = { on: true, values: cfg.values.slice() });
-      if (Array.isArray(bc.values) && !bc.values.includes(v)) bc.values = [...bc.values, v].sort((a, b) => a - b);
-      if (!stock[k]) stock[k] = { qty: 0, eta: null, codes: [] };
-      return { on: true, b: pr.map, v, d: fulfilApi(k) };
-    }, ['stock', 'orders', 'api', 'cfg'], r => r.on ? `${cardName(r.b, r.v)} now sells through ${provOf(apiS, apiS.sell[skey(r.b, r.v)].pid).name}${r.d ? ` · ${r.d} pre-order${r.d === 1 ? '' : 's'} delivered` : ''}` : `${cardName(r.b, r.v)} no longer sells through the API`);
-    return true;
-  }
   return false;
 }
 function apiChange(e) {
-  const sel = e.target.closest('[data-api-map]'); if (!sel) return false;
-  const key = sel.dataset.apiMap, to = sel.value;
-  if (to === '__new') {
-    const pr = apiS.products.find(y => y.key === key); if (!pr) return true;
-    const vals = availVals(pr);
-    act(() => {
-      const name = pr.brand, id = slugFor(name), [c1, c2, ink] = PRESETS[cfg.custom.length % PRESETS.length];
-      cfg.custom = Array.isArray(cfg.custom) ? cfg.custom : [];
-      cfg.custom.push({ id, name, label: '', mark: name.slice(0, 24), cat: CATS.includes(pr.cat) ? pr.cat : 'card', c1, c2, ink });
-      cfg.brands[id] = { on: true, values: vals.length ? vals : cfg.values.slice() };
-      if (!cfg.popular.includes(id)) cfg.popular.push(id);
-      cfg.values.forEach(v => { stock[skey(id, v)] = { qty: 0, eta: null, codes: [] }; });
-      const p2 = apiS.products.find(y => y.key === key); p2.map = id;
-      vals.forEach(v => { apiS.sell[skey(id, v)] = { pid: p2.pid, key, product: p2.product, face: v, cost: prodCost(p2, v) }; });
-      return { name, n: vals.length };
-    }, ['stock', 'api', 'cfg'], r => `${r.name} added to the app${r.n ? ` · ${r.n} card value${r.n === 1 ? '' : 's'} sell through the API` : ''} · upload its logo on the Brands page`);
-    return true;
-  }
-  act(() => {
-    const pr = apiS.products.find(y => y.key === key); if (!pr) return ABORT;
-    Object.keys(apiS.sell).forEach(k => { if (apiS.sell[k].key === key) delete apiS.sell[k]; });
-    pr.map = to || null;
-    return pr;
-  }, ['api'], pr => pr.map ? `${pr.name} linked to ${bname(BR[pr.map])} · now pick the values it delivers` : `${pr.name} is no longer sold`);
+  const sel = e.target.closest('[data-sup-map]'); if (!sel) return false;
+  const [sku, prov, cost] = sel.dataset.supMap.split('|'), productId = sel.value;
+  if (!productId) return true;
+  if (cost === '') { toast('This product has no price yet: sync the catalogue first'); return true; }
+  call(() => API.adminMap(productId, prov, sku, +cost), 'Linked · the supplier delivers this card when your own stock runs out').then(() => loadSup(true)).catch(() => {});
   return true;
 }
 
-/* ================= sign-in (demo: nothing is checked or sent anywhere) ================= */
+/* ================= sign-in: eCards admin accounts on the server ================= */
 const K_ADMIN = 'ecards-admin-session';
 P.plug = '<path d="M9 3.5v4.5M15 3.5v4.5"/><path d="M6.5 8h11v3.5a5.5 5.5 0 01-11 0z"/><path d="M12 17v3.5"/>';
 P.logout = '<path d="M14 4.5h3.5a2 2 0 012 2v11a2 2 0 01-2 2H14"/><path d="M10 16l-4-4 4-4"/><path d="M6 12h10"/>';
@@ -3048,7 +2683,7 @@ const nameFrom = email => email.split('@')[0].split(/[._-]+/).filter(Boolean).ma
 const LG_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function whoHTML() {
   const a = admin || { name: 'Admin', email: '' };
-  return `<span class="avatar">${esc(initials(a.name))}</span><div><b>${esc(a.name)} <span class="tag">${API.on ? esc(a.role || 'admin') : 'Demo'}</span></b><small title="${esc(a.email)}">${esc(a.email || 'Signed in')}</small></div>`
+  return `<span class="avatar">${esc(initials(a.name))}</span><div><b>${esc(a.name)} <span class="tag">${esc(a.role || 'admin')}</span></b><small title="${esc(a.email)}">${esc(a.email || 'Signed in')}</small></div>`
     + `<button class="signout" id="signout" aria-label="Sign out" title="Sign out">${ic('logout')}</button>`;
 }
 function drawWho() { $('#who').innerHTML = whoHTML(); $('#signout').addEventListener('click', signOut); }
@@ -3081,26 +2716,21 @@ function lgErr(msg, inp) {
   if (msg && inp) { inp.closest('.lg-inp').classList.add('err'); inp.setAttribute('aria-invalid', 'true'); inp.focus(); }
 }
 function finishSignIn(a, msg) {
-  const go = $('#lg-go'), g = $('#lg-google');
-  go.disabled = g.disabled = true; go.innerHTML = '<span class="spin" aria-hidden="true"></span><span class="sr">Signing in</span>';
-  setTimeout(() => {
-    setAdmin({ ...a, at: Date.now() });
-    go.disabled = g.disabled = false; lgStep(false); $('#lg-email').value = '';
-    drawWho(); lockApp(false); render();
-    const h = $('#title'); if (h) h.focus({ preventScroll: true });
-    toast(msg);
-  }, 650);
+  setAdmin({ ...a, at: Date.now() });
+  const go = $('#lg-go'); go.disabled = false; lgStep(false); $('#lg-email').value = '';
+  drawWho(); lockApp(false); render();
+  const h = $('#title'); if (h) h.focus({ preventScroll: true });
+  toast(msg);
 }
 function signOut() {
-  if (API.on) { API.adminLogout(); API.token = null; }
+  API.adminLogout(); API.token = null;
   setAdmin(null); closeDrawer(true); lgStep(false); lockApp(true);
   toast('Signed out');
 }
 function initLogin() {
-  $('#lg-demo').innerHTML = `${ic('info')}<span>Demo: no real sign-in. Any email and password work.</span>`;
+  $('#lg-info').innerHTML = `${ic('info')}<span>Sign in with your eCards admin account. Ask an owner if you need one.</span>`;
   $('#lg-eye').innerHTML = ic('eye');
   drawArt();
-  $('#lg-google').addEventListener('click', () => finishSignIn({ name: 'eCards Admin', email: 'admin@ecards.et', via: 'google' }, 'Signed in as eCards Admin · demo, Google was not contacted'));
   $('#lg-change').addEventListener('click', () => lgStep(false));
   $('#lg-eye').addEventListener('click', () => {
     const pw = $('#lg-pw'), show = pw.type === 'password';
@@ -3121,9 +2751,8 @@ function initLogin() {
       return lgStep(true);
     }
     if (!$('#lg-pw').value) return lgErr('Enter your password.', $('#lg-pw'));
-    const em = $('#lg-email').value.trim(), name = nameFrom(em);
-    if (API.on) { serverSignIn(em, $('#lg-pw').value); return; }
-    finishSignIn({ name, email: em, via: 'email' }, `Welcome back, ${name.split(' ')[0]}`);
+    if (!API.on) return lgErr('Cannot reach the eCards server. Check your connection and try again.', $('#lg-pw'));
+    serverSignIn($('#lg-email').value.trim(), $('#lg-pw').value);
   });
   window.addEventListener('storage', e => {   // signed in or out in another tab
     if (e.key !== K_ADMIN && e.key !== null) return;
@@ -3135,10 +2764,11 @@ function initLogin() {
   lockApp(!admin);
   if (!admin) setTimeout(() => $('#lg-email').focus(), 60);
 }
-/* ================= server mode ================= */
+/* ================= server ================= */
 async function serverLoad() {
   const r = await API.adminLoad(ORIG);
   SV.config = r.config; SV.stock = r.stock; SV.pid = r.pid; SV.orders = r.orders; SV.tickets = r.tickets;
+  ['logos', 'cards', 'banners'].forEach(k => { SV.media[k] = r.media[k] || {}; });
 }
 /** One admin change against the server: run it on a copy, send the difference, then show the server's answer. */
 function serverAct(fn, parts, msg) {
@@ -3166,45 +2796,44 @@ function serverAct(fn, parts, msg) {
 function serverSignIn(email, password) {
   const go = $('#lg-go');
   go.disabled = true;
+  go.innerHTML = '<span class="spin" aria-hidden="true"></span><span class="sr">Signing in</span>';
   API.adminLogin(email, password).then(async r => {
-    await serverLoad(); reload();
+    await serverLoad(); reload(); loadMedia(); sideLogo();
     go.disabled = false;
     finishSignIn({ name: r.admin.name, email: r.admin.email, role: r.admin.role, token: r.token, via: 'server' }, `Welcome back, ${r.admin.name.split(' ')[0]}`);
   }).catch(e => {
-    go.disabled = false;
+    go.disabled = false; go.textContent = 'Sign in';
     lgErr(e.code === 'account_locked' ? 'Too many attempts. Try again in 15 minutes.' : e.code === 'network' ? 'Cannot reach the eCards server.' : 'Wrong email or password.', $('#lg-pw'));
   });
 }
 async function serverStart() {
   API.onUnauthorized = () => { if (admin) signOut(); };
-  $('#lg-demo').innerHTML = `${ic('info')}<span>Live system: sign in with your eCards admin account.</span>`;
-  $('#lg-google').hidden = true;
-  if (admin && !admin.token) signOut();   // a demo sign-in is not valid against the real server
+  if (admin && !admin.token) setAdmin(null);   // a saved sign-in without a server token is not valid
   API.token = admin && admin.token;
-  if (admin) { await serverLoad().catch(() => {}); reload(); render(); }
+  if (admin) { await serverLoad().catch(() => {}); reload(); loadMedia(); sideLogo(); render(); }
   setInterval(async () => {   // every 15 s: new orders, stock and support messages from the server
     if (document.hidden || !admin) return;
+    const before = new Set(orders.map(o => o.id)), seen = new Map(tickets.map(x => [x.id, x.msgs.length]));
     try { await serverLoad(); } catch (e) { return; }
-    svPolling = true;
-    try { window.dispatchEvent(new StorageEvent('storage', { key: null })); } finally { svPolling = false; }
+    applyRefresh(before, seen);
   }, 15000);
 }
 
-/* ================= start ================= */
+/* ================= start: the panel needs the eCards server ================= */
 reload();
-API.init().then(on => { if (on) serverStart().catch(() => {}); });
-loadMedia();
 parseHash();
 const onHist = () => { if (!hashOK) return; parseHash(); closeDrawer(true); render(); };
 window.addEventListener('hashchange', onHist);
 window.addEventListener('popstate', onHist);
 render();
-if (!LINKED || !LS) {
+API.init().then(on => {
+  if (on) return serverStart();
   const n = $('#notice');
-  n.innerHTML = `${ic('info')}<p>${!LINKED ? 'You are viewing the admin in a preview window. Every page works here, but the live app preview and the mini app link need the app file next to this one: unzip ecards-mpesa-demo.zip and open admin.html from that folder.' : 'This browser is blocking storage, so the admin and the app can’t share data.'}${!LS ? ' Changes last until you close this window.' : ''}</p><button aria-label="Dismiss">${ic('close')}</button>`;
+  n.innerHTML = `${ic('alert')}<p>Cannot reach the eCards server. Check your connection, then reload this page.</p><button aria-label="Reload">${ic('reset')}</button>`;
   n.hidden = false;
-  n.querySelector('button').addEventListener('click', () => { n.hidden = true; });
-}
+  n.querySelector('button').addEventListener('click', () => location.reload());
+  $('#lg-info').innerHTML = `${ic('alert')}<span>Cannot reach the eCards server. Reload the page to try again.</span>`;
+}).catch(() => {});
 let pvPref = null; try { pvPref = localStorage.getItem(K_PV); } catch (e) { /* storage unavailable */ }
 if (pvPref === '1' && window.innerWidth > 1380) setPreview(true, false);
 function sideLogo() {
