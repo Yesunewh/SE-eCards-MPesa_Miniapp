@@ -64,3 +64,20 @@ What was done, in order. Commits are on branch `backend-api`, authored by Yesune
 - This knowledge base (`docs/`).
 - Merchant number `0711885151` received; to be confirmed as the businessID.
 - Mini program portal access is still pending, so creating the mini program is on hold.
+
+## Phase 7: Wupex sandbox (2026-11-02)
+- Wupex sandbox access: merchant `Paperless345`; the API reference v1.1 (June 2026) and Postman collection were received.
+- Findings from the real sandbox:
+  - the API is `sandbox-service.wupex.com` (the portal `/__wupex` refuses API calls);
+  - `pull-codes` returns no codes, so they are read from `order/detail`;
+  - errors are HTTP 200 with `status:false`;
+  - `creditBalance` is the spendable amount;
+  - a repeated `referenceId` gives `ALREADY_COMPLETED` with no charge.
+- Adapter reworked around `referenceId`. The marker and one-at-a-time workaround was removed.
+- Wupex pre-orders supported: migration `004_provider_preorders.sql` adds status `partial`, and codes are delivered as they arrive.
+- Mapping cost fixed (the Wupex price already includes the discount). Added `provider:map --add-values`.
+- Live checks:
+  - a real order through eCards (Apple $5) completed;
+  - a Steam $10 Wupex pre-order is tracked;
+  - 27 of our cards are mapped after adding Wupex's values.
+- 107 tests passing. Commit `d436019`.

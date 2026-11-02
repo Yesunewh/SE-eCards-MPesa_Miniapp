@@ -14,9 +14,9 @@ Back to [[00 Home]] · Questions to ask: [[Questions for Partners]] · Demo: [[D
 ## What exists today
 - **Customer mini app**: catalogue, cart, M-Pesa login and pay, instant codes, pre-orders, support chat, wishlist, 5 languages.
 - **Admin back office**: orders, stock upload, prices and rate, home screen, suppliers, payment review, support, audit log.
-- **Backend server and database**: secure, automatic delivery (stock → Wupex → pre-order), encrypted codes, 102 automated tests.
+- **Backend server and database**: secure, automatic delivery (stock → Wupex → pre-order), encrypted codes, 107 automated tests.
 - **M-Pesa Ethiopia integration** built to Safaricom's H5 docs: `userScopes` login, `payWithMpesa`, C2B Validation/Confirmation, URL registration.
-- **Wupex integration** built, with protection against double purchases.
+- **Wupex integration** connected to the Wupex **sandbox**: a real test order through eCards delivered its code; Wupex pre-orders work too.
 - **Running** on our VPS at `ecards.paperless.et` (test mode, no real money).
 
 ## What we need (decisions and access)
@@ -26,7 +26,7 @@ Back to [[00 Home]] · Questions to ask: [[Questions for Partners]] · Demo: [[D
 | 2 | **Confirm business number / businessID**: is `0711885151` correct? (It looks like a phone number; we expect a till or paybill shortcode.) | Safaricom | Receiving payments |
 | 3 | Enable features **UserScopes** and **PaymentET**; confirm the H5 Entrance URL `https://ecards.paperless.et/` | Safaricom | Login and pay |
 | 4 | **Production credentials** and the live API base URL; C2B URL registration in production | Safaricom | Go-live |
-| 5 | **Wupex API keys** (sandbox and live), merchant code, currency, IP allow-list (`91.107.204.59`) | Wupex | Automatic card supply |
+| 5 | Wupex **production** service URL and keys, the production catalogue (Netflix, Xbox, Spotify, PUBG?), IP allow-list (`91.107.204.59`). Sandbox: ✅ done | Wupex | Automatic card supply |
 | 6 | **SMS gateway** for sending codes | Safaricom or an aggregator | SMS delivery (in-app works already) |
 | 7 | Business: **USD→ETB rate and margin**, starting stock budget, Wupex prepaid balance | Internal | Pricing and supply |
 
@@ -36,7 +36,7 @@ Back to [[00 Home]] · Questions to ask: [[Questions for Partners]] · Demo: [[D
 | Create the H5 mini program in the portal, then configure | ~1 hour |
 | Switch the server to M-Pesa mode and register callbacks | ~1 hour |
 | Sandbox testing inside the M-Pesa app | 1–2 days |
-| Wupex sandbox → map products → test purchase | 1 day |
+| Wupex sandbox → map products → test purchase | ✅ done |
 | SMS connection | 1–2 days (depends on the provider) |
 | Production keys, review and soft launch | depends on Safaricom review |
 
@@ -54,4 +54,4 @@ Back to [[00 Home]] · Questions to ask: [[Questions for Partners]] · Demo: [[D
 1. Who at Safaricom sends the **mini program portal invitation**, and when?
 2. Confirm the **businessID** for `payWithMpesa` and C2B.
 3. Production onboarding steps and **review time**.
-4. Wupex: **keys and allow-list** timeline.
+4. Wupex: **production keys, catalogue and allow-list** timeline.

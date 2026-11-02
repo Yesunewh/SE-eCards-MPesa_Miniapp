@@ -46,7 +46,7 @@ For each `waiting` line, in this order:
                 FOR UPDATE SKIP LOCKED)
    ```
    `SKIP LOCKED` means two orders can never get the same code, even at the same instant.
-2. **Providers** (Wupex), by priority, if the product is mapped and the provider is enabled:
+2. **Providers** (Wupex), by priority, if the product is mapped and the provider is enabled. Wupex specifics, including its own pre-orders, are in [[Gift Cards – Wupex]].
    - Insert `provider_orders` (status `pending`, unique `custom_identifier`) **before** calling out.
    - Call the provider. The result is one of:
      - success: codes are encrypted and saved, and the line is updated;

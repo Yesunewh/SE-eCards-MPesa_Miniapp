@@ -20,7 +20,7 @@ Back to [[00 Home]] · See also [[System Overview]]
 | Database | **PostgreSQL 16** | Transactions, row locking (`SKIP LOCKED`), JSONB, `pgcrypto` |
 | Job queue | Postgres `jobs` table | No Redis needed; atomic with the data |
 | Crypto | Node `crypto` | AES-256-GCM, HMAC-SHA256, scrypt, SHA-256, RSA signing (miniapp adapter) |
-| Tests | **vitest 5** | 102 tests against a real Postgres |
+| Tests | **vitest 5** | 107 tests against a real Postgres |
 | Dev runner | **tsx** | `npm run dev` with watch mode |
 
 Runtime dependencies are only five packages: fastify, @fastify/cors, @fastify/rate-limit, pg, zod. A small dependency set means a small attack surface. `npm audit` was clean at the last check.
@@ -48,4 +48,4 @@ Runtime dependencies are only five packages: fastify, @fastify/cors, @fastify/ra
 
 ## External APIs
 - **Safaricom M-Pesa Ethiopia**: sandbox `https://apisandbox.safaricom.et`. OAuth token (tested OK), C2B URL registration, C2B Validation/Confirmation callbacks, and the mini app JSAPIs `userScopes` and `payWithMpesa`.
-- **Wupex**: gift card wholesale API (`x-api-key`): balance, product list, pull-codes, order detail and order list.
+- **Wupex**: gift card wholesale API (`x-api-key`): balance, product list, pull-codes with our `referenceId`, order detail and pre-order status. Sandbox `https://sandbox-service.wupex.com` (tested OK).

@@ -74,12 +74,12 @@ Dashboard → Orders (filters, retry, resend) → **Payments review** (unmatched
 ## Talking points for technical people
 - **Source of truth** = the C2B Confirmation; `pay-result` from the app is informational only.
 - **No double-sell**: row locks with `SKIP LOCKED`, tested under concurrency.
-- **No double-buy at Wupex** even without an idempotency key: serialised purchases, a marker, then reconciliation.
+- **No double-buy at Wupex**: every purchase carries our `referenceId`. A repeat returns the same order, and a timeout is settled by looking the reference up.
 - **Encrypted codes** (AES-256-GCM), HMAC dedupe, audited reveal.
 - **Device binding** neutralises spoofed `userScopes` data.
 - **Swappable adapters**: the same code runs mock/staging and production.
 - **Safe ops**: an isolated install on a shared VPS, resource caps, automatic rollback.
-- **102 tests** plus browser end-to-end runs.
+- **107 tests** plus browser end-to-end runs, plus real orders on the Wupex sandbox.
 
 ## Reset after the demo
 Demo orders stay in the DB, which is harmless in staging. To keep stock tidy, void test codes in Admin → Stock.

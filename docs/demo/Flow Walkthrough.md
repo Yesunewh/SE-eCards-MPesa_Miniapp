@@ -56,7 +56,7 @@ flowchart TD
 - 💬 M-Pesa tells us "money received". Only now do we treat the order as paid.
 
 ### 8. Find a code
-- 🔧 The worker claims from stock with `FOR UPDATE SKIP LOCKED`, otherwise uses the provider (Wupex pull-codes, recorded before the call, reconciled if unknown), otherwise the line stays `waiting` with an ETA and the order becomes `awaiting_stock`.
+- 🔧 The worker claims from stock with `FOR UPDATE SKIP LOCKED`, otherwise uses the provider (Wupex pull-codes with our `referenceId`, recorded before the call, looked up by that reference if the answer is lost; Wupex pre-orders are delivered as codes arrive), otherwise the line stays `waiting` with an ETA and the order becomes `awaiting_stock`.
 - 💬 We take a code from our own stock. If we have none, we buy one from Wupex on the spot. If that's not possible, the customer gets a pre-order.
 
 ### 9. Deliver
@@ -75,5 +75,5 @@ flowchart TD
 | Customer cancels payment | Attempt `cancelled`; retry with `…R2` | Nothing charged; try again |
 | No payment in 15 min | `expire_orders` job: `expired` | The order times out |
 | Wrong amount paid | Acknowledged, not fulfilled, audit plus review queue | Staff check it and refund or fix it |
-| Wupex timeout | `unknown`, then reconcile after 180 s; no blind re-buy | We double-check before buying again |
+| Wupex timeout | `unknown`, then look up by `referenceId`; re-buy only if Wupex never got it (90 s) | We double-check before buying again |
 | Same order seen on another phone | `codesHidden: true` | Codes stay on the buyer's phone |

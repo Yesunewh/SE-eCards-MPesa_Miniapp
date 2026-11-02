@@ -34,6 +34,6 @@ We buy gift cards wholesale (from our supplier **Wupex**, or other suppliers) in
 If a card is temporarily out of stock, you can still buy it as a **pre-order**. You see the expected date, and the code arrives automatically when stock comes in.
 
 ## Where we are
-The product is **built and working in a test setup**. We are waiting for Safaricom (mini app portal access and the business number) and Wupex (API keys) to connect real money and real cards. See [[What Is Done and What Is Next]].
+The product is **built and working in a test setup**. We are waiting for Safaricom (mini app portal access and the business number) and Wupex (production keys; their test account already works) to connect real money and real cards. See [[What Is Done and What Is Next]].
 
 Next: [[The Customer Journey]]

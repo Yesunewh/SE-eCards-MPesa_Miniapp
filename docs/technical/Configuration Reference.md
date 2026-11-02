@@ -40,10 +40,10 @@ All settings are environment variables. On the VPS they live in `/opt/ecards/.en
 | Variable | Meaning |
 |---|---|
 | `GIFTCARD_ADAPTER` | `mock` (DEMO codes) · `wupex` |
-| `WUPEX_BASE_URL` | sandbox `https://sandbox-service.wupex.com` · live `https://service.wupex.com` |
-| `WUPEX_API_KEY` | from Wupex |
-| `WUPEX_MERCHANT` | merchant code for pull-codes |
-| `WUPEX_CURRENCY` | currency of prices/balance (default USD; confirm) |
+| `WUPEX_BASE_URL` | the **service** URL: sandbox `https://sandbox-service.wupex.com` · production: the URL Wupex gives (not the portal address) |
+| `WUPEX_API_KEY` | from the Wupex portal (secret) |
+| `WUPEX_MERCHANT` | merchant code (portal → avatar): `Paperless345` in the sandbox |
+| `WUPEX_CURRENCY` | currency of prices and balance: `USD` (confirmed) |
 
 ## Notifications and staging
 | Variable | Meaning |
@@ -67,7 +67,7 @@ MPESA_CONSUMER_SECRET=<production secret>
 MPESA_SHORTCODE=<confirmed business number>
 MPESA_CALLBACK_SECRET=<new long random>
 GIFTCARD_ADAPTER=wupex
-WUPEX_BASE_URL=https://service.wupex.com
+WUPEX_BASE_URL=<production service url from Wupex>
 WUPEX_API_KEY=<key>
 WUPEX_MERCHANT=<code>
 ALLOW_MOCK_ADAPTERS=false

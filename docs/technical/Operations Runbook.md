@@ -97,8 +97,19 @@ sudo bash -c 'set -a; . /opt/ecards/.env; curl -s -u "$MPESA_CONSUMER_KEY:$MPESA
 ```
 
 ## Wupex
-- Sync and map products: **Admin → Providers → Sync** then **Auto-map**, or run `provider:map` on the server.
-- Check the balance: **Admin → Providers**.
+Sync the catalogue, add the values Wupex sells, and map them (shows the result first; `--apply` saves):
+```bash
+sudo bash -c 'set -a; . /opt/ecards/.env; set +a; cd /opt/ecards/current && /opt/ecards/node/bin/node dist/scripts/provider-map.js wupex --add-values --apply'
+```
+Check the API key and the balance straight from the server:
+```bash
+sudo bash -c 'set -a; . /opt/ecards/.env; curl -s -H "x-api-key: $WUPEX_API_KEY" -H "Accept-Language: en" "$WUPEX_BASE_URL/api/customer/balance"'
+```
+Open Wupex pre-orders (re-read every 2 minutes; codes go to the customer as they arrive):
+```sql
+SELECT custom_identifier, status, external_transaction_id, created_at FROM provider_orders WHERE status IN ('partial','unknown') ORDER BY created_at;
+```
+You can also use **Admin → Providers** (balance, sync, auto-map, call log).
 
 ## If something goes wrong
 | Symptom | Look at |

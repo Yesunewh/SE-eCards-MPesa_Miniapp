@@ -42,12 +42,16 @@ Back to [[00 Home]] · [[Meeting Brief]]
 - [ ] Rules for **content, branding and review** of mini apps (logos of brands like Netflix and PlayStation)?
 
 ## Wupex
-- [ ] **Sandbox and production API keys** and the **merchant code**.
+- [x] Sandbox access, merchant code (`Paperless345`), API reference v1.1. **Sandbox tested OK.**
+- [x] Currency: USD. Client reference: `referenceId` (works as an idempotency key, tested).
+- [ ] The **production service URL** and **production API key**. When does the production account open?
+- [ ] The **production catalogue**: are **Netflix, Xbox, Spotify and PUBG** available? The sandbox has only Apple, Google Play, PlayStation, Steam, Roblox and Razer.
 - [ ] Do they need **IP allow-listing**? Our server IP is `91.107.204.59`.
-- [ ] The **currency** of prices and balance (USD?).
-- [ ] **Rate limits** and the max quantity per `pull-codes` call.
-- [ ] Is there any **client reference / idempotency key** for orders? (We built a workaround, but a native key is safer.)
-- [ ] Error codes for **insufficient balance**, **out of stock** and **product unavailable**.
+- [ ] **Rate limits** and the max quantity per `pull-codes` call. `pull-codes` took ~8 s in the sandbox: is that normal?
+- [ ] The full list of error codes (we have seen `Insufficient Stock` and `PRICE_REVIEW_REQUIRED`). Which code means **insufficient balance**?
+- [ ] Pre-orders: are the sandbox suppliers simulated? Our test Steam pre-order stayed `Pending` / `UNCONFIRMED`.
+- [ ] Sandbox data check: **Apple $15** has `faceValue` 16 and price $15.68 (above face value). Is that intended?
+- [ ] Credit line versus prepaid balance in production, and how invoices or settlement work.
 - [ ] How do we **top up** the balance, and is there a low-balance alert?
 - [ ] Which products are available for **our region**, and what are the code formats (code, PIN, serial, expiry)?
 - [ ] The policy for **invalid or used codes** (replacement process).

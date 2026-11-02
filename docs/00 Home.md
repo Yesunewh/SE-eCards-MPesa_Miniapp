@@ -76,9 +76,9 @@ This vault documents what has been built, how it works, how it is deployed, and 
 | Code | GitHub `Yesunewh/SE-eCards-MPesa_Miniapp`, branch `backend-api` |
 | Backend | Node.js 22 + TypeScript + Fastify + PostgreSQL |
 | Payments | M-Pesa Ethiopia H5 mini app: `userScopes` + `payWithMpesa` + C2B callbacks |
-| Gift card supplier | Wupex API (adapter ready; waiting for API keys) |
+| Gift card supplier | Wupex API: **sandbox connected and tested** (merchant `Paperless345`); production keys to come |
 | Merchant number to try | `0711885151` (still to confirm with Safaricom: see [[Questions for Partners]]) |
-| Tests | 102 automated tests, all passing |
+| Tests | 107 automated tests, all passing |
 
 > [!warning] Secrets are never stored in these notes
 > API keys, passwords and encryption keys live only on the server in `/opt/ecards/.env` and `/root/ecards-db.pass`. Anything that was shared in chat should be rotated. See [[Security]].

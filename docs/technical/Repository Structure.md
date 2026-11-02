@@ -26,7 +26,8 @@ SE-eCards-MPesa_Miniapp/
     ├── migrations/
     │   ├── 001_init.sql          ← the whole schema
     │   ├── 002_wupex_miniapp.sql ← Wupex + mini program changes
-    │   └── 003_mpesa_et.sql      ← device binding, C2B, client result
+    │   ├── 003_mpesa_et.sql      ← device binding, C2B, client result
+    │   └── 004_provider_preorders.sql ← Wupex pre-orders (partial deliveries)
     ├── src/
     │   ├── index.ts        ← starts HTTP server (+ worker if RUN_WORKER)
     │   ├── config.ts       ← env schema (zod)
@@ -59,5 +60,5 @@ About 3,700 lines of TypeScript in `server/src`.
 | `npm run seed` | Settings, brands, products, home screen (`-- --demo-stock`, `-- --mock-provider`) |
 | `npm run admin:create` | Create an admin user |
 | `npm test` | Run all tests |
-| `npm run provider:map` | Sync and auto-map Wupex products (`provider:map:dev` for the tsx version) |
+| `npm run provider:map` | Sync and auto-map Wupex products. `--apply` saves; `--add-values --apply` also adds the values Wupex sells (`provider:map:dev` for the tsx version) |
 | `npm run mpesa:register-urls` | Register the C2B Validation/Confirmation URLs with Safaricom |

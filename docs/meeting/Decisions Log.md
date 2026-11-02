@@ -19,7 +19,10 @@ Back to [[00 Home]]
 | Phase 3 | **Abandon VPS 196.189.51.169** and use **91.107.204.59** | The first was slow and hosts a critical call-centre system |
 | Phase 3 | **Isolated install** (own user, own Node, Docker DB on 127.0.0.1:5433, resource caps) | Don't affect Odoo, nginx, PostgreSQL or Node already running |
 | Phase 3 | Domain **ecards.paperless.et** behind nginx with HTTPS | Required by M-Pesa (HTTPS Entrance URL and callbacks) |
-| Phase 4 | Wupex: **serialise purchases and reconcile with a marker** | Wupex has no client reference/idempotency key |
+| Phase 4 | Wupex: **serialise purchases and reconcile with a marker** | The old Wupex docs had no client reference |
+| 2026-11-02 | Wupex: **send our `referenceId` on every purchase**, drop the marker workaround; accept Wupex pre-orders and deliver codes as they arrive | The June 2026 API supports `referenceId` (idempotent, tested live) and pre-orders |
+| 2026-11-02 | Cost price = Wupex `price` as is | It already includes Wupex's discount |
+| 2026-11-02 | `--add-values`: our catalogue follows the values Wupex sells | Only 7 of our 40 seeded cards existed at Wupex |
 | 2026-11-01 | **No STK push. Use the H5 mini app** (`userScopes` + `payWithMpesa` + C2B) | The product is a mini app inside M-Pesa |
 | 2026-11-01 | **Device-bound code access** for `userScopes` logins | The identity comes from the page and can't be verified by our server |
 | 2026-11-01 | Order reference as **bill reference**, with `R2`, `R3` for retries | Each attempt is unique; a late confirmation still maps to the order |

@@ -7,7 +7,7 @@ tags: [ecards, technical, database]
 
 Back to [[00 Home]] · Related: [[Orders and Fulfilment]] · [[Security]]
 
-PostgreSQL 16 with 27 tables, 1 view and 3 migrations. Plain SQL, no ORM.
+PostgreSQL 16 with 27 tables, 1 view and 4 migrations. Plain SQL, no ORM.
 
 ## Conventions
 - **Money.** Birr amounts are stored as **santim** in `BIGINT` columns named `*_minor` (Br 150.00 = `15000`). Gift card face values and provider costs are stored as **USD cents** (`*_cents`).
@@ -26,6 +26,7 @@ The migrator (`npm run migrate`) takes a Postgres **advisory lock**, applies eac
 | `001_init.sql` | The whole schema below |
 | `002_wupex_miniapp.sql` | `customers.msisdn` and `payments.msisdn` become nullable (mini app logins may not share a phone); payment methods `mpesa_miniapp` and `mock`; `provider_orders.request_context` JSONB (Wupex marker); unique `(provider_id, external_transaction_id)`; `provider_products.price_cents` |
 | `003_mpesa_et.sql` | `customer_sessions.device_hash` + `verified`; `orders.device_hash`; `payments.client_result` JSONB; webhook source `mpesa_c2b` |
+| `004_provider_preorders.sql` | `provider_orders.status` gains `partial` (a Wupex pre-order still delivering) |
 
 ## Tables by area
 
