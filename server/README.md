@@ -11,7 +11,7 @@ and delivers gift card codes from our own stock or from a gift card provider (Wu
 | Database schema, migrations, seed (matches the demo catalog) | done |
 | Catalog, orders, pre-orders, stock, wishlist, support, admin | done |
 | M-Pesa payments: request, callback, status check, expiry | done; **mock** adapter works, Safaricom adapter written but **unverified** |
-| Gift card provider fulfilment, retries, no double-buying | done; **mock** provider works, **Wupex adapter waits for their API docs** |
+| Gift card provider fulfilment, retries, no double-buying | done; **Wupex adapter tested against the Wupex sandbox** (real orders, pre-orders) |
 | Codes by SMS / email | queued and rendered; **needs an SMS gateway / SMTP adapter** |
 | Front-end wired to this API | not yet: the HTML apps still use browser storage |
 
@@ -239,24 +239,36 @@ Customer and admin calls take `Authorization: Bearer <token>`.
 ## Going live: open items
 
 ### Wupex
-`src/adapters/giftcards/wupex.ts` implements the documented API: balance, product list, `pull-codes`
-(codes come back in the reply), order detail and order list. Tested against a fake server that answers like the docs.
+`src/adapters/giftcards/wupex.ts` follows the Wupex API reference v1.1 (June 2026) and was checked against the sandbox
+(`https://sandbox-service.wupex.com`; the portal address is for browsers only and refuses API calls):
+balance (`creditBalance` is what can be spent), product list (vouchers only; top-ups are skipped), `pull-codes`,
+order detail, pre-order status. Tested against a fake server that answers like the sandbox, and with real sandbox orders.
 
-**Wupex takes no reference of ours**, so a purchase whose answer is lost (timeout) cannot be looked up by our id.
-The adapter stays safe by: buying one order at a time per provider (database lock), never while an earlier purchase
-is unresolved; recording the newest Wupex order id just before buying; and after a timeout, taking the order newer
-than that mark with the same SKU and quantity that no other purchase has claimed (a unique index guarantees a Wupex
-order is claimed once). Only when Wupex shows nothing for 3 minutes is the card bought again.
+- **Idempotent purchases.** Every purchase sends `referenceId=<our provider order id>` (for example `EC62270851-1-1`).
+  Wupex answers a repeated reference with the same order (`ALREADY_COMPLETED`) and charges nothing, and orders can be read
+  back by it. After a timeout we read `order/detail?referenceId=…`; only if Wupex has no such order after 90 seconds is
+  the card bought again, under a new reference.
+- **Codes come from `order/detail`.** `pull-codes` only answers with the order number.
+- **Wupex pre-orders.** With `allowTakeAll=true`, Wupex delivers what it has and buys the rest from its suppliers
+  (every 10 minutes, up to 10 times), charging only for what it delivers. The purchase is kept as `partial` and read every
+  2 minutes. Codes go to the customer as they arrive. No other purchase is made for that line meanwhile. If Wupex gives up,
+  the line goes back to waiting for our own stock.
+- **Errors** arrive as HTTP 200 `{status:false, description:"[CODE] message"}`. Insufficient stock or balance can be retried
+  later; anything else (for example `PRICE_REVIEW_REQUIRED`) cannot. Timeouts and 5xx are unknown outcomes and are looked up.
+- **Cost** = Wupex `price` (face value minus their discount, in USD).
 
 Go live:
-1. `.env`: `GIFTCARD_ADAPTER=wupex`, `WUPEX_BASE_URL` (sandbox first), `WUPEX_API_KEY`, `WUPEX_MERCHANT`, `WUPEX_CURRENCY`.
-2. Register it: `PUT /v1/admin/providers/wupex {"name":"Wupex","adapter":"wupex","isActive":true,"buyRate":<Br per USD you pay>}`.
+1. `.env`: `GIFTCARD_ADAPTER=wupex`, `WUPEX_BASE_URL=https://sandbox-service.wupex.com` (production: the service URL
+   Wupex gives you), `WUPEX_API_KEY`, `WUPEX_MERCHANT` (portal → avatar → merchant code), `WUPEX_CURRENCY=USD`.
+2. Register it: `PUT /v1/admin/providers/wupex {"name":"Wupex","adapter":"wupex","isActive":true}`, or in SQL
+   `INSERT INTO providers (id, name, adapter, environment, is_active, status) VALUES ('wupex','Wupex','wupex','sandbox',true,'ok')`.
 3. Sync and map: `npm run provider:map -- wupex` shows which Wupex SKU covers each card (USA first, then global) with the
-   cost price; add `--apply` to save. Or `POST /v1/admin/providers/wupex/automap {"apply":true}`.
+   cost price. Add `--apply` to save. `--add-values --apply` first adds our card for every value Wupex sells in brands we
+   carry, and lists Wupex brands we don't carry. Or use `POST /v1/admin/providers/wupex/automap {"apply":true}`.
 4. Switch the `mock` provider off: `PUT /v1/admin/providers/mock {"isActive":false}`.
 
-Ask Wupex: currency of `price`/balance; whether `price` is the face value; whether the order list's `ReferenceId`
-filter accepts our own reference (then lookups become exact); whether they allow-list server IPs.
+Ask Wupex: the production service URL; whether they allow-list server IPs; the production catalogue (the sandbox has
+no Netflix, Xbox, Spotify or PUBG).
 
 ### M-Pesa Ethiopia (H5 mini app): `PAYMENTS_ADAPTER=mpesa_et`
 Following developer.safaricom.et → Mini App → H5 Mini-app:

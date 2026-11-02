@@ -64,7 +64,7 @@ async function buyFromProviders(ctx: Ctx, order: any, itemId: string): Promise<s
   const it = await one(ctx.db, `SELECT * FROM order_items WHERE id = $1`, [itemId]);
   if (it.status !== 'waiting') return [];
   // a purchase for this line is already in flight or unresolved: never start a second one
-  const inflight = await maybeOne(ctx.db, `SELECT id FROM provider_orders WHERE order_item_id = $1 AND status IN ('pending','unknown')`, [itemId]);
+  const inflight = await maybeOne(ctx.db, `SELECT id FROM provider_orders WHERE order_item_id = $1 AND status IN ('pending','unknown','partial')`, [itemId]);
   if (inflight) return [];
 
   const sources = await many(ctx.db, `
@@ -94,7 +94,8 @@ async function buyFromProviders(ctx: Ctx, order: any, itemId: string): Promise<s
     if (outcome.kind === 'next') continue;
     const { po, result } = outcome;
     const ids = await applyProviderResult(ctx, po.id, result);
-    if (result.status === 'processing') return ids;
+    // still delivering (provider pre-order) or not ready: wait for it, never buy the same cards elsewhere meanwhile
+    if (result.status === 'processing' || (result.status === 'succeeded' && (result.remaining ?? 0) > 0)) return ids;
     const fresh = await one(ctx.db, `SELECT quantity, delivered_quantity, status FROM order_items WHERE id = $1`, [itemId]);
     it.delivered_quantity = fresh.delivered_quantity;
     if (ids.length) return ids;
@@ -176,37 +177,54 @@ async function purchase(ctx: Ctx, adapter: GiftCardProvider, order: any, it: any
 }
 
 /** Records a provider answer: stores codes (encrypted) and assigns them to the line. */
-async function applyProviderResult(ctx: Ctx, providerOrderId: string, r: PlaceOrderResult): Promise<string[]> {
+async function applyProviderResult(ctx: Ctx, providerOrderId: string, r: PlaceOrderResult, opts: { requeue?: boolean } = {}): Promise<string[]> {
+  const requeue = opts.requeue !== false;   // false when called from the lookup job, which reschedules itself
   if (r.status === 'failed') {
     await ctx.db.query(`UPDATE provider_orders SET status = 'failed', last_error = $2, response_summary = $3 WHERE id = $1`,
       [providerOrderId, r.reason, { status: 'failed', reason: r.reason, retryable: r.retryable }]);
     return [];
   }
   if (r.status === 'processing') {
-    await ctx.db.query(`UPDATE provider_orders SET status = 'unknown', external_transaction_id = $2, response_summary = $3 WHERE id = $1`,
-      [providerOrderId, r.transactionId ?? null, { status: 'processing' }]);
-    await enqueue(ctx.db, 'reconcile_provider_order', { providerOrderId }, { delaySecs: 20, dedupeKey: `reconcile:${providerOrderId}`, maxAttempts: 30 });
+    const po = await maybeOne(ctx.db, `
+      UPDATE provider_orders SET status = CASE WHEN status = 'partial' OR $4 THEN 'partial' ELSE 'unknown' END,
+        external_transaction_id = COALESCE($2, external_transaction_id),
+        response_summary = COALESCE(response_summary, '{}'::jsonb) || $3::jsonb
+      WHERE id = $1 AND status IN ('pending','unknown','partial') RETURNING id`,
+      [providerOrderId, r.transactionId ?? null, { status: r.preorder ? 'provider_preorder' : 'processing' }, !!r.preorder]);
+    if (po && requeue) await enqueue(ctx.db, 'reconcile_provider_order', { providerOrderId }, { delaySecs: r.retryAfterSecs ?? 20, dedupeKey: `reconcile:${providerOrderId}`, maxAttempts: 30 });
     return [];
   }
-  return withTx(ctx.db, async tx => {
+  const res = await withTx(ctx.db, async tx => {
     const po = await one(tx, `SELECT * FROM provider_orders WHERE id = $1 FOR UPDATE`, [providerOrderId]);
-    if (po.status === 'succeeded') return [];   // already applied
+    if (po.status === 'succeeded' || po.status === 'failed') return { assigned: [] as string[], more: false };   // already settled
     const it = await one(tx, `SELECT * FROM order_items WHERE id = $1 FOR UPDATE`, [po.order_item_id]);
+    // a provider pre-order is read again and again: store only the codes this purchase has not stored yet
+    const have = new Set((await many(tx, `SELECT code_hmac FROM gift_codes WHERE provider_order_id = $1`, [po.id]))
+      .map(x => Buffer.from(x.code_hmac).toString('hex')));
+    const fresh = r.cards.filter(c => !have.has(Buffer.from(ctx.vault.fingerprint(c.code)).toString('hex')));
     let need = it.status === 'waiting' ? it.quantity - it.delivered_quantity : 0;
     const assigned: string[] = [];
-    for (const card of r.cards) {
+    let stored = 0;
+    for (const card of fresh) {
       const toLine = need > 0;
       const id = await insertProviderCode(ctx, tx, it.product_id, po, card, toLine ? it.id : null);
+      if (id) stored++;
       if (id && toLine) { assigned.push(id); need--; }
     }
     if (assigned.length) await addDelivered(tx, it.id, assigned.length);
-    const total = r.totalCostCents ?? (po.unit_cost_cents ?? 0) * r.cards.length;
-    await tx.query(`UPDATE provider_orders SET status = 'succeeded', external_transaction_id = $2, total_cost_cents = $3,
+    const more = (r.remaining ?? 0) > 0;
+    const received = have.size + stored;
+    const total = r.totalCostCents ?? (po.unit_cost_cents ?? 0) * received;
+    const spentNow = Math.max(0, total - Number(po.total_cost_cents ?? 0));
+    await tx.query(`UPDATE provider_orders SET status = $5, external_transaction_id = $2, total_cost_cents = $3,
                     response_summary = $4, last_error = NULL WHERE id = $1`,
-      [po.id, r.transactionId, total, { status: 'succeeded', cards: r.cards.length, transactionId: r.transactionId }]);
-    await tx.query(`UPDATE providers SET balance_cents = balance_cents - $2 WHERE id = $1 AND balance_cents IS NOT NULL`, [po.provider_id, total]);
-    return assigned;
+      [po.id, r.transactionId, total, { status: more ? 'partial' : 'succeeded', cards: received, remaining: r.remaining ?? 0, transactionId: r.transactionId },
+       more ? 'partial' : 'succeeded']);
+    if (spentNow) await tx.query(`UPDATE providers SET balance_cents = balance_cents - $2 WHERE id = $1 AND balance_cents IS NOT NULL`, [po.provider_id, spentNow]);
+    return { assigned, more };
   });
+  if (res.more && requeue) await enqueue(ctx.db, 'reconcile_provider_order', { providerOrderId }, { delaySecs: 120, dedupeKey: `reconcile:${providerOrderId}`, maxAttempts: 30 });
+  return res.assigned;
 }
 
 async function insertProviderCode(ctx: Ctx, tx: Tx, productId: string, po: any, card: DeliveredCard, itemId: string | null) {
@@ -235,7 +253,7 @@ async function insertProviderCode(ctx: Ctx, tx: Tx, productId: string, po: any, 
 /** Job: settle a provider purchase whose outcome we did not get (timeout / processing). */
 export async function reconcileProviderOrder(ctx: Ctx, payload: { providerOrderId: string }) {
   const po = await maybeOne(ctx.db, `SELECT po.*, pr.adapter FROM provider_orders po JOIN providers pr ON pr.id = po.provider_id WHERE po.id = $1`, [payload.providerOrderId]);
-  if (!po || !['pending', 'unknown'].includes(po.status)) return;
+  if (!po || !['pending', 'unknown', 'partial'].includes(po.status)) return;
   const adapter: GiftCardProvider | null = ctx.providerFor(po.adapter);
   if (!adapter) throw new Error(`no adapter for ${po.adapter}`);
   adapter.onCall = c => { void logCall(ctx, po.provider_id, c); };
@@ -255,15 +273,23 @@ export async function reconcileProviderOrder(ctx: Ctx, payload: { providerOrderI
   } catch (e) {
     throw new RetryLater(60, `lookup failed: ${(e as Error).message}`);
   }
+  const it = await one(ctx.db, `SELECT order_id FROM order_items WHERE id = $1`, [po.order_item_id]);
   if (r === null) {
     // the provider never got it: safe to buy again with a new identifier
+    if (po.status === 'partial') throw new RetryLater(120, 'provider order no longer visible');   // codes were delivered: never re-buy blindly
     await ctx.db.query(`UPDATE provider_orders SET status = 'failed', last_error = 'not found at provider' WHERE id = $1`, [po.id]);
   } else if (r.status === 'processing') {
-    throw new RetryLater(30, 'provider still processing');
-  } else {
+    if (r.transactionId || r.preorder) await ctx.db.query(`UPDATE provider_orders SET external_transaction_id = COALESCE(external_transaction_id, $2),
+      status = CASE WHEN $3 THEN 'partial' ELSE status END WHERE id = $1`, [po.id, r.transactionId ?? null, !!r.preorder]);
+    throw new RetryLater(r.retryAfterSecs ?? 30, 'provider still processing');
+  } else if (r.status === 'failed') {
     await applyProviderResult(ctx, po.id, r);
+  } else {
+    // codes arrived (all, or the next part of a provider pre-order): hand them to the customer now
+    const ids = await applyProviderResult(ctx, po.id, r, { requeue: false });
+    if (ids.length) await settleOrder(ctx, it.order_id, ids);
+    if ((r.remaining ?? 0) > 0) throw new RetryLater(120, `provider pre-order: ${r.remaining} code(s) still to come`);
   }
-  const it = await one(ctx.db, `SELECT order_id FROM order_items WHERE id = $1`, [po.order_item_id]);
   await enqueue(ctx.db, 'fulfil_order', { orderId: it.order_id }, { dedupeKey: `fulfil:${it.order_id}` });
 }
 

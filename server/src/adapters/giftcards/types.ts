@@ -29,10 +29,13 @@ export interface DeliveredCard {
 }
 
 export type PlaceOrderResult =
-  /** Codes received. */
-  | { status: 'succeeded'; transactionId: string; totalCostCents?: number; cards: DeliveredCard[] }
-  /** Provider accepted but codes are not ready yet: poll findOrder later. */
-  | { status: 'processing'; transactionId?: string }
+  /**
+   * Codes received. `cards` is every code of this purchase so far (repeats are ignored when stored);
+   * remaining > 0 means the provider is still buying the rest (a provider pre-order): ask findOrder again later.
+   */
+  | { status: 'succeeded'; transactionId: string; totalCostCents?: number; cards: DeliveredCard[]; remaining?: number }
+  /** Provider accepted but codes are not ready yet: poll findOrder later. preorder: the provider is buying them (not an unknown outcome). */
+  | { status: 'processing'; transactionId?: string; retryAfterSecs?: number; preorder?: boolean }
   /** Definite failure: nothing was charged (out of stock, bad product, no balance…). */
   | { status: 'failed'; reason: string; retryable: boolean };
 

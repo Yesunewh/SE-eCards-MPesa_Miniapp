@@ -2,10 +2,11 @@
  * Which provider product delivers which of our cards.
  * After a sync, suggestMappings() pairs each of our products (brand + USD value) with the provider's SKU
  * for the same brand and value, preferring cards for the US, then global ones; applyMappings() saves them
- * as product_sources with the cost price (provider price minus its discount).
+ * as product_sources with the cost price (the provider's price, which already includes its discount).
  */
 import type { Ctx } from '../context.js';
 import { many, withTx } from '../db/pool.js';
+import type { Queryable } from '../db/pool.js';
 import { audit } from './admin.js';
 
 /** Words that identify a brand in a provider's SKU or product name. Brands added later match on their name. */
@@ -52,7 +53,8 @@ export async function suggestMappings(ctx: Ctx, providerId: string): Promise<Map
     const rank = (x: any) => { const i = PREFERRED_COUNTRY.indexOf(String(x.country ?? '').toUpperCase()); return i < 0 ? 99 : i; };
     matches.sort((a, b) => rank(a) - rank(b) || String(a.external_id).localeCompare(String(b.external_id)));
     const best = matches[0];
-    const cost = best?.price_cents != null ? Math.round(Number(best.price_cents) * (1 - Number(best.discount_pct ?? 0) / 100)) : null;
+    // the provider's price is what we pay per card (Wupex: face value minus its discount already)
+    const cost = best?.price_cents != null ? Number(best.price_cents) : null;
     return {
       productId: p.id, brandId: p.brand_id, valueUsd: p.face_value_cents / 100,
       externalId: best?.external_id ?? null, providerName: best?.name ?? null, country: best?.country ?? null,
@@ -79,4 +81,37 @@ export async function applyMappings(ctx: Ctx, adminId: string | null, providerId
     await audit(tx, adminId, 'provider.automap', 'provider', providerId, { mapped: ok.length, skipped: rows.length - ok.length });
   });
   return ok.length;
+}
+
+/** Which of our brands a provider product belongs to (null: a brand we do not carry). */
+function brandFor(x: { external_id: string; name?: string | null; brand_name?: string | null }, brands: { id: string; name: string }[]): string | null {
+  const text = ` ${String(x.external_id)} ${x.name ?? ''} ${x.brand_name ?? ''} `.toLowerCase();
+  for (const b of brands) if ((KEYWORDS[b.id] ?? [b.name.toLowerCase()]).some(w => text.includes(w))) return b.id;
+  return null;
+}
+
+/**
+ * Adds our product (brand + USD value) for every value the provider sells in a brand we carry, so the catalogue
+ * follows what can actually be bought. Returns what was added and the provider's brands we do not carry.
+ */
+export async function addProviderValues(ctx: Ctx, adminId: string | null, providerId: string) {
+  return withTx(ctx.db, async (tx: Queryable) => {
+    const brands = await many(tx, `SELECT id, name FROM brands WHERE is_active`);
+    const theirs = await many(tx, `SELECT external_id, name, brand_name, currency, denominations_cents FROM provider_products
+                                   WHERE provider_id = $1 AND is_available`, [providerId]);
+    const added: string[] = [];
+    const unknown = new Set<string>();
+    for (const x of theirs) {
+      if ((x.currency ?? 'USD') !== 'USD') continue;
+      const brand = brandFor(x, brands);
+      if (!brand) { unknown.add(String(x.brand_name ?? String(x.external_id).split('-')[0])); continue; }
+      for (const c of (x.denominations_cents ?? []) as number[]) {
+        const r = await tx.query(`INSERT INTO products (brand_id, face_value_cents) VALUES ($1,$2)
+                                  ON CONFLICT (brand_id, face_value_cents, face_currency, region) DO NOTHING RETURNING id`, [brand, c]);
+        if (r.rowCount) added.push(`${brand} $${c / 100}`);
+      }
+    }
+    await audit(tx, adminId, 'provider.add_values', 'provider', providerId, { added });
+    return { added, brandsNotCarried: [...unknown].sort() };
+  });
 }

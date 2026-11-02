@@ -1,39 +1,42 @@
 /**
- * Wupex gift card API (https://wupex.com/api-doc-overview/).
+ * Wupex gift card API (API reference v1.1, June 2026, checked against the sandbox on 2026-11-02).
  *
- *   sandbox  https://sandbox-service.wupex.com      live  https://service.wupex.com
- *   headers  x-api-key, Accept-Language: en-US, Content-Type: application/json
+ *   sandbox  https://sandbox-service.wupex.com      live  set WUPEX_BASE_URL to the production service URL
+ *            (the portal, sandbox-portal.wupex.com, is for browsers only: it refuses API calls)
+ *   headers  x-api-key, Accept-Language: en, Content-Type: application/json
  *
- *   GET  /api/customer/balance                      → { data: { balance, credit, creditBalance }, status }
- *   POST /api/product/merchant/invited/list         { page, pageSize≤100 } → { pageInfo, data: [product], status }
- *   POST /api/order/pull-codes                      [{ merchant, sku, quantity }] → { data: { orderName, totalAmount, serials[] }, status }
- *   GET  /api/order/detail?orderName=…              → { data: { id, orderName, orderData[{ productCode, serials[] }] }, status }
- *   POST /api/order/list                            { page, pageSize, orderColumn, order } → { data: [{ id, orderName, orderDate, orderAmount }] }
- *   errors                                          { status: false, error: { code, message } }
+ *   GET  /api/customer/balance                         → { data: { balance, credit, creditBalance }, status }
+ *   POST /api/product/merchant/invited/list            { page, pageSize≤100 } → { pageInfo, data: [product], status }
+ *   POST /api/order/pull-codes?referenceId=…&allowTakeAll=true   [{ merchant, sku, quantity }]
+ *                                                      → { data: { orderName, totalAmount, preOrderNo, statusMessage }, status }
+ *                                                        (no codes in this answer: they are read with order/detail)
+ *   GET  /api/order/detail?referenceId=… | ?orderName=… → { data: { orderName, statusType, deliveredQuantity,
+ *                                                        remainingQuantity, orderData[{ productCode, serials[] }] }, status }
+ *   GET  /api/preorder/status                          → { data: { enabled }, status }
+ *   errors                                             HTTP 200 { status: false, description: "[CODE] message" | "… | Insufficient Stock" }
  *
- * Wupex takes no reference of ours on an order, so a purchase whose answer is lost (timeout) cannot be looked
- * up by our id. To stay safe:
- *   1. purchases are serialized (one at a time per provider; fulfilment holds a lock), and none starts while an
- *      earlier one is unresolved;
- *   2. right before buying, prepareOrder() records the newest Wupex order id (the "marker");
- *   3. after a timeout, findOrder() looks for an order newer than the marker, not already claimed by another of
- *      our purchases, with the same SKU and quantity. Found → its codes are used. Not found after a few minutes →
- *      Wupex never got it, so fulfilment may buy again.
+ * Safety:
+ *   - every purchase carries referenceId = our provider_orders.custom_identifier. Wupex treats it as an
+ *     idempotency key (a repeat answers ALREADY_COMPLETED for the same order, without charging again), and the
+ *     order can be looked up by it, so a lost answer (timeout) is settled by asking for that referenceId.
+ *   - Wupex pre-orders: when stock is short, Wupex delivers what it has and buys the rest from its suppliers
+ *     (retrying every 10 minutes, up to 10 times), charging only for what it delivers. We keep reading the order
+ *     until it is Completed or Failed, delivering codes to the customer as they arrive.
  */
-import type { GiftCardProvider, LookupContext, PlaceOrderInput, PlaceOrderResult, ProviderCatalogItem, DeliveredCard } from './types.js';
+import type { DeliveredCard, GiftCardProvider, LookupContext, PlaceOrderInput, PlaceOrderResult, ProviderCatalogItem } from './types.js';
 import { ProviderUnknownError } from './types.js';
 
 export interface WupexConfig {
   baseUrl: string;
   apiKey: string;
-  merchant: string;            // the merchant code sent with every order line
-  currency?: string;           // currency of prices and balance (not stated in the docs: confirm with Wupex)
+  merchant: string;            // merchant code (portal → avatar), sent with every order line
+  currency?: string;           // currency of prices and balance (USD)
   timeoutMs?: number;
-  /** how long an order may take to appear in the order list before we conclude Wupex never got it */
+  /** how long an order may take to become visible by referenceId before we conclude Wupex never got it */
   settleSecs?: number;
+  /** how often to read a Wupex pre-order that is still waiting for codes */
+  preorderPollSecs?: number;
 }
-
-interface WupexSerial { sku?: string; productSku?: string; serialCode?: string; serialNumber?: string }
 
 /** "$50" out of "NETFLIX-USA-50USD" or "Netflix 50 USD": the face value in cents, if there is one. */
 export function faceValueCents(...texts: (string | undefined)[]): number | undefined {
@@ -44,9 +47,26 @@ export function faceValueCents(...texts: (string | undefined)[]): number | undef
   return undefined;
 }
 
+/** Wupex errors: { status:false, description:"[CODE] message" } or "RequestId:… | Insufficient Stock". */
+export function wupexError(json: any, http: number): { code: string; message: string } {
+  const d = String(json?.description ?? json?.error?.message ?? json?.message ?? '').trim();
+  const bracket = d.match(/^\[([A-Z0-9_]+)\]\s*(.*)$/);
+  if (bracket) return { code: bracket[1]!, message: bracket[2]! };
+  if (json?.error?.code) return { code: String(json.error.code), message: d };
+  const tail = d.split('|').pop()!.trim();
+  if (/insufficient stock/i.test(d) || json?.validateError?.product) return { code: 'INSUFFICIENT_STOCK', message: tail || d };
+  if (/insufficient (balance|credit|fund)/i.test(d)) return { code: 'INSUFFICIENT_BALANCE', message: tail };
+  if (/not found/i.test(d)) return { code: 'NOT_FOUND', message: tail };
+  return { code: tail ? tail.toUpperCase().replace(/[^A-Z0-9]+/g, '_').slice(0, 40) : `HTTP_${http}`, message: d };
+}
+
+const RETRYABLE = new Set(['INSUFFICIENT_STOCK', 'INSUFFICIENT_BALANCE', 'PRODUCT_DISABLED', 'OUT_OF_STOCK']);
+const cents = (v: unknown) => (v == null || v === '' ? undefined : Math.round(Number(v) * 100));
+
 export class WupexProvider implements GiftCardProvider {
   readonly name = 'wupex';
-  readonly serialize = true;
+  /** referenceId makes every purchase idempotent and findable, so purchases can run side by side */
+  readonly serialize = false;
   onCall?: GiftCardProvider['onCall'];
 
   constructor(private readonly cfg: WupexConfig) {}
@@ -63,7 +83,7 @@ export class WupexProvider implements GiftCardProvider {
         method,
         headers: {
           'x-api-key': this.cfg.apiKey,
-          'Accept-Language': 'en-US',
+          'Accept-Language': 'en',
           accept: 'application/json',
           ...(body !== undefined ? { 'content-type': 'application/json' } : {})
         },
@@ -78,20 +98,28 @@ export class WupexProvider implements GiftCardProvider {
     const ok = res.ok && json?.status === true;
     this.onCall?.({
       method, path: path.split('?')[0]!, status: res.status, ms: Date.now() - t0, ok, ref,
-      note: ok ? undefined : `${json?.error?.code ?? ''} ${json?.error?.message ?? ''}`.trim().slice(0, 300) || undefined
+      note: ok ? (json?.description ? String(json.description).slice(0, 120) : undefined) : `${wupexError(json, res.status).code}: ${wupexError(json, res.status).message}`.slice(0, 300)
     });
     if (res.status === 408 || res.status === 429 || res.status >= 500) throw new ProviderUnknownError(`HTTP ${res.status}`);
     return { http: res.status, json };
   }
 
   private fail(json: any, http: number): Error {
-    return new Error(`Wupex ${http}: ${json?.error?.code ?? 'ERROR'} ${json?.error?.message ?? ''}`.trim());
+    const e = wupexError(json, http);
+    return new Error(`Wupex ${http}: ${e.code} ${e.message}`.trim());
   }
 
+  /** What we can still spend: creditBalance (credit line + prepaid balance; balance itself goes negative on credit). */
   async getBalance() {
     const { http, json } = await this.request('GET', '/api/customer/balance');
     if (json?.status !== true) throw this.fail(json, http);
-    return { balanceCents: Math.round(Number(json.data?.balance ?? 0) * 100), currency: this.currency };
+    const d = json.data ?? {};
+    return { balanceCents: cents(d.creditBalance ?? d.balance) ?? 0, currency: String(d.currency ?? this.currency) };
+  }
+
+  async preorderEnabled(): Promise<boolean> {
+    const { json } = await this.request('GET', '/api/preorder/status');
+    return json?.status === true && json.data?.enabled === true;
   }
 
   async listProducts(): Promise<ProviderCatalogItem[]> {
@@ -102,20 +130,25 @@ export class WupexProvider implements GiftCardProvider {
       for (const p of (json.data ?? []) as any[]) {
         const sku = String(p.productCode ?? '');
         if (!sku) continue;
-        const face = faceValueCents(sku, p.productName);
+        if (p.cardType && p.cardType !== 'voucher') continue;   // top-ups need the player's account id: not sold here
+        // the SKU and name state the value; faceValue is only a fallback (the sandbox has "$15" with faceValue 16)
+        const face = faceValueCents(sku, p.productName) ?? cents(p.faceValue);
         const parts = sku.split('-');
+        const region = String(p.regionName ?? '').trim();
         out.push({
           externalId: sku,
           name: String(p.productName ?? sku),
           brandName: p.productType ?? parts[0],
-          country: parts.length >= 3 ? parts[1] : undefined,
+          country: region ? region.toUpperCase() : parts.length >= 3 ? parts[1] : undefined,
           currency: this.currency,
           type: 'FIXED',
           denominationsCents: face ? [face] : [],
-          discountPct: p.discountRate != null ? Number(p.discountRate) * 100 : undefined,
-          priceCents: p.price != null ? Math.round(Number(p.price) * 100) : undefined,
-          available: p.enabled !== false && (p.available == null || Number(p.available) > 0),
-          raw: p
+          // price is already what we pay (face value minus discountRate %): the discount is informational
+          discountPct: p.discountRate != null ? Number(p.discountRate) : undefined,
+          priceCents: cents(p.price),
+          // out of stock but pre-order capable still counts: Wupex buys it from its suppliers
+          available: p.enabled !== false && (p.available == null || Number(p.available) > 0 || p.preorder === true),
+          raw: { productId: p.productId, available: p.available, preorder: p.preorder, faceValue: p.faceValue, regionName: p.regionName, imageUrl: p.imageUrl }
         });
       }
       const info = json.pageInfo ?? {};
@@ -124,82 +157,72 @@ export class WupexProvider implements GiftCardProvider {
     return out;
   }
 
-  /** The newest order id on the account, recorded before buying (see the header comment). */
-  async prepareOrder(): Promise<Record<string, unknown>> {
-    try {
-      const recent = await this.recentOrders(5);
-      const newest = recent.reduce((m, o) => (Number(o.id) > m ? Number(o.id) : m), 0);
-      return { markerId: newest, preparedAt: new Date().toISOString() };
-    } catch (e) {
-      // nothing was bought yet: report it as a plain failure so fulfilment tries again later
-      throw new Error(`could not read the Wupex order list before buying: ${(e as Error).message}`);
-    }
-  }
-
-  private async recentOrders(pageSize: number): Promise<Array<{ id: number; orderName: string; orderDate?: string; orderAmount?: number }>> {
-    const { http, json } = await this.request('POST', '/api/order/list', { page: 1, pageSize, orderColumn: 'orderDate', order: 'DESC' });
-    if (json?.status !== true) throw this.fail(json, http);
-    return (json.data ?? []) as any[];
-  }
-
   async placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
-    const { http, json } = await this.request('POST', '/api/order/pull-codes',
-      [{ merchant: this.cfg.merchant, sku: input.externalProductId, quantity: input.quantity }], input.customIdentifier);
+    const ref = input.customIdentifier;
+    const { http, json } = await this.request('POST',
+      `/api/order/pull-codes?referenceId=${encodeURIComponent(ref)}&allowTakeAll=true`,
+      [{ merchant: this.cfg.merchant, sku: input.externalProductId, quantity: input.quantity }], ref);
 
     if (json?.status === true && json.data?.orderName) {
-      const cards = toCards(json.data.serials ?? []);
-      const totalCostCents = json.data.totalAmount != null ? Math.round(Number(json.data.totalAmount) * 100) : undefined;
-      if (!cards.length) return { status: 'processing', transactionId: String(json.data.orderName) };   // codes to fetch with findOrder
-      return { status: 'succeeded', transactionId: String(json.data.orderName), totalCostCents, cards };
+      // accepted (or ALREADY_COMPLETED for this referenceId): the codes are read from the order itself
+      const orderName = String(json.data.orderName);
+      try {
+        const d = await this.detail({ orderName }, ref);
+        if (d) return d;
+      } catch (e) {
+        if (!(e instanceof ProviderUnknownError)) throw e;
+      }
+      return { status: 'processing', transactionId: orderName, retryAfterSecs: 10 };
     }
-    // 409 "conflicting request state or duplicate": we cannot be sure nothing was bought
-    if (http === 409) throw new ProviderUnknownError(`HTTP 409 ${json?.error?.code ?? ''}`);
-    const code = String(json?.error?.code ?? `HTTP_${http}`);
-    return { status: 'failed', reason: `${code}: ${json?.error?.message ?? ''}`.trim(), retryable: code === 'INSUFFICIENT_STOCK' };
+    if (json?.status === true) throw new ProviderUnknownError('Wupex accepted the order without an order number');
+    const err = wupexError(json, http);
+    // an answer that says the reference is in use / still running: the order may exist, look it up
+    if (http === 409 || /REFERENCE|DUPLICATE|IN_PROGRESS|ALREADY/.test(err.code)) throw new ProviderUnknownError(`${err.code}: ${err.message}`);
+    return { status: 'failed', reason: `${err.code}: ${err.message}`.slice(0, 300), retryable: RETRYABLE.has(err.code) };
   }
 
-  async findOrder(_customIdentifier: string, c: LookupContext): Promise<PlaceOrderResult | null> {
-    // the order name is already known (Wupex answered without codes): just read that order
-    const known = c.prepared?.knownTransactionId ? String(c.prepared.knownTransactionId) : '';
-    if (known) {
-      const d = await this.orderDetail(known);
-      if (d && d.cards.length) return { status: 'succeeded', transactionId: d.orderName, totalCostCents: d.totalCostCents, cards: d.cards.map(({ sku: _s, ...card }) => card) };
-      return { status: 'processing', transactionId: known };
-    }
-    const marker = Number(c.prepared?.markerId);
-    if (!Number.isFinite(marker)) throw new Error('no marker recorded before this purchase: check the Wupex order list by hand');
-    const recent = await this.recentOrders(30);
-    const candidates = recent
-      .filter(o => Number(o.id) > marker && !c.claimed.includes(String(o.orderName)))
-      .sort((a, b) => Number(a.id) - Number(b.id));
-    for (const o of candidates) {
-      const d = await this.orderDetail(String(o.orderName));
-      if (!d) continue;
-      const mine = d.cards.filter(x => x.sku === c.externalProductId);
-      const other = d.cards.length - mine.length;
-      if (mine.length === c.quantity && other === 0) {
-        return { status: 'succeeded', transactionId: d.orderName, totalCostCents: d.totalCostCents, cards: mine.map(({ sku: _s, ...card }) => card) };
-      }
-    }
-    // not there (yet): give Wupex a few minutes before concluding it never got the order
+  /** After a lost answer, or while a Wupex pre-order is filling: read the order by our referenceId. */
+  async findOrder(customIdentifier: string, c: LookupContext): Promise<PlaceOrderResult | null> {
+    const d = await this.detail({ referenceId: customIdentifier }, customIdentifier);
+    if (d) return d;
+    // not visible (yet): give Wupex a little time before concluding it never got the order
     const age = (Date.now() - c.placedAt.getTime()) / 1000;
-    if (age < (this.cfg.settleSecs ?? 180)) return { status: 'processing' };
+    if (age < (this.cfg.settleSecs ?? 90)) return { status: 'processing', retryAfterSecs: 20 };
     return null;
   }
 
-  async orderDetail(orderName: string): Promise<{ orderName: string; totalCostCents?: number; cards: Array<DeliveredCard & { sku?: string }> } | null> {
-    const { http, json } = await this.request('GET', `/api/order/detail?orderName=${encodeURIComponent(orderName)}`, undefined, orderName);
-    if (http === 404 || json?.status !== true) return null;
-    const serials: WupexSerial[] = (json.data?.orderData ?? []).flatMap((row: any) =>
-      (row.serials ?? []).map((s: any) => ({ ...s, sku: s.productSku ?? row.productCode })));
-    return {
-      orderName: String(json.data?.orderName ?? orderName),
-      totalCostCents: json.data?.orderAmount != null ? Math.round(Number(json.data.orderAmount) * 100) : undefined,
-      cards: serials.filter(s => s.serialCode).map(s => ({ sku: s.sku, code: String(s.serialCode), serial: s.serialNumber ? String(s.serialNumber) : undefined }))
-    };
-  }
-}
+  /** One order as a purchase result. null = no such order on our account. */
+  async detail(q: { orderName?: string; referenceId?: string }, ref?: string): Promise<PlaceOrderResult | null> {
+    const qs = q.orderName ? `orderName=${encodeURIComponent(q.orderName)}` : `referenceId=${encodeURIComponent(q.referenceId!)}`;
+    const { http, json } = await this.request('GET', `/api/order/detail?${qs}`, undefined, ref);
+    if (json?.status !== true || !json.data) {
+      if (http === 404 || wupexError(json, http).code === 'NOT_FOUND') return null;
+      throw this.fail(json, http);
+    }
+    const o = json.data;
+    const cards: DeliveredCard[] = (o.orderData ?? []).flatMap((row: any) => (row.serials ?? []).map((s: any) => ({ ...s, _sku: s.productSku ?? row.productCode })))
+      .filter((s: any) => s.serialCode)
+      .map((s: any) => ({
+        code: String(s.serialCode),
+        pin: s.securityCode ? String(s.securityCode) : undefined,
+        serial: s.serialNumber ? String(s.serialNumber) : undefined,
+        expiresOn: s.expiry ? String(s.expiry).slice(0, 10) : undefined
+      }));
+    const orderName = String(o.orderName ?? q.orderName ?? '');
+    const total = Number(o.totalQuantity ?? cards.length);
+    const remaining = Math.max(0, Math.round(Number(o.remainingQuantity ?? Math.max(0, total - cards.length))));
+    const type = String(o.statusType ?? o.status ?? '').toLowerCase();
+    // charged only for what was delivered: the order amount pro rata
+    const amount = cents(o.orderAmount);
+    const totalCostCents = amount != null && total > 0 ? Math.round(amount * cards.length / total) : undefined;
 
-function toCards(serials: WupexSerial[]): DeliveredCard[] {
-  return serials.filter(s => s.serialCode).map(s => ({ code: String(s.serialCode), serial: s.serialNumber ? String(s.serialNumber) : undefined }));
+    if (type.startsWith('fail') || type.startsWith('cancel')) {
+      // Wupex gave up on the rest (and refunds it): keep what was delivered, the line falls back to other sources
+      if (!cards.length) return { status: 'failed', reason: `Wupex order ${orderName} ${o.statusType ?? o.status}`, retryable: true };
+      return { status: 'succeeded', transactionId: orderName, totalCostCents, cards, remaining: 0 };
+    }
+    const done = type.startsWith('complet') || type.startsWith('complat') || (remaining === 0 && cards.length > 0);
+    if (!cards.length) return { status: 'processing', transactionId: orderName, retryAfterSecs: done ? 10 : (this.cfg.preorderPollSecs ?? 120), preorder: !done };
+    return { status: 'succeeded', transactionId: orderName, totalCostCents, cards, remaining: done ? 0 : remaining };
+  }
 }

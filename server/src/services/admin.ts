@@ -68,6 +68,7 @@ export async function dashboard(ctx: Ctx) {
       (SELECT count(*)::int FROM product_stock ps JOIN products p ON p.id = ps.product_id
          WHERE p.is_active AND ps.codes_available <= (SELECT low_stock_threshold FROM app_settings)) AS products_low_or_out,
       (SELECT count(*)::int FROM provider_orders WHERE status = 'unknown') AS provider_orders_unresolved,
+      (SELECT count(*)::int FROM provider_orders WHERE status = 'partial') AS provider_preorders_open,
       (SELECT count(*)::int FROM payments WHERE status = 'failed' AND (result_desc LIKE 'AMOUNT MISMATCH%' OR result_desc LIKE 'DUPLICATE PAYMENT%')) AS payments_needing_review,
       (SELECT count(*)::int FROM jobs WHERE status = 'dead') AS jobs_dead`);
 }
