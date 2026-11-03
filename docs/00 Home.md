@@ -60,7 +60,11 @@ This vault documents what has been built, how it works, how it is deployed, and 
 - [[Product Walkthrough]]: what to show and say to partners and management
 - [[Flow Walkthrough]]: each step explained twice, once technically and once simply
 
-## 4. Meeting material
+## 4. Session
+- [[Session Handoff]]: where the work stands and how to continue (start here in a new session)
+- [[Conversation History]]: the full conversation so far, secrets removed
+
+## 5. Meeting material
 - [[Meeting Brief]]: a one-page summary for tomorrow
 - [[Questions for Partners]]: what we need from Safaricom and Wupex
 - [[Decisions Log]]

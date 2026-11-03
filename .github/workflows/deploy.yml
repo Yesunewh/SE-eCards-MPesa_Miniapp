@@ -42,3 +42,4 @@ jobs:
             server/**
             miniprogram/**
             docs/**
+            CLAUDE.md
