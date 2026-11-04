@@ -1,7 +1,7 @@
 ---
 title: Session Handoff
 tags: [ecards, session, handoff]
-updated: 2026-11-03
+updated: 2026-11-04
 ---
 
 # Session Handoff: where we are and how to continue
@@ -36,6 +36,8 @@ This note lets a new Claude Code session (for example on the VPS, in `~/ecards-s
 | Merchant number | `0711885151` to try as businessID. It looks like a phone number, so it must be confirmed with Safaricom. |
 
 ## Steps the owner was given last, and may not have run yet
+**2026-11-04:** steps 1 and 2 are done on the VPS. `DEV_SIMULATE_KEY` is removed (backup of the old `.env` in `/root`), release `20261104-173121` is live and migrations 004 and 005 are applied. Step 3 is still open: `.env` has `GIFTCARD_ADAPTER=mock` and no Wupex settings yet.
+
 Check these first. They are also in [[Operations Runbook]].
 1. `sudo sed -i '/^DEV_SIMULATE_KEY=/d' /opt/ecards/.env`
 2. Update the code:
