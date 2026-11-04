@@ -36,7 +36,14 @@ This note lets a new Claude Code session (for example on the VPS, in `~/ecards-s
 | Merchant number | `0711885151` to try as businessID. It looks like a phone number, so it must be confirmed with Safaricom. |
 
 ## Steps the owner was given last, and may not have run yet
-**2026-11-04:** steps 1 and 2 are done on the VPS. `DEV_SIMULATE_KEY` is removed (backup of the old `.env` in `/root`), release `20261104-173121` is live and migrations 004 and 005 are applied. Step 3 is still open: `.env` has `GIFTCARD_ADAPTER=mock` and no Wupex settings yet.
+**2026-11-04:** steps 1 to 5 are done on the VPS, except re-uploading the brand pictures.
+- `DEV_SIMULATE_KEY` is removed. Release `20261104-173121` is live, and migrations 004 and 005 are applied.
+- Wupex sandbox is set in `.env` (`GIFTCARD_ADAPTER=wupex`). The `wupex` supplier row did not exist, so it was added to `providers` (sandbox, active, priority 100). Without it, sync fails with `provider_not_found`.
+- Test data is cleared: 1 order, 1 payment, 1 customer, 230 sample codes and the mock supplier. A database dump from before the clear is in `/root`.
+- `provider-map wupex --add-values --apply` synced 34 Wupex products (sandbox balance 9973.94), added 20 card values and saved 27 mappings. Netflix, Spotify, Xbox, PUBG and Call of Duty have no Wupex product in the sandbox. Wupex also sells Roblox, which we don't carry yet.
+- Backups of the old `.env` are in `/root`.
+
+Still open: re-upload brand pictures in Admin, then the acceptance test (step 6).
 
 Check these first. They are also in [[Operations Runbook]].
 1. `sudo sed -i '/^DEV_SIMULATE_KEY=/d' /opt/ecards/.env`
